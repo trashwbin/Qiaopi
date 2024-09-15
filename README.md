@@ -1,6 +1,9 @@
 
 建表语句
 
+
+
+```
 CREATE TABLE user (
                       id BIGINT NOT NULL AUTO_INCREMENT,
                       user_name VARCHAR(255) NOT NULL UNIQUE,
@@ -27,3 +30,5 @@ insert into user (user_name, email, password) values ('admin', 'Trashwbin@gmail.
 
 
 
+
+```
