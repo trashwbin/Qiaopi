@@ -1,0 +1,6 @@
+com\qiaopi\dto\UserLoginDTO.class
+com\qiaopi\vo\UserLoginVO$UserLoginVOBuilder.class
+com\qiaopi\entity\User$UserBuilder.class
+com\qiaopi\entity\User.class
+com\qiaopi\BaseEntity.class
+com\qiaopi\vo\UserLoginVO.class
