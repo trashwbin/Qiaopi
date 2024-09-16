@@ -1,15 +1,23 @@
 package com.qiaopi.server.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.qiaopi.constant.JwtClaimsConstant;
 import com.qiaopi.dto.UserLoginDTO;
 import com.qiaopi.entity.User;
+import com.qiaopi.exception.user.UserNameNotMatchException;
+import com.qiaopi.exception.user.UserNotExistsException;
 import com.qiaopi.mapper.UserMapper;
+import com.qiaopi.properties.JwtProperties;
 import com.qiaopi.server.UserService;
 import com.qiaopi.utils.AccountValidator;
+import com.qiaopi.utils.JwtUtil;
 import com.qiaopi.vo.UserLoginVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -17,6 +25,8 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private  UserMapper userMapper;
+    @Autowired
+    private JwtProperties jwtProperties;
 
 
     @Override
@@ -27,15 +37,14 @@ public class UserServiceImpl implements UserService {
 
         // 根据用户名和密码查询用户信息
         if (!AccountValidator.isValidAccount(userLoginDTO.getUsername())) {
-            //TODO 抛出用户不合法异常，对前端进行二次校验
-//            throw new AccountNotFoundException(MessageConstant.ACCOUNT_NOT_FOUND);
-            throw new RuntimeException("用户名不合法");
+            //用户名不匹配
+            throw new UserNameNotMatchException();
         }
 
         //为了方便查询，将用户名和密码封装到User对象中
         User userLogin = User.builder().password(userLoginDTO.getPassword()).build();
 
-        //TODO 对前端传过来的明文密码进行md5加密处理
+        //TODO 对前端传过来的明文密码进行md5或其他加密处理
 //        password = DigestUtils.md5DigestAsHex(password.getBytes());
 
         if (AccountValidator.isValidEmail(userLoginDTO.getUsername())) {
@@ -60,19 +69,16 @@ public class UserServiceImpl implements UserService {
 
         if (user == null) {
             //账号不存在
-            //TODO 抛出账号不存在异常
-//            throw new AccountNotFoundException(MessageConstant.ACCOUNT_NOT_FOUND);
-            throw new RuntimeException("账号不存在");
+            throw new UserNotExistsException();
         }
 
         //TODO 登录成功后，生成jwt令牌
-//        Map<String, Object> claims = new HashMap<>();
-//        claims.put(JwtClaimsConstant.EMP_ID, employee.getId());
-//        String token = JwtUtil.createJWT(
-//                jwtProperties.getAdminSecretKey(),
-//                jwtProperties.getAdminTtl(),
-//                claims);
-        String token = "123";
+        Map<String, Object> claims = new HashMap<>();
+        claims.put(JwtClaimsConstant.USER_ID, user.getId());
+        String token = JwtUtil.createJWT(
+                jwtProperties.getUserSecretKey(),
+                jwtProperties.getUserTtl(),
+                claims);
 
         UserLoginVO userLoginVO = UserLoginVO.builder()
                 .id(user.getId())
