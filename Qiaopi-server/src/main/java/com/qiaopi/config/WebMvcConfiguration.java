@@ -3,6 +3,14 @@ package com.qiaopi.config;
 //import com.qiaopi.interceptor.JwtTokenAdminInterceptor;
 import com.qiaopi.interceptor.JwtTokenUserInterceptor;
 //import com.qiaopi.json.JacksonObjectMapper;
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.media.IntegerSchema;
+import io.swagger.v3.oas.models.media.ObjectSchema;
+import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.media.StringSchema;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -12,12 +20,12 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
-import springfox.documentation.builders.ApiInfoBuilder;
-import springfox.documentation.builders.PathSelectors;
-import springfox.documentation.builders.RequestHandlerSelectors;
-import springfox.documentation.service.ApiInfo;
-import springfox.documentation.spi.DocumentationType;
-import springfox.documentation.spring.web.plugins.Docket;
+//import springfox.documentation.builders.ApiInfoBuilder;
+//import springfox.documentation.builders.PathSelectors;
+//import springfox.documentation.builders.RequestHandlerSelectors;
+//import springfox.documentation.service.ApiInfo;
+//import springfox.documentation.spi.DocumentationType;
+//import springfox.documentation.spring.web.plugins.Docket;
 
 import java.util.List;
 
@@ -47,7 +55,7 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
 
         registry.addInterceptor(jwtTokenUserInterceptor)
                 .addPathPatterns("/user/**")
-                .excludePathPatterns("/user/user/login")
+                .excludePathPatterns("/user/login")
                 .excludePathPatterns("/user/shop/status");
     }
 
@@ -76,37 +84,35 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
 //        return docket;
 //    }
 
-    @Bean
-    public Docket docketUser(){
-        log.info("准备生成接口文档...");
-        ApiInfo apiInfo = new ApiInfoBuilder()
-                .title("苍穹外卖项目接口文档")
-                .version("2.0")
-                .description("苍穹外卖项目接口文档")
-                .build();
 
-        Docket docket = new Docket(DocumentationType.SWAGGER_2)
-                .groupName("用户端接口")
-                .apiInfo(apiInfo)
-                .select()
-                //指定生成接口需要扫描的包
-                .apis(RequestHandlerSelectors.basePackage("com.qiaopi.controller.user"))
-                .paths(PathSelectors.any())
-                .build();
+@Bean
+public OpenAPI springShopOpenAPI() {
+    return new OpenAPI()
 
-        return docket;
-    }
-
+            .info(new Info()
+                    .title("侨批接口文档") // 接口文档标题
+                    .description("这是基于Knife4j OpenApi3的接口文档") // 接口文档简介
+                    .version("1.0")  // 接口文档版本
+                    .contact(new Contact()
+                            .name("侨批") //开发者
+                            .email("noreply@qiaopi.com")
+                    )
+            )
+            //还得是Chatgpt更胜一筹,将不能解析的HashMap
+            .components(new Components().addSchemas("AjaxResult", new Schema<>().type("object")
+                    .addProperty("code", new IntegerSchema().description("状态码").example(200))
+                    .addProperty("msg", new StringSchema().description("返回消息").example("操作成功"))
+                    .addProperty("data", new ObjectSchema().description("数据对象"))))
+            ; // 开发者联系方式
+}
     /**
-     * 设置静态资源映射
+     * 添加静态资源映射
      * @param registry
      */
     protected void addResourceHandlers(ResourceHandlerRegistry registry) {
-        log.info("设置静态资源映射...");
         registry.addResourceHandler("/doc.html").addResourceLocations("classpath:/META-INF/resources/");
         registry.addResourceHandler("/webjars/**").addResourceLocations("classpath:/META-INF/resources/webjars/");
     }
-
 //    /**
 //     * 扩展Spring MVC框架的消息转化器
 //     * @param converters
@@ -121,3 +127,4 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
 //        converters.add(0,converter);
 //    }
 }
+

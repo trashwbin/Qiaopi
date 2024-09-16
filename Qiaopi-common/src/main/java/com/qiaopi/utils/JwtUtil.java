@@ -1,25 +1,38 @@
 package com.qiaopi.utils;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtBuilder;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SecureDigestAlgorithm;
+import lombok.extern.slf4j.Slf4j;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.Key;
 import java.util.Date;
 import java.util.Map;
+import io.jsonwebtoken.security.Keys;
 
+/**
+ * @ClassName JwtUtil工具类
+ * @project agriBlissMart_common
+ * @Description
+ * @Version 1.0
+ */
+@Slf4j
 public class JwtUtil {
+
     /**
      * 生成jwt
-     * 使用Hs256算法, 私匙使用固定秘钥
-     *
-     * @param secretKey jwt秘钥
-     * @param ttlMillis jwt过期时间(毫秒)
-     * @param claims    设置的信息
+     * 使用Hs256算法，私钥使用固定密钥
+     * @param secretKey  jwt密钥
+     * @param ttlMillis  jwt过期时间，单位毫秒
+     * @param claims     设置的信息
      * @return
      */
-    public static String createJWT(String secretKey, long ttlMillis, Map<String, Object> claims) {
+    public static String createJWT(String secretKey, long ttlMillis, Map<String, Object> claims){
+
         // 指定签名的时候使用的签名算法，也就是header那部分
         SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
 
@@ -39,21 +52,23 @@ public class JwtUtil {
         return builder.compact();
     }
 
+
     /**
-     * Token解密
-     *
-     * @param secretKey jwt秘钥 此秘钥一定要保留好在服务端, 不能暴露出去, 否则sign就可以被伪造, 如果对接多个客户端建议改造成多个
-     * @param token     加密后的token
+     * 解析jwt
+     * @param token
+     * @param secretKey
      * @return
      */
-    public static Claims parseJWT(String secretKey, String token) {
-        // 得到DefaultJwtParser
-        Claims claims = Jwts.parser()
-                // 设置签名的秘钥
-                .setSigningKey(secretKey.getBytes(StandardCharsets.UTF_8))
-                // 设置需要解析的jwt
-                .parseClaimsJws(token).getBody();
-        return claims;
+    public static Jws<Claims> parseJWT(String token, String secretKey){
+        //密钥实例
+        SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+
+        Jws<Claims> claimsJws = Jwts.parser()
+                .verifyWith(key)  //设置签名的密钥
+                .build()
+                .parseSignedClaims(token); //设置要解析的jwt
+
+        return claimsJws;
     }
 
 }

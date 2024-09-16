@@ -1,5 +1,0 @@
-com\qiaopi\controller\user\UserController.class
-com\qiaopi\server\impl\UserServiceImpl.class
-com\qiaopi\server\UserService.class
-com\qiaopi\QiaopiServerApplication.class
-com\qiaopi\mapper\UserMapper.class
