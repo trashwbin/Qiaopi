@@ -4,22 +4,29 @@ import java.util.HashMap;
 import java.util.Objects;
 import com.qiaopi.constant.HttpStatus;
 import com.qiaopi.utils.StringUtils;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * 操作消息提醒
  *
  */
+//指出这是一个哈希表，用于存储键/值对
+@Schema(name = "AjaxResult", description = "操作消息提醒")
 public class AjaxResult extends HashMap<String, Object>
 {
+
     private static final long serialVersionUID = 1L;
 
     /** 状态码 */
+    @Schema(description = "状态码", example = "200")
     public static final String CODE_TAG = "code";
 
     /** 返回内容 */
+    @Schema(description = "返回内容", example = "操作成功")
     public static final String MSG_TAG = "msg";
 
     /** 数据对象 */
+    @Schema(description = "数据对象", example = "{ \"id\": 1, \"userName\": \"admin\" }")
     public static final String DATA_TAG = "data";
 
     /**

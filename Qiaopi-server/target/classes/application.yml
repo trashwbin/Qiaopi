@@ -68,7 +68,8 @@ logging:
 
 qiaopi:
   jwt:
-    user-secret-key: qiaopi
+#    一定要超过长度，否则会报错。确保secretKey至少有32个字符。
+    user-secret-key: qiaopiqiaopiqiaopiqiaopiqiaopiqiaopiqiaopiqiaopiqiaopi
     user-ttl: 7200
     user-token-name: token
 #    # 设置jwt签名加密时使用的秘钥
@@ -84,3 +85,19 @@ qiaopi:
     access-key-id: ${qiaopi.alioss.access-key-id}
     access-key-secret: ${qiaopi.alioss.access-key-secret}
     bucket-name: ${qiaopi.alioss.bucket-name}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: com.qiaopi.controller
+knife4j:
+  enable: false
+  setting:
+    language: zh_cn

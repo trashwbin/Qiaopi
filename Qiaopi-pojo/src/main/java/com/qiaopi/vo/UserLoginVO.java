@@ -1,7 +1,7 @@
 package com.qiaopi.vo;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,34 +13,34 @@ import java.io.Serializable;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ApiModel(description = "员工登录返回的数据格式")
+@Schema(description = "员工登录返回的数据格式")
 public class UserLoginVO implements Serializable {
 
-    @ApiModelProperty("主键值")
+    @Schema(description = "主键值")
     private Long id;
 
-    @ApiModelProperty("用户名")
+    @Schema(description = "用户名")
     private String userName;
 
-    @ApiModelProperty("昵称")
+    @Schema(description = "昵称")
     /** 用户昵称 */
     private String nickName;
 
-    @ApiModelProperty("jwt令牌")
+    @Schema(description = "jwt令牌")
     private String token;
 
     /** 用户邮箱 */
-    @ApiModelProperty("邮箱")
+    @Schema(description = "邮箱")
     private String email;
 
     /** 手机号码 */
 //    private String phonenumber;
 
     /** 用户性别 */
-    @ApiModelProperty("性别")
+    @Schema(description = "性别")
     private String sex;
 
     /** 用户头像 */
-    @ApiModelProperty("头像")
+    @Schema(description = "头像")
     private String avatar;
 }
