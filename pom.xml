@@ -30,6 +30,8 @@
 
 
     <properties>
+        <spring-boot.version>3.3.3</spring-boot.version>
+        <spring-boot.mail>3.3.1</spring-boot.mail>
         <druid>1.2.23</druid>
         <lombok>1.18.20</lombok>
         <mybais-plus>3.5.7</mybais-plus>
@@ -40,10 +42,23 @@
         <jjwt>0.12.6</jjwt>
         <jakarta.servlet>6.0.0</jakarta.servlet>
         <jakarta.xml>4.0.0</jakarta.xml>
+        <redis>3.3.2</redis>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-data-redis -->
+            <!--这里用的本地Windows的Redis，开发环境-->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-data-redis</artifactId>
+                <version>${redis}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-mail</artifactId>
+                <version>${spring-boot.mail}</version>
+            </dependency>
             <!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
             <dependency>
                 <groupId>com.mysql</groupId>
@@ -61,7 +76,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-test</artifactId>
                 <scope>test</scope>
-                <version>3.3.3</version>
+                <version>${spring-boot.version}</version>
             </dependency>
 
 

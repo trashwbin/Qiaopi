@@ -31,12 +31,12 @@ public class UserLoginDTO {
     /**
      * 验证码
      */
-    @Schema(description = "验证码")
+    @Schema(description = "验证码", required = true, example = "Xhe0p")
     private String code;
 
     /**
      * 唯一标识
      */
-    @Schema(description = "唯一标识")
+    @Schema(description = "唯一标识", required = true, example = "5df25fe5540f4f568add960e73b50f64")
     private String uuid;
 }
