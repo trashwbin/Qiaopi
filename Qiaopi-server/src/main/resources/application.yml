@@ -6,6 +6,11 @@ spring:
     active: dev
   main:
     allow-circular-references: true
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+    cache-duration: -1 # 可以设置缓存时间，-1 表示不缓存
+    fallback-to-system-locale: true
   datasource:
     #   数据源基本配置
     driver-class-name: ${qiaopi.datasource.driver-class-name}
@@ -40,11 +45,26 @@ spring:
     maxPoolPreparedStatementPerConnectionSize: 20
     useGlobalDataSourceStat: true
     connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500
-#  redis:
-#    host: ${qiaopi.redis.host}
-#    port: ${qiaopi.redis.port}
-#    password: ${qiaopi.redis.password}
-#    database: ${qiaopi.redis.database}
+  data:
+    redis:
+      host: ${qiaopi.redis.host}
+      password: ${qiaopi.redis.password}
+      database: ${qiaopi.redis.database}
+      port: ${qiaopi.redis.port}
+  mail:
+    host: smtp.qq.com
+    protocol: smtp
+    default-encoding: UTF-8
+    username: 2794939382@qq.com
+    password: icgqucgqohfcddca
+
+    nickname: 侨批
+    properties:
+      mail.smtp.auth: true #启用SMTP服务器的身份验证，这是为了确保只有合法用户可以发送邮件。
+      mail.smtp.starttls.enable: #启用TLS加密，这是为了确保邮件传输的安全性。
+      mail.smtp.starttls.required: true #要求使用TLS加密，如果连接不是通过TLS加密传输，则连接将失败。
+
+
 mybatis-plus:
   global-config:
     db-config:
@@ -94,10 +114,21 @@ springdoc:
   api-docs:
     path: /v3/api-docs
   group-configs:
-    - group: 'default'
+    - group: 'qiaopi'
       paths-to-match: '/**'
       packages-to-scan: com.qiaopi.controller
+# knife4j项目访问访问地址:http://127.0.0.1:8080/doc.html#/home
 knife4j:
-  enable: false
+  enable: true
+  # 设置为true以启用Knife4j增强功能,这将再应用程序中启用Knife4j UI
   setting:
+    # language: 设置Knife4j UI的语言,默认为zh_cn,可选值为zh_cn或en
     language: zh_cn
+  #开启生产环境屏蔽
+  production: false
+  #是否启用登录认证
+  basic:
+    enable: false
+    username: admin # 自己设置一个
+    password: 123456 # 自己设置一个
+
