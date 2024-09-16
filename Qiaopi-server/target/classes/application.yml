@@ -68,15 +68,17 @@ logging:
 
 qiaopi:
   jwt:
-    # 设置jwt签名加密时使用的秘钥
-    admin-secret-key: abc
-    # 设置jwt过期时间
-    admin-ttl: 7200000
-    # 设置前端传递过来的令牌名称
-    admin-token-name: token
-    user-secret-key: abc
-    user-ttl: 7200000
-    user-token-name: authentication
+    user-secret-key: qiaopi
+    user-ttl: 7200
+    user-token-name: token
+#    # 设置jwt签名加密时使用的秘钥
+#    admin-secret-key: abc
+#    # 设置jwt过期时间
+#    admin-ttl: 7200000
+#    # 设置前端传递过来的令牌名称
+#    admin-token-name: token
+
+
   alioss:
     endpoint: ${qiaopi.alioss.endpoint}
     access-key-id: ${qiaopi.alioss.access-key-id}
