@@ -78,7 +78,7 @@
                 <scope>test</scope>
                 <version>${spring-boot.version}</version>
             </dependency>
-
+            <!-- https://mvnrepository.com/artifact/org.lionsoul/ip2region -->
 
             <dependency>
                 <groupId>com.baomidou</groupId>

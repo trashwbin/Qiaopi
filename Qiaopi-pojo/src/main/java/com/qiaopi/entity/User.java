@@ -3,6 +3,8 @@ package com.qiaopi.entity;
 
 import com.qiaopi.BaseEntity;
 import lombok.*;
+
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @EqualsAndHashCode(callSuper = true)
@@ -14,8 +16,6 @@ public class User extends BaseEntity {
 
     private static final long serialVersionUID = 1L;
 
-    /** 用户ID */
-    private Long id;
 
     /** 用户账号 */
     private String userName;
@@ -48,6 +48,6 @@ public class User extends BaseEntity {
     private String loginIp;
 
     /** 最后登录时间 */
-    private Date loginDate;
+    private LocalDateTime loginDate;
 
 }

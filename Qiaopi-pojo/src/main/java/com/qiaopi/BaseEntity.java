@@ -1,9 +1,14 @@
 package com.qiaopi;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 /**
@@ -19,18 +24,25 @@ public class BaseEntity implements Serializable {
 
 //    /** 搜索值 */
 //    private String searchValue;
+    /** ID */
+    @TableId(type = IdType.AUTO)
+    private Long id;
 
     /** 创建者 */
-    private String createBy;
+    @TableField(fill = FieldFill.INSERT)
+    private Long createUser;
 
     /** 创建时间 */
-    private Date createTime;
+    @TableField(fill = FieldFill.INSERT)
+    private LocalDateTime createTime;
 
     /** 更新者 */
-    private String updateBy;
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private Long updateUser;
 
     /** 更新时间 */
-    private Date updateTime;
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;
 
     /** 备注 */
     private String remark;
