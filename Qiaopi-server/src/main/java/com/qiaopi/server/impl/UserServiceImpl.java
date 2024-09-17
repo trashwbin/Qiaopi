@@ -91,6 +91,11 @@ public class UserServiceImpl implements UserService {
             throw new UserNotExistsException();
         }
 
+        //更新最后登录时间，ip地址
+        user.setLoginDate(LocalDateTime.now());
+        user.setLoginIp(userLoginDTO.getLoginIp());
+        userMapper.updateById(user);
+
         //生成token
         Map<String, Object> claims = new HashMap<>();
         claims.put(JwtClaimsConstant.USER_ID, user.getId());
@@ -136,25 +141,26 @@ public class UserServiceImpl implements UserService {
         else if (userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email)) != null)
         {
             msg = email + EMAIL_EXISTS;
+        }else {
+
+            String emailKey = "email_code_" + email;
+
+            String code = (String) redisTemplate.opsForValue().get(emailKey);
+
+            if (StringUtils.isEmpty(code)) {
+                msg = CODE_EXPIRED;
+            } else if (!code.equals(userRegisterDTO.getCode())) {
+                msg = CODE_ERROR;
+            }else {
+            //设置昵称
+            user.setNickName(email.substring(0, email.indexOf("@")));
+            //设置用户名
+            user.setUserName(USERNAME_PREFFIX + System.currentTimeMillis() + getStringRandom(3));
+            //设置密码
+            user.setPassword(DigestUtils.md5DigestAsHex(password.getBytes()));
+            userMapper.insert(user);
+            }
         }
-
-        String emailKey = "email_code_" + email;
-
-        String code = (String) redisTemplate.opsForValue().get(emailKey);
-
-        if (StringUtils.isEmpty(code)) {
-            msg = CODE_EXPIRED;
-        } else if (!code.equals(userRegisterDTO.getCode())) {
-            msg = CODE_ERROR;
-        }
-        //设置昵称
-        user.setNickName(email.substring(0, email.indexOf("@")));
-        //设置用户名
-        user.setUserName(USERNAME_PREFFIX + System.currentTimeMillis() + getStringRandom(3));
-        //设置密码
-        user.setPassword(DigestUtils.md5DigestAsHex(password.getBytes()));
-        userMapper.insert(user);
-
         return msg;
     }
 

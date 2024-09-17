@@ -8,6 +8,7 @@ import cn.hutool.core.io.FastByteArrayOutputStream;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.qiaopi.context.BaseContext;
 import com.qiaopi.dto.UserLoginDTO;
 import com.qiaopi.dto.UserRegisterDTO;
 import com.qiaopi.entity.User;
@@ -15,18 +16,25 @@ import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.result.AjaxResult;
 import com.qiaopi.server.UserService;
 import com.qiaopi.utils.AccountValidator;
+import com.qiaopi.utils.IPUtils;
 import com.qiaopi.utils.StringUtils;
 import com.qiaopi.vo.UserLoginVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.mail.AuthenticationFailedException;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.angus.mail.smtp.SMTPSendFailedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
@@ -41,6 +49,7 @@ import static com.qiaopi.result.AjaxResult.success;
 @RequestMapping("/user")
 @Slf4j
 @Tag(name = "用户相关接口")
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class UserController {
 
     @Autowired
@@ -51,6 +60,10 @@ public class UserController {
     private RedisTemplate redisTemplate;
     @Autowired
     private UserMapper userMapper;
+    /**
+     * 头部信息
+     */
+    private final HttpServletRequest servletRequest;
 
 
     /**
@@ -62,10 +75,12 @@ public class UserController {
     @PostMapping("/login")
     @Operation(summary = "用户登录")
     public AjaxResult login(@RequestBody UserLoginDTO userLoginDTO) {
-        log.info("用户登录：{}", userLoginDTO);
+
+        String ip = IPUtils.getIpAddress(servletRequest);
+        userLoginDTO.setLoginIp(ip);
+        log.info("用户登录：{},{}",ip, userLoginDTO);
 
         UserLoginVO userLoginVO = userService.login(userLoginDTO);
-
         return success(userLoginVO);
     }
 
@@ -147,8 +162,49 @@ public class UserController {
         }
 
         // 创建一个邮件
-        SimpleMailMessage message = new SimpleMailMessage();
+        //SimpleMailMessage message = new SimpleMailMessage();
+        // 创建一个 MimeMessage 代替 SimpleMailMessage
+        MimeMessage message = javaMailSender.createMimeMessage();
 
+        try {
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            // 设置发件人
+            helper.setFrom(nickname + '<' + sender + '>');
+
+            // 设置收件人
+            helper.setTo(email);
+
+            // 设置邮件主题
+            helper.setSubject("欢迎访问 " + nickname);
+
+            // 生成六位随机数
+            String code = RandomUtil.randomNumbers(6);
+
+            // 将验证码存入 redis，有效期为5分钟
+            redisTemplate.opsForValue().set(verify, code, Duration.ofMinutes(5));
+
+            // 定义邮件内容，使用 HTML
+            String content = "<div style='font-family: Arial, sans-serif;'>" +
+                    "<h1>欢迎访问 " + nickname + "</h1>" +
+                    "<h2>【验证码】您的验证码为：" + code + "</h2>" +
+                    "<p style='font-size: 14px;'>验证码五分钟内有效，逾期作废。</p>" +
+                    "<hr>" +
+                    "<p style='font-size: 12px; color: gray;'>此邮件为系统自动发送，请勿回复。</p>" +
+                    "</div>";
+
+            // 设置邮件内容为 HTML
+            helper.setText(content, true);
+
+            // 发送邮件
+            javaMailSender.send(message);
+        } catch (MessagingException e) {
+            return error(CODE_SEND_FAILED);
+        } catch (MailException e){
+            return error(CODE_SEND_FAILED+"，请检查邮箱是否正确");
+        }
+
+        /*
         // 设置发件人
         message.setFrom(nickname+'<'+sender+'>');
 
@@ -171,12 +227,13 @@ public class UserController {
 
         // 发送邮件
         javaMailSender.send(message);
+        */
 
-        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>(5);
-        map.put("uuid", verify);
+//        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>(5);
+//        map.put("uuid", verify);
         //map.put("code", code);
 
-        return success("发送成功", map);
+        return success("发送成功");
     }
 }
 
