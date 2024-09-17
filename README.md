@@ -25,7 +25,7 @@ CREATE TABLE user (
 );
 
 -- 插入数据时，需要为 create_user 和 update_user 提供 BIGINT 类型的值
-INSERT INTO user (user_name, email, password, create_user, update_user) VALUES ('admin', 'Trashwbin@gmail.com', '123456', 1, 1);
+INSERT INTO user (user_name, email, password, create_user, update_user) VALUES ('admin', 'Trashwbin@gmail.com', 'e10adc3949ba59abbe56e057f20f883e', 1, 1);
 
 
 
