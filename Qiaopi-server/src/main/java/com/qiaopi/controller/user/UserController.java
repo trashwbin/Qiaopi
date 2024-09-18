@@ -235,7 +235,7 @@ public class UserController {
 //        map.put("uuid", verify);
         //map.put("code", code);
 
-        return success("发送成功");
+        return success(CODE_SEND_SUCCESS);
     }
 }
 
