@@ -92,7 +92,6 @@ public class UserController {
     @GetMapping("/getCode")
     @Operation(summary = "获取验证码")
     public AjaxResult getrCode() {
-        log.info("获取验证码");
 
         //设置验证码的宽和高，获取验证码
         LineCaptcha lineCaptcha = CaptchaUtil.createLineCaptcha(200, 100);
@@ -105,6 +104,7 @@ public class UserController {
         lineCaptcha.write(os);
         //获取验证码
         String code = lineCaptcha.getCode();
+        log.info("获取验证码:{}", code);
 
         //将验证码存入redis
         redisTemplate.opsForValue().set(verify, code, Duration.ofMinutes(1));
@@ -131,7 +131,8 @@ public class UserController {
 
         String msg = userService.register(userRegisterDTO);
 
-        return StringUtils.isEmpty(msg) ? success(Register_SUCCESS) : error(msg);
+        log.info("用户注册结果：{}", msg);
+        return StringUtils.equals(msg,Register_SUCCESS) ? success(msg) : error(msg);
     }
 
 
@@ -180,6 +181,7 @@ public class UserController {
 
             // 生成六位随机数
             String code = RandomUtil.randomNumbers(6);
+            log.info("邮箱验证码：{}", code);
 
             // 将验证码存入 redis，有效期为5分钟
             redisTemplate.opsForValue().set(verify, code, Duration.ofMinutes(5));
