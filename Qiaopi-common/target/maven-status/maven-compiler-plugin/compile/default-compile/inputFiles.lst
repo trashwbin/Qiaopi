@@ -17,6 +17,7 @@ D:\A_IDE\Code\items\Qiaopi\Qiaopi-common\src\main\java\com\qiaopi\exception\user
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-common\src\main\java\com\qiaopi\exception\user\UserPasswordNotMatchException.java
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-common\src\main\java\com\qiaopi\exception\user\UserPasswordRetryLimitExceedException.java
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-common\src\main\java\com\qiaopi\json\JacksonObjectMapper.java
+D:\A_IDE\Code\items\Qiaopi\Qiaopi-common\src\main\java\com\qiaopi\properties\AliOssProperties.java
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-common\src\main\java\com\qiaopi\properties\JwtProperties.java
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-common\src\main\java\com\qiaopi\result\AjaxResult.java
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-common\src\main\java\com\qiaopi\result\PageResult.java
@@ -25,6 +26,7 @@ D:\A_IDE\Code\items\Qiaopi\Qiaopi-common\src\main\java\com\qiaopi\text\CharsetKi
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-common\src\main\java\com\qiaopi\text\Convert.java
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-common\src\main\java\com\qiaopi\text\StrFormatter.java
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-common\src\main\java\com\qiaopi\utils\AccountValidator.java
+D:\A_IDE\Code\items\Qiaopi\Qiaopi-common\src\main\java\com\qiaopi\utils\AliOssUtil.java
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-common\src\main\java\com\qiaopi\utils\IPUtils.java
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-common\src\main\java\com\qiaopi\utils\JwtUtil.java
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-common\src\main\java\com\qiaopi\utils\MessageUtils.java

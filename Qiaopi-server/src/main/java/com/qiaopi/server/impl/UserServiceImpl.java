@@ -133,6 +133,10 @@ public class UserServiceImpl implements UserService {
         {
             msg = PASSWORD_EMPTY;
         }
+        else if (userRegisterDTO.getCode() == null)
+        {
+            msg = CODE_EMPTY;
+        }
         else if (password.length() < UserConstants.PASSWORD_MIN_LENGTH
                 || password.length() > UserConstants.PASSWORD_MAX_LENGTH)
         {
