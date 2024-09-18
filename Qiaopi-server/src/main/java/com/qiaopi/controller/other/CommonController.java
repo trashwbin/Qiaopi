@@ -12,6 +12,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.concurrent.ConcurrentHashMap;
+
+import static com.qiaopi.constant.MessageConstant.UPLOAD_FAILED;
+import static com.qiaopi.constant.MessageConstant.UPLOAD_SUCCESS;
 import static com.qiaopi.result.AjaxResult.error;
 import static com.qiaopi.result.AjaxResult.success;
 
@@ -39,9 +43,10 @@ public class CommonController {
             log.info("文件上传：{}",file);
             //文件的请求路径
             String filePath = aliOssUtil.upload(file);
-            return success(filePath);
+
+            return success(UPLOAD_SUCCESS,filePath);
         } catch (Exception e) {
-            return error(MessageConstant.UPLOAD_FAILED);
+            return error(UPLOAD_FAILED);
             //throw new RuntimeException(e);
         }
     }
