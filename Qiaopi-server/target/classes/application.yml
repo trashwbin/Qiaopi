@@ -3,7 +3,7 @@ server:
 
 spring:
   profiles:
-    active: dev
+    active: prod
   main:
     allow-circular-references: true
   messages:
@@ -78,22 +78,26 @@ mybatis-plus:
 #    #开启驼峰命名
 #    map-underscore-to-camel-case: true
 
-logging:
-  file:
-    path: /javalogs
-    name: qiaopi.log
-  logback:
-    rollingpolicy:
-      max-file-size: 10MB
-      max-history: 10
-      file-name-pattern: ${logging.file.path}/${logging.file.name}.%d{yyyy-MM-dd}.%i
+#logging:
+#  pattern:
+#    console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){yellow} [%thread] %-5level %logger{50} - %msg%n"
+#  file:
+#    path: /javalogs
+#    name: qiaopi.log
+#  logback:
+#    rollingpolicy:
+#      max-file-size: 10MB
+#      max-history: 10
+#      file-name-pattern: ${logging.file.path}/${logging.file.name}.%d{yyyy-MM-dd}.%i
+#  level:
+#    com:
+#      qiaopi:
+#        mapper: debug
+#        service: info
+#        controller: info
 
-  level:
-    com:
-      qiaopi:
-        mapper: debug
-        service: info
-        controller: info
+
+
 
 qiaopi:
   jwt:
@@ -134,7 +138,7 @@ knife4j:
     # language: 设置Knife4j UI的语言,默认为zh_cn,可选值为zh_cn或en
     language: zh_cn
   #开启生产环境屏蔽
-  production: false
+  production: true
   #是否启用登录认证
   basic:
     enable: false
