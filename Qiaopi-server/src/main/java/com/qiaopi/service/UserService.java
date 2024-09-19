@@ -1,4 +1,4 @@
-package com.qiaopi.server;
+package com.qiaopi.service;
 
 import com.qiaopi.dto.UserLoginDTO;
 import com.qiaopi.dto.UserRegisterDTO;

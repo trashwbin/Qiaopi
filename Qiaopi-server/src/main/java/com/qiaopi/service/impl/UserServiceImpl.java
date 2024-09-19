@@ -1,7 +1,6 @@
-package com.qiaopi.server.impl;
+package com.qiaopi.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.qiaopi.constant.Constants;
 import com.qiaopi.constant.JwtClaimsConstant;
 import com.qiaopi.constant.UserConstants;
 import com.qiaopi.dto.UserLoginDTO;
@@ -9,16 +8,14 @@ import com.qiaopi.dto.UserRegisterDTO;
 import com.qiaopi.entity.User;
 import com.qiaopi.exception.code.CodeErrorException;
 import com.qiaopi.exception.code.CodeTimeoutException;
-import com.qiaopi.exception.user.UserException;
 import com.qiaopi.exception.user.UserNameNotMatchException;
 import com.qiaopi.exception.user.UserNotExistsException;
 import com.qiaopi.exception.user.UserPasswordNotMatchException;
 import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.properties.JwtProperties;
-import com.qiaopi.server.UserService;
+import com.qiaopi.service.UserService;
 import com.qiaopi.utils.AccountValidator;
 import com.qiaopi.utils.JwtUtil;
-import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.utils.StringUtils;
 import com.qiaopi.vo.UserLoginVO;
 import lombok.extern.slf4j.Slf4j;

@@ -1,6 +1,7 @@
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-server\src\main\java\com\qiaopi\config\AppRedisConfig.java
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-server\src\main\java\com\qiaopi\config\MybatisConfig.java
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-server\src\main\java\com\qiaopi\config\OssConfiguration.java
+D:\A_IDE\Code\items\Qiaopi\Qiaopi-server\src\main\java\com\qiaopi\config\WebConfig.java
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-server\src\main\java\com\qiaopi\config\WebMvcConfiguration.java
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-server\src\main\java\com\qiaopi\controller\Controller.java
 D:\A_IDE\Code\items\Qiaopi\Qiaopi-server\src\main\java\com\qiaopi\controller\other\CommonController.java
