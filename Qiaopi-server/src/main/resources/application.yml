@@ -3,7 +3,7 @@ server:
 
 spring:
   profiles:
-    active: prod
+    active: dev
   main:
     allow-circular-references: true
   messages:
@@ -79,6 +79,15 @@ mybatis-plus:
 #    map-underscore-to-camel-case: true
 
 logging:
+  file:
+    path: /javalogs
+    name: qiaopi.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 10
+      file-name-pattern: ${logging.file.path}/${logging.file.name}.%d{yyyy-MM-dd}.%i
+
   level:
     com:
       qiaopi:

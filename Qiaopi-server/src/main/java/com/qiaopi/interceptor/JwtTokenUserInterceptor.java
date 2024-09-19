@@ -1,5 +1,6 @@
 package com.qiaopi.interceptor;
 
+import cn.hutool.json.JSONObject;
 import com.qiaopi.constant.JwtClaimsConstant;
 import com.qiaopi.context.BaseContext;
 import com.qiaopi.properties.JwtProperties;
@@ -13,6 +14,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
+
+import java.io.IOException;
+
+import static com.qiaopi.constant.HttpStatus.UNAUTHORIZED;
+import static com.qiaopi.constant.MessageConstant.PLEASE_LOGIN;
+import static com.qiaopi.constant.MessageConstant.UNKOWN_TOKEN;
 
 //import javax.servlet.http.HttpServletRequest;
 //import javax.servlet.http.HttpServletResponse;
@@ -49,16 +56,36 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
         //2、校验令牌
         try {
             log.info("jwt校验:{}", token);
+            if (token == null) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                writeErrorResponse(response, PLEASE_LOGIN, UNAUTHORIZED);
+                return false;
+            }
             Jws<Claims> claims = JwtUtil.parseJWT(jwtProperties.getUserSecretKey(), token);
             Long userId = Long.valueOf(claims.getPayload().get(JwtClaimsConstant.USER_ID).toString());
             log.info("当前用户的id：{}", userId);
             BaseContext.setCurrentId(userId);
-            //3、通过，放行
+            // 3、通过，放行
             return true;
         } catch (Exception ex) {
-            //4、不通过，响应401状态码
-            response.setStatus(401);
+            // 4、不通过，响应401状态码
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            writeErrorResponse(response, UNKOWN_TOKEN, UNAUTHORIZED);
             return false;
+        }
+
+    }
+    // 辅助方法，用于写入错误响应
+    private void writeErrorResponse(HttpServletResponse response, String message, int code) {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        try {
+            JSONObject error = new JSONObject();
+            error.put("code", code);
+            error.put("message", message);
+            response.getWriter().write(error.toString());
+        } catch (IOException e) {
+            log.error("Error writing JSON error response", e);
         }
     }
 }

@@ -9,4 +9,6 @@ public interface UserService {
     UserLoginVO login(UserLoginDTO userLoginDTO);
 
     String register(UserRegisterDTO userRegisterDTO);
+
+    void resetPasswordByEmail(UserRegisterDTO userRegisterDTO);
 }

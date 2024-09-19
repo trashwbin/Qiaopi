@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.net.ConnectException;
 import java.sql.SQLIntegrityConstraintViolationException;
 
 import static com.qiaopi.constant.MessageConstant.ALRADY_EXISTS;
@@ -51,5 +52,12 @@ public class GlobalExceptionHandler {
         msg = s[2] + ALRADY_EXISTS;
         return AjaxResult.error(msg);
     }
+
+    @ExceptionHandler
+    public AjaxResult exceptionHandler(ConnectException ex){
+        log.error("异常信息：{}", ex.getMessage());
+        return error(UNKNOWN_ERROR);
+    }
+
 
 }
