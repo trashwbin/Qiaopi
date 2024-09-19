@@ -20,6 +20,7 @@ import com.qiaopi.utils.IPUtils;
 import com.qiaopi.utils.StringUtils;
 import com.qiaopi.vo.UserLoginVO;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.MessagingException;
@@ -78,10 +79,10 @@ public class UserController {
 
         String ip = IPUtils.getIpAddress(servletRequest);
         userLoginDTO.setLoginIp(ip);
-        log.info("用户登录：{},{}",ip, userLoginDTO);
+        log.info("用户登录：{},{}", ip, userLoginDTO);
 
         UserLoginVO userLoginVO = userService.login(userLoginDTO);
-        return success(userLoginVO);
+        return success(LOGIN_SUCCESS, userLoginVO);
     }
 
     /**
@@ -115,7 +116,7 @@ public class UserController {
         //map.put("code", code);
         map.put("img", Base64.encode(os.toByteArray()));
 
-        return success(map);
+        return success(CODE_GET_SUCCESS, map);
     }
 
     /**
@@ -132,9 +133,8 @@ public class UserController {
         String msg = userService.register(userRegisterDTO);
 
         log.info("用户注册结果：{}", msg);
-        return StringUtils.equals(msg,Register_SUCCESS) ? success(msg) : error(msg);
+        return StringUtils.equals(msg, Register_SUCCESS) ? success(msg) : error(msg);
     }
-
 
 
     @Value("${spring.mail.username}")
@@ -145,10 +145,11 @@ public class UserController {
 
     @GetMapping("/sendCode")
     @Operation(summary = "发送验证码")
-    public AjaxResult sendCode(@RequestParam("email") String email)
-    {
+    public AjaxResult sendCode(@RequestParam("email") String email) {
+        // 邮箱转小写
+        email = email.toLowerCase();
         // 验证邮箱是否已经注册
-        if (userMapper.exists( new LambdaQueryWrapper<User>().eq(User::getEmail, email))) {
+        if (userMapper.exists(new LambdaQueryWrapper<User>().eq(User::getEmail, email))) {
             return error(EMAIL_EXISTS);
         }
         //判断邮箱是否合法
@@ -202,8 +203,8 @@ public class UserController {
             javaMailSender.send(message);
         } catch (MessagingException e) {
             return error(CODE_SEND_FAILED);
-        } catch (MailException e){
-            return error(CODE_SEND_FAILED+"，请检查邮箱是否正确");
+        } catch (MailException e) {
+            return error(CODE_SEND_FAILED + "，请检查邮箱是否正确");
         }
 
         /*
@@ -237,7 +238,91 @@ public class UserController {
 
         return success(CODE_SEND_SUCCESS);
     }
+
+    @PostMapping("/resetPasswordByEmail")
+    @Operation(summary = "通过邮箱重置密码")
+    public AjaxResult resetPasswordByEmail(@RequestBody UserRegisterDTO userRegisterDTO) {
+
+        userService.resetPasswordByEmail(userRegisterDTO);
+
+        // 验证邮箱是否已经注册
+        return success(RESET_PASSWORD_SUCCESS);
+    }
+
+    @GetMapping("/sendResetPasswordCode")
+    @Operation(summary = "发送重置密码验证码")
+    public AjaxResult sendResetPasswordCode(@RequestParam("email") String email) {
+
+        email = email.toLowerCase();
+
+        //判断邮箱是否合法
+        if (!AccountValidator.isValidEmail(email)) {
+            return error(EMAIL_FORMAT_ERROR);
+        }
+        String verify = "email_reset_code_" + email;
+        //判断5分钟内是否发送过验证码
+        if (redisTemplate.hasKey(verify)) {
+            return error(CODE_SEND_FREQUENTLY);
+        }
+
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email));
+        // 验证邮箱是否未注册
+        if (user == null) {
+            return error(EMAIL_NOT_EXISTS);
+        }
+
+        // 创建一个邮件
+        //SimpleMailMessage message = new SimpleMailMessage();
+        // 创建一个 MimeMessage 代替 SimpleMailMessage
+        MimeMessage message = javaMailSender.createMimeMessage();
+
+        try {
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            // 设置发件人
+            helper.setFrom(nickname + '<' + sender + '>');
+
+            // 设置收件人
+            helper.setTo(email);
+
+            // 设置邮件主题
+            helper.setSubject(nickname+"-重置密码");
+
+            // 生成六位随机数
+            String code = RandomUtil.randomNumbers(6);
+            log.info("重置密码验证码：{}", code);
+
+            // 将验证码存入 redis，有效期为5分钟
+            redisTemplate.opsForValue().set(verify, code, Duration.ofMinutes(5));
+
+            // 定义邮件内容，使用 HTML
+            String content = "<div style='font-family: Arial, sans-serif;'>" +
+                    "<h1>" + nickname +"账户密码重置 </h1>" +
+                    "<h2>你好，"+user.getNickname()+"<h2>"+
+                    "<h2>【验证码】您的重置密码验证码为：" + code + "</h2>" +
+                    "<p style='font-size: 14px;'>请在五分钟内使用此验证码重置您的密码，逾期作废。</p>" +
+                    "<p style='font-size: 14px;'>如果您没有请求重置密码，请忽略此邮件。</p>" +
+                    "<hr>" +
+                    "<p style='font-size: 12px; color: gray;'>此邮件为系统自动发送，请勿回复。</p>" +
+                    "</div>";
+
+            // 设置邮件内容为 HTML
+            helper.setText(content, true);
+
+            // 发送邮件
+            javaMailSender.send(message);
+        } catch (MessagingException e) {
+            return error(CODE_SEND_FAILED);
+        } catch (MailException e) {
+            return error(CODE_SEND_FAILED + "，请检查邮箱是否正确");
+        }
+
+        return success(CODE_SEND_SUCCESS);
+    }
 }
+
+
+
 
 
 

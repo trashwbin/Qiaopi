@@ -22,6 +22,7 @@ com\qiaopi\text\Convert.class
 com\qiaopi\utils\AccountValidator.class
 com\qiaopi\utils\MessageUtils.class
 com\qiaopi\utils\AliOssUtil.class
+com\qiaopi\json\JacksonObjectMapper.class
 com\qiaopi\exception\code\CodeErrorException.class
 com\qiaopi\constant\HttpStatus.class
 com\qiaopi\exception\user\UserNameNotMatchException.class

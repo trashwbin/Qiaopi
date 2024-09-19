@@ -62,33 +62,11 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
                 .excludePathPatterns("/user/getCode")
                 .excludePathPatterns("/user/register")
                 .excludePathPatterns("/user/sendCode")
+                .excludePathPatterns("/user/resetPasswordByEmail")
+                .excludePathPatterns("/user/sendResetPasswordCode")
                 .excludePathPatterns("/user/shop/status");
     }
 
-//    /**
-//     * 通过knife4j生成接口文档
-//     * @return
-//     */
-//    @Bean
-//    public Docket docketAdmin(){
-//        log.info("准备生成接口文档...");
-//        ApiInfo apiInfo = new ApiInfoBuilder()
-//                .title("苍穹外卖项目接口文档")
-//                .version("2.0")
-//                .description("苍穹外卖项目接口文档")
-//                .build();
-//
-//        Docket docket = new Docket(DocumentationType.SWAGGER_2)
-//                .groupName("管理端接口")
-//                .apiInfo(apiInfo)
-//                .select()
-//                //指定生成接口需要扫描的包
-//                .apis(RequestHandlerSelectors.basePackage("com.qiaopi.controller.admin"))
-//                .paths(PathSelectors.any())
-//                .build();
-//
-//        return docket;
-//    }
 
 
 @Bean
@@ -119,10 +97,11 @@ public OpenAPI springShopOpenAPI() {
         registry.addResourceHandler("/doc.html").addResourceLocations("classpath:/META-INF/resources/");
         registry.addResourceHandler("/webjars/**").addResourceLocations("classpath:/META-INF/resources/webjars/");
     }
-    /**
+/*    *//**
      * 扩展Spring MVC框架的消息转化器
+     * 此方案导致knife4j不能正常显示
      * @param converters
-     */
+     *//*
     protected void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
         log.info("扩展消息转换器...");
         //创建一个消息转换器对象
@@ -131,6 +110,19 @@ public OpenAPI springShopOpenAPI() {
         converter.setObjectMapper(new JacksonObjectMapper());
         //将自己的消息转化器加入容器中
         converters.add(0,converter);
+    }    */
+    /**
+     * 扩展消息转换器,将日期类型从列表转换为时间戳
+     * 这个是导致knife4j不能正常显示的罪魁祸首,特别要注意添加的位置
+     * @param converters 消息转换器列表
+     */
+    @Override
+    protected void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+        log.info("扩展消息转换器...");
+        MappingJackson2HttpMessageConverter jackson2HttpMessageConverter = new MappingJackson2HttpMessageConverter();
+        jackson2HttpMessageConverter.setObjectMapper(new JacksonObjectMapper());
+        converters.add(converters.size()-1,jackson2HttpMessageConverter);
     }
+
 }
 

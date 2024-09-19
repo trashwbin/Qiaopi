@@ -1,7 +1,7 @@
 qiaopi:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    host: 110.41.58.26
+    host: 192.168.4.139
     port: 3306
     database: qiaopi
     username: Qiaopi
@@ -14,7 +14,7 @@ qiaopi:
     bucket-name: qiaopi
 
   redis:
-    host: 110.41.58.26
+    host: 192.168.4.139
     port: 6379
     password: 123456
     database: 1

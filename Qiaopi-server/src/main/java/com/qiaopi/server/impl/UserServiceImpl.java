@@ -9,8 +9,10 @@ import com.qiaopi.dto.UserRegisterDTO;
 import com.qiaopi.entity.User;
 import com.qiaopi.exception.code.CodeErrorException;
 import com.qiaopi.exception.code.CodeTimeoutException;
+import com.qiaopi.exception.user.UserException;
 import com.qiaopi.exception.user.UserNameNotMatchException;
 import com.qiaopi.exception.user.UserNotExistsException;
+import com.qiaopi.exception.user.UserPasswordNotMatchException;
 import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.properties.JwtProperties;
 import com.qiaopi.server.UserService;
@@ -30,6 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import static cn.hutool.core.bean.BeanUtil.copyProperties;
 import static com.qiaopi.constant.MessageConstant.*;
 
 @Service
@@ -56,27 +59,31 @@ public class UserServiceImpl implements UserService {
             //验证码不匹配
             throw new CodeErrorException();
         }
-        // 根据用户名和密码查询用户信息
+        // 根据用户名查询用户信息
         if (!AccountValidator.isValidAccount(userLoginDTO.getUsername())) {
             //用户名不合法
             throw new UserNameNotMatchException();
         }
-
+        if (StringUtils.isEmpty(userLoginDTO.getPassword())) {
+            //密码为空
+            throw new UserPasswordNotMatchException();
+        }
+        redisTemplate.delete(userLoginDTO.getUuid());
         //为了方便查询，将用户名和密码封装到User对象中
         //对前端传过来的明文密码进行MD5加密处理
         User userLogin = User.builder().password(DigestUtils.md5DigestAsHex(userLoginDTO.getPassword().getBytes())).build();
 
         if (AccountValidator.isValidEmail(userLoginDTO.getUsername())) {
-            userLogin.setEmail(userLoginDTO.getUsername());
+            userLogin.setEmail(userLoginDTO.getUsername().toLowerCase());
         } else {
-            userLogin.setUserName(userLoginDTO.getUsername());
+            userLogin.setUsername(userLoginDTO.getUsername());
         }
 
         //根据用户名和密码查询用户信息的条件构造器
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        if (userLogin.getUserName() != null) {
+        if (userLogin.getUsername() != null) {
             wrapper
-                    .eq(User::getUserName, userLogin.getUserName())
+                    .eq(User::getUsername, userLogin.getUsername())
                     .eq(User::getPassword, userLogin.getPassword());
         } else {
             wrapper
@@ -106,11 +113,11 @@ public class UserServiceImpl implements UserService {
 
         UserLoginVO userLoginVO = UserLoginVO.builder()
                 .id(user.getId())
-                .userName(user.getUserName())
+                .username(user.getUsername())
                 .token(token)
                 .sex(user.getSex())
                 .avatar(user.getAvatar())
-                .nickName(user.getNickName())
+                .nickname(user.getNickname())
                 .email(user.getEmail())
                 .build();
 
@@ -119,7 +126,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String register(UserRegisterDTO userRegisterDTO) {
-        String msg = "", email = userRegisterDTO.getUsername(), password = userRegisterDTO.getPassword();
+
+        String msg = "", email = userRegisterDTO.getUsername().toLowerCase(), password = userRegisterDTO.getPassword();
         User user = new User();
         user.setEmail(email);
 
@@ -156,16 +164,53 @@ public class UserServiceImpl implements UserService {
             } else if (!code.equals(userRegisterDTO.getCode())) {
                 msg = CODE_ERROR;
             }else {
-            //设置昵称
-            user.setNickName(email.substring(0, email.indexOf("@")));
-            //设置用户名
-            user.setUserName(USERNAME_PREFFIX + System.currentTimeMillis() + getStringRandom(3));
-            //设置密码
-            user.setPassword(DigestUtils.md5DigestAsHex(password.getBytes()));
-            userMapper.insert(user);
+                redisTemplate.delete(emailKey);
+                //设置昵称
+                user.setNickname(email.substring(0, email.indexOf("@")));
+                //设置用户名
+                user.setUsername(USERNAME_PREFFIX + System.currentTimeMillis() + getStringRandom(3));
+                //设置密码
+                user.setPassword(DigestUtils.md5DigestAsHex(password.getBytes()));
+                userMapper.insert(user);
+                msg = Register_SUCCESS;
             }
         }
         return msg;
+    }
+
+    @Override
+    public void resetPasswordByEmail(UserRegisterDTO userRegisterDTO) {
+        //检验验证码是否正确
+        //从redis中获取验证码
+        // 根据用户名查询用户信息
+        if (!AccountValidator.isValidEmail(userRegisterDTO.getUsername())) {
+            //用户名不合法
+            throw new UserNotExistsException();
+        }
+        //将邮箱转换为小写
+        userRegisterDTO.setUsername(userRegisterDTO.getUsername().toLowerCase());
+
+        String verify = "email_reset_code_" + userRegisterDTO.getUsername();
+        String code = (String) redisTemplate.opsForValue().get(verify);
+        if (code == null) {
+            //验证码已过期
+            throw new CodeTimeoutException();
+        } else if (!code.equals(userRegisterDTO.getCode())) {
+            //验证码不匹配
+            throw new CodeErrorException();
+        }
+        if (StringUtils.isEmpty(userRegisterDTO.getPassword())) {
+            //密码为空
+            throw new UserPasswordNotMatchException();
+        }
+        //删除验证码
+        redisTemplate.delete(verify);
+        //为了方便查询，将用户名和密码封装到User对象中
+        //对前端传过来的明文密码进行MD5加密处理
+        User user = User.builder().password(DigestUtils.md5DigestAsHex(userRegisterDTO.getPassword().getBytes())).email(userRegisterDTO.getUsername()).build();
+
+        userMapper.update(user, new LambdaQueryWrapper<User>().eq(User::getEmail,user.getEmail()));
+
     }
 
 

@@ -18,10 +18,10 @@ public class User extends BaseEntity {
 
 
     /** 用户账号 */
-    private String userName;
+    private String username;
 
     /** 用户昵称 */
-    private String nickName;
+    private String nickname;
 
     /** 用户邮箱 */
     private String email;
