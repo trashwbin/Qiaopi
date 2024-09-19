@@ -6,8 +6,8 @@
 ```
 CREATE TABLE user (
     id BIGINT NOT NULL AUTO_INCREMENT,
-    user_name VARCHAR(255) NOT NULL UNIQUE,
-    nick_name VARCHAR(255),
+    username VARCHAR(255) NOT NULL UNIQUE,
+    nickname VARCHAR(255),
     email VARCHAR(255) NOT NULL UNIQUE,
     sex VARCHAR(10),
     avatar VARCHAR(255),
