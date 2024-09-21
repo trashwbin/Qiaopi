@@ -43,6 +43,8 @@
         <jakarta.servlet>6.0.0</jakarta.servlet>
         <jakarta.xml>4.0.0</jakarta.xml>
         <redis>3.3.2</redis>
+        <alioss>3.18.1</alioss>
+        <x-file>2.2.1</x-file>
     </properties>
 
     <dependencyManagement>
@@ -50,7 +52,13 @@
             <dependency>
                 <groupId>com.aliyun.oss</groupId>
                 <artifactId>aliyun-sdk-oss</artifactId>
-                <version>3.18.1</version>
+                <version>${alioss}</version>
+            </dependency>
+            <!--   文件上传     -->
+            <dependency>
+                <groupId>org.dromara.x-file-storage</groupId>
+                <artifactId>x-file-storage-spring</artifactId>
+                <version>${x-file}</version>
             </dependency>
             <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-data-redis -->
             <!--这里用的本地Windows的Redis，开发环境-->

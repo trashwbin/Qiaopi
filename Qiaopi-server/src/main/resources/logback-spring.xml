@@ -1,0 +1,55 @@
+<configuration>
+
+    <!-- 定义日志文件目录 -->
+    <property name="LOG_PATH" value="./javalogs" />
+
+    <!-- 控制台日志输出 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level --- [%thread] %logger{36} : %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 主日志文件 Appender -->
+    <appender name="MAIN" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/qiaopi.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/qiaopi.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>10</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level --- [%thread] %logger{36} : %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 错误日志文件 Appender -->
+    <appender name="ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/qiaopi-error.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/qiaopi-error.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>10</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level --- [%thread] %logger{36} : %msg%n</pattern>
+        </encoder>
+        <!-- 只记录 ERROR 级别及以上的日志 -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+    </appender>
+
+    <!-- 定义日志级别 -->
+    <logger name="com.qiaopi" level="debug" additivity="false">
+        <appender-ref ref="MAIN" />
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="ERROR" />
+    </logger>
+
+    <!-- root 级别日志输出到文件和控制台 -->
+    <root level="info">
+        <appender-ref ref="MAIN" />
+        <appender-ref ref="ERROR" />
+        <appender-ref ref="CONSOLE" />
+    </root>
+
+</configuration>
