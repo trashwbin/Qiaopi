@@ -66,12 +66,13 @@ public class CommonController {
                             log.info("已上传 {} 总大小{}", progressSize, allSize == null ? "未知" : allSize))
                     .upload();
 
-            AjaxResult ajax = success(UPLOAD_SUCCESS);
-            ajax.put("url", fileInfo.getUrl());
-            ajax.put("fileName", fileInfo.getUrl());//注意这里的fileName是url，因为前端地址会做一个判断，如果以http开头，就直接显示，否则拼接
-            ajax.put("newFileName", fileInfo.getFilename());
-            ajax.put("originalFilename", file.getOriginalFilename());
-            return ajax;
+            ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>(5);
+
+            map.put("url", fileInfo.getUrl());
+            map.put("fileName", fileInfo.getUrl());//注意这里的fileName是url，因为前端地址会做一个判断，如果以http开头，就直接显示，否则拼接
+            map.put("newFileName", fileInfo.getFilename());
+            map.put("originalFilename", file.getOriginalFilename());
+            return success(UPLOAD_SUCCESS,map);
 
         }
         catch (Exception e) {
