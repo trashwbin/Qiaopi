@@ -102,7 +102,7 @@ public class UserController {
         log.info("获取验证码:{}", code);
 
         //将验证码存入redis
-        redisTemplate.opsForValue().set(verify, code, Duration.ofMinutes(1));
+        redisTemplate.opsForValue().set(verify, code, Duration.ofMinutes(5));
 
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>(5);
 
