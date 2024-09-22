@@ -52,7 +52,9 @@ public class UserServiceImpl implements UserService {
         if (code == null) {
             //验证码已过期
             throw new CodeTimeoutException();
-        } else if (!code.equals(userLoginDTO.getCode())) {
+        //} else if (!code.equals(userLoginDTO.getCode())) {
+            //TODO 需要测试
+        } else if (!code.toLowerCase().equals(userLoginDTO.getCode().toLowerCase())) {
             //验证码不匹配
             throw new CodeErrorException();
         }
