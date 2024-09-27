@@ -89,16 +89,16 @@ public class UserController {
     public AjaxResult getrCode() {
 
         //设置验证码的宽和高，获取验证码
-        LineCaptcha lineCaptcha = CaptchaUtil.createLineCaptcha(200, 100);
+        LineCaptcha captcha = CaptchaUtil.createLineCaptcha(200, 100,4,30);
 
         //设置验证码的唯一标识uuid
         String verify = IdUtil.simpleUUID();
 
         //图形验证码写出，可以写出到文件，也可以写出到流
         FastByteArrayOutputStream os = new FastByteArrayOutputStream();
-        lineCaptcha.write(os);
+        captcha.write(os);
         //获取验证码
-        String code = lineCaptcha.getCode();
+        String code = captcha.getCode();
         log.info("获取验证码:{}", code);
 
         //将验证码存入redis
