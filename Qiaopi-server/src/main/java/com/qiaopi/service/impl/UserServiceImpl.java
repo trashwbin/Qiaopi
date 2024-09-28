@@ -8,9 +8,7 @@ import com.qiaopi.dto.UserRegisterDTO;
 import com.qiaopi.entity.User;
 import com.qiaopi.exception.code.CodeErrorException;
 import com.qiaopi.exception.code.CodeTimeoutException;
-import com.qiaopi.exception.user.UserNameNotMatchException;
-import com.qiaopi.exception.user.UserNotExistsException;
-import com.qiaopi.exception.user.UserPasswordNotMatchException;
+import com.qiaopi.exception.user.*;
 import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.properties.JwtProperties;
 import com.qiaopi.service.UserService;
@@ -53,8 +51,7 @@ public class UserServiceImpl implements UserService {
             //验证码已过期
             throw new CodeTimeoutException();
         //} else if (!code.equals(userLoginDTO.getCode())) {
-            //TODO 需要测试
-        } else if (!code.toLowerCase().equals(userLoginDTO.getCode().toLowerCase())) {
+        } else if (!code.equalsIgnoreCase(userLoginDTO.getCode())) {
             //验证码不匹配
             throw new CodeErrorException();
         }
@@ -94,7 +91,7 @@ public class UserServiceImpl implements UserService {
 
         if (user == null) {
             //账号不存在
-            throw new UserNotExistsException();
+            throw new UserLoginNotExistsException();
         }
 
         //更新最后登录时间，ip地址
