@@ -10,6 +10,7 @@ public class MessageConstant {
     public static final String RESET_PASSWORD_SUCCESS = "重置密码成功";
     public static final String ACCOUNT_NOT_FOUND = "账号不存在";
     public static final String ACCOUNT_EXISTS = "该用户名已存在";
+    public static final String ACCOUNT_NOT_EXISTS = "该用户名不存在或密码错误";
     public static final String ACCOUNT_LOCKED = "账号被锁定";
     public static final String UNKNOWN_ERROR = "未知错误";
     public static final String USER_NOT_LOGIN = "用户未登录";
