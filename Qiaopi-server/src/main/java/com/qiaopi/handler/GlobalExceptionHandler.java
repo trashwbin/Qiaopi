@@ -4,15 +4,12 @@ import com.qiaopi.result.AjaxResult;
 import com.qiaopi.constant.MessageConstant;
 import com.qiaopi.exception.base.BaseException;
 import com.qiaopi.result.AjaxResult;
+import com.qiaopi.utils.MessageUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
 import java.net.ConnectException;
 import java.sql.SQLIntegrityConstraintViolationException;
-
-import static com.qiaopi.constant.MessageConstant.ALRADY_EXISTS;
-import static com.qiaopi.constant.MessageConstant.UNKNOWN_ERROR;
 import static com.qiaopi.result.AjaxResult.error;
 
 /**
@@ -45,18 +42,18 @@ public class GlobalExceptionHandler {
         String msg = "";
 
         if(!message.contains("Duplicate entry")) {
-            return error(UNKNOWN_ERROR);
+            return error();
         }
         //一劳永逸的处理方式
         String[] s = message.split(" ");
-        msg = s[2] + ALRADY_EXISTS;
+        msg = s[2] + MessageUtils.message("already.exists");
         return AjaxResult.error(msg);
     }
 
     @ExceptionHandler
     public AjaxResult exceptionHandler(ConnectException ex){
         log.error("异常信息：{}", ex.getMessage());
-        return error(UNKNOWN_ERROR);
+        return error(MessageUtils.message("unknown.error"));
     }
 
 
