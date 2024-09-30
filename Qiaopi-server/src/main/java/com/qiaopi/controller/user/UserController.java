@@ -16,6 +16,7 @@ import com.qiaopi.result.AjaxResult;
 import com.qiaopi.service.UserService;
 import com.qiaopi.utils.AccountValidator;
 import com.qiaopi.utils.IPUtils;
+import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.utils.StringUtils;
 import com.qiaopi.vo.UserLoginVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,6 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static com.qiaopi.constant.MessageConstant.*;
 import static com.qiaopi.result.AjaxResult.error;
 import static com.qiaopi.result.AjaxResult.success;
+import static com.qiaopi.utils.MessageUtils.message;
 
 @RestController
 @RequestMapping("/user")
@@ -76,7 +78,7 @@ public class UserController {
         log.info("用户登录：{},{}", ip, userLoginDTO);
 
         UserLoginVO userLoginVO = userService.login(userLoginDTO);
-        return success(LOGIN_SUCCESS, userLoginVO);
+        return success(message("user.login.success"), userLoginVO);
     }
 
     /**
@@ -110,7 +112,7 @@ public class UserController {
         //map.put("code", code);
         map.put("img", Base64.encode(os.toByteArray()));
 
-        return success(CODE_GET_SUCCESS, map);
+        return success(message("user.get.code.success"), map);
     }
 
     /**
@@ -127,7 +129,7 @@ public class UserController {
         String msg = userService.register(userRegisterDTO);
 
         log.info("用户注册结果：{}", msg);
-        return StringUtils.equals(msg, Register_SUCCESS) ? success(msg) : error(msg);
+        return StringUtils.equals(msg, message("user.register.success")) ? success(msg) : error(msg);
     }
 
 
@@ -144,17 +146,17 @@ public class UserController {
         email = email.toLowerCase();
         // 验证邮箱是否已经注册
         if (userMapper.exists(new LambdaQueryWrapper<User>().eq(User::getEmail, email))) {
-            return error(EMAIL_EXISTS);
+            return error(message("email.exists"));
         }
         //判断邮箱是否合法
         else if (!AccountValidator.isValidEmail(email)) {
-            return error(EMAIL_FORMAT_ERROR);
+            return error(message("email.format.error"));
         }
 
-        String verify = "email_code_" + email;
+        String verify = message("user.register.prefix") + email;
         //判断5分钟内是否发送过验证码
         if (redisTemplate.hasKey(verify)) {
-            return error(CODE_SEND_FREQUENTLY);
+            return error(message("user.send.code.limit"));
         }
 
         // 创建一个邮件
@@ -196,9 +198,9 @@ public class UserController {
             // 发送邮件
             javaMailSender.send(message);
         } catch (MessagingException e) {
-            return error(CODE_SEND_FAILED);
+            return error(message("user.sent.code.failed"));
         } catch (MailException e) {
-            return error(CODE_SEND_FAILED + "，请检查邮箱是否正确");
+            return error(message("user.sent.code.failed") + "，请检查邮箱是否正确");
         }
 
         /*
@@ -230,7 +232,7 @@ public class UserController {
 //        map.put("uuid", verify);
         //map.put("code", code);
 
-        return success(CODE_SEND_SUCCESS);
+        return success(message("user.sent.code.success"));
     }
 
     @PostMapping("/resetPasswordByEmail")
@@ -240,7 +242,7 @@ public class UserController {
         userService.resetPasswordByEmail(userRegisterDTO);
 
         // 验证邮箱是否已经注册
-        return success(RESET_PASSWORD_SUCCESS);
+        return success(message("user.reset.password.success"));
     }
 
     @GetMapping("/sendResetPasswordCode")
@@ -251,18 +253,18 @@ public class UserController {
 
         //判断邮箱是否合法
         if (!AccountValidator.isValidEmail(email)) {
-            return error(EMAIL_FORMAT_ERROR);
+            return error(message("email.format.error"));
         }
-        String verify = "email_reset_code_" + email;
+        String verify = message("user.reset.password.prefix") + email;
         //判断5分钟内是否发送过验证码
         if (redisTemplate.hasKey(verify)) {
-            return error(CODE_SEND_FREQUENTLY);
+            return error(message("user.get.code.limit"));
         }
 
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email));
         // 验证邮箱是否未注册
         if (user == null) {
-            return error(EMAIL_NOT_EXISTS);
+            return error(message("email.not.exists"));
         }
 
         // 创建一个邮件
@@ -306,12 +308,12 @@ public class UserController {
             // 发送邮件
             javaMailSender.send(message);
         } catch (MessagingException e) {
-            return error(CODE_SEND_FAILED);
+            return error(message("user.sent.code.failed"));
         } catch (MailException e) {
-            return error(CODE_SEND_FAILED + "，请检查邮箱是否正确");
+            return error(message("user.sent.code.failed") + "，请检查邮箱是否正确");
         }
 
-        return success(CODE_SEND_SUCCESS);
+        return success(message("user.sent.code.success"));
     }
 }
 
