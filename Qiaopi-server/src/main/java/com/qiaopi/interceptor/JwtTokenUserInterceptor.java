@@ -18,8 +18,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import java.io.IOException;
 
 import static com.qiaopi.constant.HttpStatus.UNAUTHORIZED;
-import static com.qiaopi.constant.MessageConstant.PLEASE_LOGIN;
-import static com.qiaopi.constant.MessageConstant.UNKOWN_TOKEN;
+import static com.qiaopi.utils.MessageUtils.message;
 
 //import javax.servlet.http.HttpServletRequest;
 //import javax.servlet.http.HttpServletResponse;
@@ -58,7 +57,7 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
             log.info("jwt校验:{}", token);
             if (token == null) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                writeErrorResponse(response, PLEASE_LOGIN, UNAUTHORIZED);
+                writeErrorResponse(response, message("user.unlogin"), UNAUTHORIZED);
                 return false;
             }
             Jws<Claims> claims = JwtUtil.parseJWT(jwtProperties.getUserSecretKey(), token);
@@ -70,7 +69,7 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
         } catch (Exception ex) {
             // 4、不通过，响应401状态码
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            writeErrorResponse(response, UNKOWN_TOKEN, UNAUTHORIZED);
+            writeErrorResponse(response, message("user.please.relogin"), UNAUTHORIZED);
             return false;
         }
 
@@ -82,7 +81,7 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
         try {
             JSONObject error = new JSONObject();
             error.put("code", code);
-            error.put("message", message);
+            error.put("msg", message);
             response.getWriter().write(error.toString());
         } catch (IOException e) {
             log.error("Error writing JSON error response", e);
