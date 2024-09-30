@@ -58,7 +58,7 @@ spring:
     username: 2794939382@qq.com
     password: icgqucgqohfcddca
 
-    nickname: 侨批
+    nickname: 侨缘信使
     properties:
       mail.smtp.auth: true #启用SMTP服务器的身份验证，这是为了确保只有合法用户可以发送邮件。
       mail.smtp.starttls.enable: #启用TLS加密，这是为了确保邮件传输的安全性。
@@ -104,7 +104,7 @@ qiaopi:
 #    一定要超过长度，否则会报错。确保secretKey至少有32个字符。
     user-secret-key: qiaopiqiaopiqiaopiqiaopiqiaopiqiaopiqiaopiqiaopiqiaopi
     user-ttl: 7200
-    user-token-name: token
+    user-token-name: Authorization
 #    # 设置jwt签名加密时使用的秘钥
 #    admin-secret-key: abc
 #    # 设置jwt过期时间

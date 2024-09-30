@@ -1,6 +1,5 @@
 package com.qiaopi.controller.other;
 
-import com.qiaopi.constant.MessageConstant;
 import com.qiaopi.result.AjaxResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,11 +16,9 @@ import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static com.qiaopi.constant.MessageConstant.UPLOAD_FAILED;
-import static com.qiaopi.constant.MessageConstant.UPLOAD_SUCCESS;
 import static com.qiaopi.result.AjaxResult.error;
 import static com.qiaopi.result.AjaxResult.success;
+import static com.qiaopi.utils.MessageUtils.message;
 
 /**
  * 通用接口
@@ -54,7 +51,7 @@ public class CommonController {
             String extname = originalFilename.substring(originalFilename.lastIndexOf("."));
             //判断文件格式阉割版
             if(extname.isEmpty() || !".jpg".equals(extname) && !".png".equals(extname) && !".jpeg".equals(extname)){
-                throw new RuntimeException(MessageConstant.UPLOAD_TYPE_ERROR);
+                throw new RuntimeException(message("upload.type.error"));
             }
             //文件路径
             String filePath = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMM")) + "/" ;
@@ -72,11 +69,11 @@ public class CommonController {
             map.put("fileName", fileInfo.getUrl());//注意这里的fileName是url，因为前端地址会做一个判断，如果以http开头，就直接显示，否则拼接
             map.put("newFileName", fileInfo.getFilename());
             map.put("originalFilename", file.getOriginalFilename());
-            return success(UPLOAD_SUCCESS,map);
+            return success(message("upload.success"),map);
 
         }
         catch (Exception e) {
-            return error(UPLOAD_FAILED);
+            return error(message("upload.failed"));
             //throw new RuntimeException(e);
         }
     }

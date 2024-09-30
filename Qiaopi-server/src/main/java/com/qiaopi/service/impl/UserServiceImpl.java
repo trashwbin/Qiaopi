@@ -14,6 +14,7 @@ import com.qiaopi.properties.JwtProperties;
 import com.qiaopi.service.UserService;
 import com.qiaopi.utils.AccountValidator;
 import com.qiaopi.utils.JwtUtil;
+import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.utils.StringUtils;
 import com.qiaopi.vo.UserLoginVO;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ import java.util.Random;
 
 import static cn.hutool.core.bean.BeanUtil.copyProperties;
 import static com.qiaopi.constant.MessageConstant.*;
+import static com.qiaopi.utils.MessageUtils.message;
 
 @Service
 @Slf4j
@@ -130,45 +132,45 @@ public class UserServiceImpl implements UserService {
 
         if (StringUtils.isEmpty(email))
         {
-            msg = EMAIL_EMPTY;
+            msg = message("user.email.empty");
         } else if (!AccountValidator.isValidEmail(email)) {
-            msg = EMAIL_FORMAT_ERROR;
+            msg =message("email.format.error");
         } else if (StringUtils.isEmpty(password))
         {
-            msg = PASSWORD_EMPTY;
+            msg = message("user.password.empty");
         }
         else if (userRegisterDTO.getCode() == null)
         {
-            msg = CODE_EMPTY;
+            msg = message("user.code.empty");
         }
         else if (password.length() < UserConstants.PASSWORD_MIN_LENGTH
                 || password.length() > UserConstants.PASSWORD_MAX_LENGTH)
         {
-            msg = PASSWORD_FORMAT_ERROR;
+            msg = message("user.password.length");
         }
         else if (userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email)) != null)
         {
-            msg = email + EMAIL_EXISTS;
+            msg = email + message("email.exists");
         }else {
 
-            String emailKey = "email_code_" + email;
+            String emailKey = message("user.register.prefix") + email;
 
             String code = (String) redisTemplate.opsForValue().get(emailKey);
 
             if (StringUtils.isEmpty(code)) {
-                msg = CODE_EXPIRED;
+                msg = message("user.code.expire");
             } else if (!code.equals(userRegisterDTO.getCode())) {
-                msg = CODE_ERROR;
+                msg = message("user.code.error");
             }else {
                 redisTemplate.delete(emailKey);
                 //设置昵称
                 user.setNickname(email.substring(0, email.indexOf("@")));
                 //设置用户名
-                user.setUsername(USERNAME_PREFFIX + System.currentTimeMillis() + getStringRandom(3));
+                user.setUsername(message("user.username.prefix") + System.currentTimeMillis() + getStringRandom(3));
                 //设置密码
                 user.setPassword(DigestUtils.md5DigestAsHex(password.getBytes()));
                 userMapper.insert(user);
-                msg = Register_SUCCESS;
+                msg = message("user.register.success");
             }
         }
         return msg;
@@ -186,7 +188,7 @@ public class UserServiceImpl implements UserService {
         //将邮箱转换为小写
         userRegisterDTO.setUsername(userRegisterDTO.getUsername().toLowerCase());
 
-        String verify = "email_reset_code_" + userRegisterDTO.getUsername();
+        String verify = message("user.reset.password.prefix") + userRegisterDTO.getUsername();
         String code = (String) redisTemplate.opsForValue().get(verify);
         if (code == null) {
             //验证码已过期
