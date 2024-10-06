@@ -12,6 +12,7 @@ import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.UserLoginDTO;
 import com.qiaopi.dto.UserRegisterDTO;
 import com.qiaopi.dto.UserResetPasswordDTO;
+import com.qiaopi.dto.UserUpdateDTO;
 import com.qiaopi.entity.User;
 import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.result.AjaxResult;
@@ -52,14 +53,10 @@ import static com.qiaopi.utils.MessageUtils.message;
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class UserController {
 
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private JavaMailSender javaMailSender;
-    @Autowired
-    private RedisTemplate redisTemplate;
-    @Autowired
-    private UserMapper userMapper;
+    private final UserService userService;
+    private final JavaMailSender javaMailSender;
+    private final RedisTemplate redisTemplate;
+    private final UserMapper userMapper;
     @Value("${spring.mail.username}")
     private String sender;
     @Value("${spring.mail.nickname}")
@@ -89,7 +86,7 @@ public class UserController {
      */
     @GetMapping("/getCode")
     @Operation(summary = "获取验证码")
-    public AjaxResult getrCode() {
+    public AjaxResult getCode() {
 
         //设置验证码的宽和高，获取验证码
         LineCaptcha captcha = CaptchaUtil.createLineCaptcha(200, 100, 4, 30);
@@ -150,7 +147,7 @@ public class UserController {
         String verify = message("user.register.prefix") + email;
         //判断5分钟内是否发送过验证码
         if (redisTemplate.hasKey(verify)) {
-            return error(message("user.send.code.limit"));
+            return error(message("user.sent.code.limit"));
         }
 
         // 创建一个邮件
@@ -314,6 +311,7 @@ public class UserController {
     @Operation(summary = "获取用户信息")
     public AjaxResult getUserInfo(HttpServletRequest request) {
         UserVO userVO = userService.getUserInfo(UserContext.getUserId());
+        log.info("获取用户信息：{}", userVO);
         return success(message("user.get.info.success"), userVO);
     }
 
@@ -321,9 +319,43 @@ public class UserController {
     @Operation(summary = "获取用户仓库")
     public AjaxResult getUserRepository(){
         Map<String,List> userRepository = userService.getUserRepository(UserContext.getUserId());
+        log.info("用户仓库：{}",userRepository);
         return success(message("user.get.repository.success"),userRepository);
     }
 
+    @PostMapping("/updateUsername")
+    @Operation(summary = "修改用户名")
+    public AjaxResult updateUsername(@RequestBody UserUpdateDTO userUpdateDTO) {
+        log.info("修改用户名：{}", userUpdateDTO.getUsername());
+        userService.updateUsername(userUpdateDTO);
+        return success(message("user.update.username.success"));
+    }
+
+    @PostMapping("/updatePassword")
+    @Operation(summary = "修改密码")
+    public AjaxResult updatePassword(@RequestBody UserUpdateDTO userUpdateDTO) {
+        log.info("用户修改密码:{}",UserContext.getUserId());
+        userService.updatePassword(userUpdateDTO);
+        return success(message("user.update.password.success"));
+    }
+
+    @PostMapping("/updateUserInfo")
+    @Operation(summary = "修改用户信息")
+    public AjaxResult updateUserInfo(@RequestBody UserUpdateDTO userUpdateDTO) {
+        log.info("修改用户信息：{}", userUpdateDTO);
+        userService.updateUserInfo(userUpdateDTO);
+        return success(message("user.update.info.success"));
+    }
+
+    @GetMapping("/getUserMoney")
+    @Operation(summary = "获取用户猪仔钱")
+    public AjaxResult getUserMoney(){
+        Long money = userService.getUserMoney(UserContext.getUserId());
+        log.info("获取'{}'猪仔钱：{}",UserContext.getUserId(),money);
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>(5);
+        map.put("money", money.toString());
+        return success(message("user.get.money.success"),map);
+    }
 }
 
 
