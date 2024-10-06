@@ -1,17 +1,24 @@
 package com.qiaopi.entity;
 
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.qiaopi.BaseEntity;
+import com.qiaopi.vo.FontVO;
+import com.qiaopi.vo.PaperVO;
 import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
 @Data
 @NoArgsConstructor
 @Builder
+@TableName(autoResultMap = true)//自动映射
 public class User extends BaseEntity {
 
     private static final long serialVersionUID = 1L;
@@ -50,4 +57,15 @@ public class User extends BaseEntity {
     /** 最后登录时间 */
     private LocalDateTime loginDate;
 
+    /** 猪仔钱 */
+    private Long money;
+
+    /** 拥有纸张 */
+    @TableField(typeHandler = JacksonTypeHandler.class)//自定义类型转换器，mybatis-plus默认不支持List类型
+    private List<PaperVO> papers;
+
+    /** 拥有字体 */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<FontVO> fonts;
 }
+

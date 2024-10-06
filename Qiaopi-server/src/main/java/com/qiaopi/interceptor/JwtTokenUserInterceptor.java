@@ -2,7 +2,7 @@ package com.qiaopi.interceptor;
 
 import cn.hutool.json.JSONObject;
 import com.qiaopi.constant.JwtClaimsConstant;
-import com.qiaopi.context.BaseContext;
+import com.qiaopi.context.UserContext;
 import com.qiaopi.properties.JwtProperties;
 import com.qiaopi.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
@@ -60,10 +60,10 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
                 writeErrorResponse(response, message("user.unlogin"), UNAUTHORIZED);
                 return false;
             }
-            Jws<Claims> claims = JwtUtil.parseJWT(jwtProperties.getUserSecretKey(), token);
+            Jws<Claims> claims = JwtUtil.parseJWT(token,jwtProperties.getUserSecretKey());
             Long userId = Long.valueOf(claims.getPayload().get(JwtClaimsConstant.USER_ID).toString());
             log.info("当前用户的id：{}", userId);
-            BaseContext.setCurrentId(userId);
+            UserContext.setUserId(userId);
             // 3、通过，放行
             return true;
         } catch (Exception ex) {

@@ -1,18 +1,18 @@
 package com.qiaopi.context;
 
-public class BaseContext {
+public class UserContext {
 
     public static ThreadLocal<Long> threadLocal = new ThreadLocal<>();
 
-    public static void setCurrentId(Long id) {
+    public static void setUserId(Long id) {
         threadLocal.set(id);
     }
 
-    public static Long getCurrentId() {
+    public static Long getUserId() {
         return threadLocal.get();
     }
 
-    public static void removeCurrentId() {
+    public static void removeUserId() {
         threadLocal.remove();
     }
 
