@@ -1,6 +1,6 @@
 //package com.qiaopi.interceptor;
 //import com.qiaopi.constant.JwtClaimsConstant;
-//import com.qiaopi.context.BaseContext;
+//import com.qiaopi.context.UserContext;
 //import com.qiaopi.properties.JwtProperties;
 //import com.qiaopi.utils.JwtUtil;
 //import io.jwebtoken.Claims;
@@ -49,7 +49,7 @@
 //            Long empId = Long.valueOf(claims.get(JwtClaimsConstant.EMP_ID).toString());
 //            log.info("当前员工id：{}", empId);
 //            //将当前员工id存入ThreadLocal
-//             BaseContext.setCurrentId(empId);
+//             UserContext.setUserId(empId);
 //            //3、通过，放行
 //            return true;
 //        } catch (Exception ex) {

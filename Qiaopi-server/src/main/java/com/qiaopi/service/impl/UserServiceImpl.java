@@ -1,10 +1,14 @@
 package com.qiaopi.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qiaopi.constant.JwtClaimsConstant;
 import com.qiaopi.constant.UserConstants;
 import com.qiaopi.dto.UserLoginDTO;
 import com.qiaopi.dto.UserRegisterDTO;
+import com.qiaopi.dto.UserResetPasswordDTO;
+import com.qiaopi.entity.Font;
+import com.qiaopi.entity.Paper;
 import com.qiaopi.entity.User;
 import com.qiaopi.exception.code.CodeErrorException;
 import com.qiaopi.exception.code.CodeTimeoutException;
@@ -14,34 +18,33 @@ import com.qiaopi.properties.JwtProperties;
 import com.qiaopi.service.UserService;
 import com.qiaopi.utils.AccountValidator;
 import com.qiaopi.utils.JwtUtil;
-import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.utils.StringUtils;
+import com.qiaopi.utils.ip.IpUtils;
+import com.qiaopi.vo.FontVO;
+import com.qiaopi.vo.PaperVO;
 import com.qiaopi.vo.UserLoginVO;
+import com.qiaopi.vo.UserVO;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 import static cn.hutool.core.bean.BeanUtil.copyProperties;
-import static com.qiaopi.constant.MessageConstant.*;
 import static com.qiaopi.utils.MessageUtils.message;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor //自动注入
 public class UserServiceImpl implements UserService {
 
-    @Autowired
-    private  UserMapper userMapper;
-    @Autowired
-    private JwtProperties jwtProperties;
-    @Autowired
-    private RedisTemplate redisTemplate;
+
+    private final UserMapper userMapper;
+    private final JwtProperties jwtProperties;
+    private final RedisTemplate redisTemplate;
 
     @Override
     public UserLoginVO login(UserLoginDTO userLoginDTO) {
@@ -98,7 +101,7 @@ public class UserServiceImpl implements UserService {
 
         //更新最后登录时间，ip地址
         user.setLoginDate(LocalDateTime.now());
-        user.setLoginIp(userLoginDTO.getLoginIp());
+        user.setLoginIp(IpUtils.getIpAddr());
         userMapper.updateById(user);
 
         //生成token
@@ -111,12 +114,10 @@ public class UserServiceImpl implements UserService {
 
         UserLoginVO userLoginVO = UserLoginVO.builder()
                 .id(user.getId())
-                .username(user.getUsername())
                 .token(token)
-                .sex(user.getSex())
                 .avatar(user.getAvatar())
                 .nickname(user.getNickname())
-                .email(user.getEmail())
+                .money(user.getMoney())
                 .build();
 
         return userLoginVO;
@@ -177,27 +178,27 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void resetPasswordByEmail(UserRegisterDTO userRegisterDTO) {
+    public void resetPasswordByEmail(UserResetPasswordDTO userResetPasswordDTO) {
         //检验验证码是否正确
         //从redis中获取验证码
         // 根据用户名查询用户信息
-        if (!AccountValidator.isValidEmail(userRegisterDTO.getUsername())) {
+        if (!AccountValidator.isValidEmail(userResetPasswordDTO.getUsername())) {
             //用户名不合法
             throw new UserNotExistsException();
         }
         //将邮箱转换为小写
-        userRegisterDTO.setUsername(userRegisterDTO.getUsername().toLowerCase());
+        userResetPasswordDTO.setUsername(userResetPasswordDTO.getUsername().toLowerCase());
 
-        String verify = message("user.reset.password.prefix") + userRegisterDTO.getUsername();
+        String verify = message("user.reset.password.prefix") + userResetPasswordDTO.getUsername();
         String code = (String) redisTemplate.opsForValue().get(verify);
         if (code == null) {
             //验证码已过期
             throw new CodeTimeoutException();
-        } else if (!code.equals(userRegisterDTO.getCode())) {
+        } else if (!code.equals(userResetPasswordDTO.getCode())) {
             //验证码不匹配
             throw new CodeErrorException();
         }
-        if (StringUtils.isEmpty(userRegisterDTO.getPassword())) {
+        if (StringUtils.isEmpty(userResetPasswordDTO.getPassword())) {
             //密码为空
             throw new UserPasswordNotMatchException();
         }
@@ -205,12 +206,37 @@ public class UserServiceImpl implements UserService {
         redisTemplate.delete(verify);
         //为了方便查询，将用户名和密码封装到User对象中
         //对前端传过来的明文密码进行MD5加密处理
-        User user = User.builder().password(DigestUtils.md5DigestAsHex(userRegisterDTO.getPassword().getBytes())).email(userRegisterDTO.getUsername()).build();
+        User user = User.builder().password(DigestUtils.md5DigestAsHex(userResetPasswordDTO.getPassword().getBytes())).email(userResetPasswordDTO.getUsername()).build();
 
         userMapper.update(user, new LambdaQueryWrapper<User>().eq(User::getEmail,user.getEmail()));
 
     }
 
+    @Override
+    public UserVO getUserInfo(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+
+        return copyProperties(user, UserVO.class);
+    }
+
+    @Override
+    public Map<String, List> getUserRepository(Long userId) {
+        User user = userMapper.selectById(userId);
+
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        Map<String, List> repository = new HashMap<>();
+        List<FontVO> fonts = user.getFonts();
+        repository.put("fonts", CollUtil.isEmpty(fonts)? Collections.emptyList(): fonts);
+
+        List<PaperVO> papers = user.getPapers();
+        repository.put("papers", CollUtil.isEmpty(papers)? Collections.emptyList(): papers);
+        return repository;
+    }
 
     //生成随机用户名，数字和字母组成,
     public String getStringRandom(int length) {

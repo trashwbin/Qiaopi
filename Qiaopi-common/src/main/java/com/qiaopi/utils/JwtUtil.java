@@ -1,22 +1,17 @@
 package com.qiaopi.utils;
 
 import io.jsonwebtoken.*;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SecureDigestAlgorithm;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.util.Date;
 import java.util.Map;
-import io.jsonwebtoken.security.Keys;
 
 /**
  * @ClassName JwtUtil工具类
- * @project agriBlissMart_common
+ * @project Qiaopi_common
  * @Description
  * @Version 1.0
  */

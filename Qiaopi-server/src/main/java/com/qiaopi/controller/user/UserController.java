@@ -8,17 +8,18 @@ import cn.hutool.core.io.FastByteArrayOutputStream;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.UserLoginDTO;
 import com.qiaopi.dto.UserRegisterDTO;
+import com.qiaopi.dto.UserResetPasswordDTO;
 import com.qiaopi.entity.User;
 import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.result.AjaxResult;
 import com.qiaopi.service.UserService;
 import com.qiaopi.utils.AccountValidator;
-import com.qiaopi.utils.IPUtils;
-import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.utils.StringUtils;
 import com.qiaopi.vo.UserLoginVO;
+import com.qiaopi.vo.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.mail.MessagingException;
@@ -35,9 +36,11 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static com.qiaopi.constant.MessageConstant.*;
 import static com.qiaopi.result.AjaxResult.error;
 import static com.qiaopi.result.AjaxResult.success;
 import static com.qiaopi.utils.MessageUtils.message;
@@ -57,11 +60,10 @@ public class UserController {
     private RedisTemplate redisTemplate;
     @Autowired
     private UserMapper userMapper;
-    /**
-     * 头部信息
-     */
-    private final HttpServletRequest servletRequest;
-
+    @Value("${spring.mail.username}")
+    private String sender;
+    @Value("${spring.mail.nickname}")
+    private String nickname;
 
     /**
      * 登录
@@ -73,9 +75,8 @@ public class UserController {
     @Operation(summary = "用户登录")
     public AjaxResult login(@RequestBody UserLoginDTO userLoginDTO) {
 
-        String ip = IPUtils.getIpAddress(servletRequest);
-        userLoginDTO.setLoginIp(ip);
-        log.info("用户登录：{},{}", ip, userLoginDTO);
+
+        log.info("用户登录：{}", userLoginDTO);
 
         UserLoginVO userLoginVO = userService.login(userLoginDTO);
         return success(message("user.login.success"), userLoginVO);
@@ -91,7 +92,7 @@ public class UserController {
     public AjaxResult getrCode() {
 
         //设置验证码的宽和高，获取验证码
-        LineCaptcha captcha = CaptchaUtil.createLineCaptcha(200, 100,4,30);
+        LineCaptcha captcha = CaptchaUtil.createLineCaptcha(200, 100, 4, 30);
 
         //设置验证码的唯一标识uuid
         String verify = IdUtil.simpleUUID();
@@ -131,13 +132,6 @@ public class UserController {
         log.info("用户注册结果：{}", msg);
         return StringUtils.equals(msg, message("user.register.success")) ? success(msg) : error(msg);
     }
-
-
-    @Value("${spring.mail.username}")
-    private String sender;
-
-    @Value("${spring.mail.nickname}")
-    private String nickname;
 
     @GetMapping("/sendCode")
     @Operation(summary = "发送验证码")
@@ -237,9 +231,9 @@ public class UserController {
 
     @PostMapping("/resetPasswordByEmail")
     @Operation(summary = "通过邮箱重置密码")
-    public AjaxResult resetPasswordByEmail(@RequestBody UserRegisterDTO userRegisterDTO) {
+    public AjaxResult resetPasswordByEmail(@RequestBody UserResetPasswordDTO userResetPasswordDTO) {
 
-        userService.resetPasswordByEmail(userRegisterDTO);
+        userService.resetPasswordByEmail(userResetPasswordDTO);
 
         // 验证邮箱是否已经注册
         return success(message("user.reset.password.success"));
@@ -282,7 +276,7 @@ public class UserController {
             helper.setTo(email);
 
             // 设置邮件主题
-            helper.setSubject(nickname+"-重置密码");
+            helper.setSubject(nickname + "-重置密码");
 
             // 生成六位随机数
             String code = RandomUtil.randomNumbers(6);
@@ -293,8 +287,8 @@ public class UserController {
 
             // 定义邮件内容，使用 HTML
             String content = "<div style='font-family: Arial, sans-serif;'>" +
-                    "<h1>" + nickname +"账户密码重置 </h1>" +
-                    "<h2>你好，"+user.getNickname()+"<h2>"+
+                    "<h1>" + nickname + "账户密码重置 </h1>" +
+                    "<h2>你好，" + user.getNickname() + "<h2>" +
                     "<h2>【验证码】您的重置密码验证码为：" + code + "</h2>" +
                     "<p style='font-size: 14px;'>请在五分钟内使用此验证码重置您的密码，逾期作废。</p>" +
                     "<p style='font-size: 14px;'>如果您没有请求重置密码，请忽略此邮件。</p>" +
@@ -315,6 +309,21 @@ public class UserController {
 
         return success(message("user.sent.code.success"));
     }
+
+    @GetMapping("/getUserInfo")
+    @Operation(summary = "获取用户信息")
+    public AjaxResult getUserInfo(HttpServletRequest request) {
+        UserVO userVO = userService.getUserInfo(UserContext.getUserId());
+        return success(message("user.get.info.success"), userVO);
+    }
+
+    @GetMapping("/getUserRepository")
+    @Operation(summary = "获取用户仓库")
+    public AjaxResult getUserRepository(){
+        Map<String,List> userRepository = userService.getUserRepository(UserContext.getUserId());
+        return success(message("user.get.repository.success"),userRepository);
+    }
+
 }
 
 
