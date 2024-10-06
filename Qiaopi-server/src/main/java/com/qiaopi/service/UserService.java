@@ -3,6 +3,7 @@ package com.qiaopi.service;
 import com.qiaopi.dto.UserLoginDTO;
 import com.qiaopi.dto.UserRegisterDTO;
 import com.qiaopi.dto.UserResetPasswordDTO;
+import com.qiaopi.dto.UserUpdateDTO;
 import com.qiaopi.vo.UserLoginVO;
 import com.qiaopi.vo.UserVO;
 
@@ -20,4 +21,12 @@ public interface UserService {
     UserVO getUserInfo(Long userId);
 
     Map<String, List> getUserRepository(Long userId);
+
+    void updateUsername(UserUpdateDTO userUpdateDTO);
+
+    void updatePassword(UserUpdateDTO userUpdateDTO);
+
+    void updateUserInfo(UserUpdateDTO userUpdateDTO);
+
+    Long getUserMoney(Long userId);
 }

@@ -4,9 +4,11 @@ import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qiaopi.constant.JwtClaimsConstant;
 import com.qiaopi.constant.UserConstants;
+import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.UserLoginDTO;
 import com.qiaopi.dto.UserRegisterDTO;
 import com.qiaopi.dto.UserResetPasswordDTO;
+import com.qiaopi.dto.UserUpdateDTO;
 import com.qiaopi.entity.Font;
 import com.qiaopi.entity.Paper;
 import com.qiaopi.entity.User;
@@ -18,6 +20,7 @@ import com.qiaopi.properties.JwtProperties;
 import com.qiaopi.service.UserService;
 import com.qiaopi.utils.AccountValidator;
 import com.qiaopi.utils.JwtUtil;
+import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.utils.StringUtils;
 import com.qiaopi.utils.ip.IpUtils;
 import com.qiaopi.vo.FontVO;
@@ -112,15 +115,12 @@ public class UserServiceImpl implements UserService {
                 jwtProperties.getUserTtl(),
                 claims);
 
-        UserLoginVO userLoginVO = UserLoginVO.builder()
+        return UserLoginVO.builder()
                 .id(user.getId())
                 .token(token)
                 .avatar(user.getAvatar())
                 .nickname(user.getNickname())
-                .money(user.getMoney())
                 .build();
-
-        return userLoginVO;
     }
 
     @Override
@@ -148,6 +148,8 @@ public class UserServiceImpl implements UserService {
                 || password.length() > UserConstants.PASSWORD_MAX_LENGTH)
         {
             msg = message("user.password.length");
+        }else if (!userRegisterDTO.getPassword().equals(userRegisterDTO.getConfirmPassword())){
+            msg = message("user.password.confirm.error");
         }
         else if (userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email)) != null)
         {
@@ -186,6 +188,13 @@ public class UserServiceImpl implements UserService {
             //用户名不合法
             throw new UserNotExistsException();
         }
+        if (userResetPasswordDTO.getPassword().length() < UserConstants.PASSWORD_MIN_LENGTH
+                || userResetPasswordDTO.getPassword().length() > UserConstants.PASSWORD_MAX_LENGTH)
+        {
+            throw new UserException("user.password.length",null);
+        }else if (!userResetPasswordDTO.getPassword().equals(userResetPasswordDTO.getConfirmPassword())){
+            throw new UserConfirmPasswordNotEqualsException();
+        }
         //将邮箱转换为小写
         userResetPasswordDTO.setUsername(userResetPasswordDTO.getUsername().toLowerCase());
 
@@ -202,6 +211,7 @@ public class UserServiceImpl implements UserService {
             //密码为空
             throw new UserPasswordNotMatchException();
         }
+
         //删除验证码
         redisTemplate.delete(verify);
         //为了方便查询，将用户名和密码封装到User对象中
@@ -236,6 +246,79 @@ public class UserServiceImpl implements UserService {
         List<PaperVO> papers = user.getPapers();
         repository.put("papers", CollUtil.isEmpty(papers)? Collections.emptyList(): papers);
         return repository;
+    }
+
+    @Override
+    public void updateUsername(UserUpdateDTO userUpdateDTO) {
+        //检验用户名是否合法
+        if (StringUtils.isEmpty(userUpdateDTO.getUsername())||!AccountValidator.isValidUsername(userUpdateDTO.getUsername())) {
+            throw new UserException("user.username.length",null);
+        }
+        //检验用户名是否存在
+        if (userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, userUpdateDTO.getUsername())) != null) {
+            throw new UserException("user.username.exists",null);
+        }
+        User user = userMapper.selectById(UserContext.getUserId());
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        user.setUsername(userUpdateDTO.getUsername());
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public void updatePassword(UserUpdateDTO userUpdateDTO) {
+        //检验密码是否合法
+        if (StringUtils.isEmpty(userUpdateDTO.getOldPassword())||StringUtils.isEmpty(userUpdateDTO.getNewPassword())||StringUtils.isEmpty(userUpdateDTO.getConfirmPassword())) {
+            throw new UserPasswordNotMatchException();
+        }
+        //检验新密码是否合法
+        if (userUpdateDTO.getNewPassword().length() < UserConstants.PASSWORD_MIN_LENGTH
+                || userUpdateDTO.getNewPassword().length() > UserConstants.PASSWORD_MAX_LENGTH)
+        {
+            throw new UserException("user.password.length",null);
+        }else if (!userUpdateDTO.getNewPassword().equals(userUpdateDTO.getConfirmPassword())) {
+            throw new UserConfirmPasswordNotEqualsException();
+        }
+
+        User user = userMapper.selectById(UserContext.getUserId());
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        //检验旧密码是否正确
+        if (!user.getPassword().equals(DigestUtils.md5DigestAsHex(userUpdateDTO.getOldPassword().getBytes()))) {
+            throw new UserException("user.old.password.error",null);
+        }
+
+        user.setPassword(DigestUtils.md5DigestAsHex(userUpdateDTO.getNewPassword().getBytes()));
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public void updateUserInfo(UserUpdateDTO userUpdateDTO) {
+        User user = userMapper.selectById(UserContext.getUserId());
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        if (StringUtils.isNotEmpty(userUpdateDTO.getNickname())) {
+            user.setNickname(userUpdateDTO.getNickname());
+        }
+        if (StringUtils.isNotEmpty(userUpdateDTO.getAvatar())) {
+            user.setAvatar(userUpdateDTO.getAvatar());
+        }
+        if (StringUtils.isNotEmpty(userUpdateDTO.getSex())) {
+            user.setSex(userUpdateDTO.getSex());
+        }
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public Long getUserMoney(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        return user.getMoney();
     }
 
     //生成随机用户名，数字和字母组成,

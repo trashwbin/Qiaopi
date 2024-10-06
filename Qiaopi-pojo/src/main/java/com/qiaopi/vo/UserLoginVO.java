@@ -31,6 +31,6 @@ public class UserLoginVO implements Serializable {
     private String avatar;
 
     /** 用户猪仔钱 */
-    @Schema(description = "猪仔钱")
-    private Long money;
+//    @Schema(description = "猪仔钱")
+//    private Long money;
 }

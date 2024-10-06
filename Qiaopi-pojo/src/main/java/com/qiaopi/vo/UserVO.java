@@ -20,25 +20,23 @@ public class UserVO {
     private String username;
 
     private String nickname;
-
     /** 用户头像 */
     private String avatar;
     /** 用户性别 */
     private String sex;
 
     private String email;
-    /**
-     * 猪仔钱
-     */
-    private Long money;
-
-    /**
-     * 拥有纸张
-     */
-    private List<PaperVO> papers;
-
-    /**
-     * 拥有字体
-     */
-    private List<FontVO> fonts;
+//    /**
+//     * 猪仔钱
+//     */
+//    private Long money;
+//    /**
+//     * 拥有纸张
+//     */
+//    private List<PaperVO> papers;
+//
+//    /**
+//     * 拥有字体
+//     */
+//    private List<FontVO> fonts;
 }

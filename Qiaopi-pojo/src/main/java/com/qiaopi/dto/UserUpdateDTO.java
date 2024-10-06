@@ -16,6 +16,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Schema(name = "UserUpdateDTO", description = "用户信息更新对象")
 public class UserUpdateDTO {
+
     /**
      * 用户名
      */
@@ -40,14 +41,10 @@ public class UserUpdateDTO {
     @Schema(description = "用户确认密码" , example = "12345678")
     private String confirmPassword;
 
-    /**
-     * 用户邮箱(暂不支持换绑)
-     */
+    /*用户邮箱(暂不支持换绑)*/
     //private String email;
 
-    /**
-     * 用户昵称
-     */
+    /**用户昵称*/
     @Schema(description = "用户昵称" , example = "侨批")
     private String nickname;
 
