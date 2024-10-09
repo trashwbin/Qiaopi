@@ -1,5 +1,8 @@
-package com.qiaopi.dto;
+package com.qiaopi;
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.qiaopi.entity.Address;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Schema(name = "LetterGenDTO", description = "信件生成对象")
+@Schema(name = "LetterSendDTO", description = "信件生成对象")
 public class LetterGenDTO {
 
 
@@ -20,6 +23,18 @@ public class LetterGenDTO {
      */
     @Schema(description = "寄件人的姓名")
     private String senderName;
+
+    /**
+     * 收件人的邮箱
+     */
+    @Schema(description = "收件人的邮箱")
+    private String recipientEmail;
+
+    /**
+     * 收件人的用户ID(非必需项)
+     */
+    @Schema(description = "收件人的用户ID(非必需项)")
+    private Long recipientUserId;
 
     /**
      * 收件人的姓名
@@ -32,6 +47,20 @@ public class LetterGenDTO {
      */
     @Schema(description = "信的内容")
     private String letterContent;
+
+    /**
+     * 寄件人地址
+     */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    @Schema(description = "寄件人地址")
+    private Address senderAddress;
+
+    /**
+     * 收件人地址
+     */
+    @Schema(description = "收件人地址")
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Address recipientAddress;
 
     /**
      * 字体ID
