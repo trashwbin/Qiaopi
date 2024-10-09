@@ -2,8 +2,9 @@ server:
   port: 8080
 
 spring:
+#  模式切换
   profiles:
-    active: prod
+    active: dev
   main:
     allow-circular-references: true
   messages:
@@ -103,7 +104,7 @@ qiaopi:
   jwt:
 #    一定要超过长度，否则会报错。确保secretKey至少有32个字符。
     user-secret-key: qiaopiqiaopiqiaopiqiaopiqiaopiqiaopiqiaopiqiaopiqiaopi
-    user-ttl: 7200
+    user-ttl: 720000000
     user-token-name: Authorization
 #    # 设置jwt签名加密时使用的秘钥
 #    admin-secret-key: abc
