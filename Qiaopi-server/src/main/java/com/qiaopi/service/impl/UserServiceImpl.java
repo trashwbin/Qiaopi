@@ -235,6 +235,13 @@ public class UserServiceImpl implements UserService {
 
         List<PaperVO> papers = user.getPapers();
         repository.put("papers", CollUtil.isEmpty(papers) ? Collections.emptyList() : papers);
+
+        List<FontColorVO> fontColors = user.getFontColors();
+        repository.put("fontColors", CollUtil.isEmpty(fontColors) ? Collections.emptyList() : fontColors);
+
+        List<SignetVO> signets = user.getSignets();
+        repository.put("signets", CollUtil.isEmpty(signets) ? Collections.emptyList() : signets);
+
         return repository;
     }
 
