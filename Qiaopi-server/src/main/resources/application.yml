@@ -4,7 +4,7 @@ server:
 spring:
 #  模式切换
   profiles:
-    active: dev
+    active: prod
   main:
     allow-circular-references: true
   messages:
