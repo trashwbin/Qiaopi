@@ -370,7 +370,7 @@ public class UserController {
 
     @GetMapping("/getFriendAddress")
     @Operation(summary = "获取当前好友地址")
-    public AjaxResult getFriendAddress(@RequestParam("好友列表里的序号Id") Long friendId){
+    public AjaxResult getFriendAddress(@RequestParam("FriendId") Long friendId){
         log.info("获取当前好友地址：{}",friendId);
         List<Address> addresses = userService.getFriendAddress(friendId);
         return success(message("user.get.friend.address.success"),addresses);
