@@ -1,7 +1,7 @@
 package com.qiaopi.utils;
 
 import com.qiaopi.constant.Constants;
-import com.qiaopi.text.StrFormatter;
+import com.qiaopi.core.text.StrFormatter;
 import org.springframework.util.AntPathMatcher;
 
 import java.util.*;
