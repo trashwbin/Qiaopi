@@ -13,12 +13,14 @@ import com.qiaopi.dto.UserLoginDTO;
 import com.qiaopi.dto.UserRegisterDTO;
 import com.qiaopi.dto.UserResetPasswordDTO;
 import com.qiaopi.dto.UserUpdateDTO;
+import com.qiaopi.entity.Address;
 import com.qiaopi.entity.User;
 import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.result.AjaxResult;
 import com.qiaopi.service.UserService;
 import com.qiaopi.utils.AccountValidator;
 import com.qiaopi.utils.StringUtils;
+import com.qiaopi.vo.FriendVO;
 import com.qiaopi.vo.UserLoginVO;
 import com.qiaopi.vo.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -355,6 +357,30 @@ public class UserController {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>(5);
         map.put("money", money.toString());
         return success(message("user.get.money.success"),map);
+    }
+
+
+    @GetMapping("/getMyFriends")
+    @Operation(summary = "获取我的好友")
+    public AjaxResult getMyFriends(){
+        log.info("获取我的好友：{}",UserContext.getUserId());
+        List<FriendVO> friends = userService.getMyFriends(UserContext.getUserId());
+        return success(message("user.get.friends.success"),friends);
+    }
+
+    @GetMapping("/getFriendAddress")
+    @Operation(summary = "获取当前好友地址")
+    public AjaxResult getFriendAddress(@RequestParam("好友列表里的序号Id") Long friendId){
+        log.info("获取当前好友地址：{}",friendId);
+        List<Address> addresses = userService.getFriendAddress(friendId);
+        return success(message("user.get.friend.address.success"),addresses);
+    }
+    @GetMapping("/getMyAddress")
+    @Operation(summary = "获取我的地址")
+    public AjaxResult getMyAddress(){
+        log.info("获取我的地址：{}",UserContext.getUserId());
+        List<Address> addresses = userService.getMyAddress(UserContext.getUserId());
+        return success(message("user.get.address.success"),addresses);
     }
 }
 

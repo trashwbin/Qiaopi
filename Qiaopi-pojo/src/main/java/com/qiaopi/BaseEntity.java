@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Entity基类
@@ -47,17 +49,17 @@ public class BaseEntity implements Serializable {
     /** 备注 */
     private String remark;
 
-//    /** 请求参数 */
-//    private Map<String, Object> params;
+    /* 请求参数 */
+/*    private Map<String, Object> params;
 
 
-//    public Map<String, Object> getParams()
-//    {
-//        if (params == null)
-//        {
-//            params = new HashMap<>();
-//        }
-//        return params;
-//    }
+    public Map<String, Object> getParams()
+    {
+        if (params == null)
+        {
+            params = new HashMap<>();
+        }
+        return params;
+    }*/
 
 }

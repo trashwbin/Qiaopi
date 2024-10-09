@@ -1,5 +1,6 @@
 package com.qiaopi.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qiaopi.constant.JwtClaimsConstant;
@@ -9,12 +10,11 @@ import com.qiaopi.dto.UserLoginDTO;
 import com.qiaopi.dto.UserRegisterDTO;
 import com.qiaopi.dto.UserResetPasswordDTO;
 import com.qiaopi.dto.UserUpdateDTO;
-import com.qiaopi.entity.Font;
-import com.qiaopi.entity.Paper;
-import com.qiaopi.entity.User;
+import com.qiaopi.entity.*;
 import com.qiaopi.exception.code.CodeErrorException;
 import com.qiaopi.exception.code.CodeTimeoutException;
 import com.qiaopi.exception.user.*;
+import com.qiaopi.mapper.FriendMapper;
 import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.properties.JwtProperties;
 import com.qiaopi.service.UserService;
@@ -23,12 +23,10 @@ import com.qiaopi.utils.JwtUtil;
 import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.utils.StringUtils;
 import com.qiaopi.utils.ip.IpUtils;
-import com.qiaopi.vo.FontVO;
-import com.qiaopi.vo.PaperVO;
-import com.qiaopi.vo.UserLoginVO;
-import com.qiaopi.vo.UserVO;
+import com.qiaopi.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
@@ -46,6 +44,7 @@ public class UserServiceImpl implements UserService {
 
 
     private final UserMapper userMapper;
+    private final FriendMapper friendMapper;
     private final JwtProperties jwtProperties;
     private final RedisTemplate redisTemplate;
 
@@ -58,7 +57,7 @@ public class UserServiceImpl implements UserService {
         if (code == null) {
             //验证码已过期
             throw new CodeTimeoutException();
-        //} else if (!code.equals(userLoginDTO.getCode())) {
+            //} else if (!code.equals(userLoginDTO.getCode())) {
         } else if (!code.equalsIgnoreCase(userLoginDTO.getCode())) {
             //验证码不匹配
             throw new CodeErrorException();
@@ -131,30 +130,22 @@ public class UserServiceImpl implements UserService {
         user.setEmail(email);
 
 
-        if (StringUtils.isEmpty(email))
-        {
+        if (StringUtils.isEmpty(email)) {
             msg = message("user.email.empty");
         } else if (!AccountValidator.isValidEmail(email)) {
-            msg =message("email.format.error");
-        } else if (StringUtils.isEmpty(password))
-        {
+            msg = message("email.format.error");
+        } else if (StringUtils.isEmpty(password)) {
             msg = message("user.password.empty");
-        }
-        else if (userRegisterDTO.getCode() == null)
-        {
+        } else if (userRegisterDTO.getCode() == null) {
             msg = message("user.code.empty");
-        }
-        else if (password.length() < UserConstants.PASSWORD_MIN_LENGTH
-                || password.length() > UserConstants.PASSWORD_MAX_LENGTH)
-        {
+        } else if (password.length() < UserConstants.PASSWORD_MIN_LENGTH
+                || password.length() > UserConstants.PASSWORD_MAX_LENGTH) {
             msg = message("user.password.length");
-        }else if (!userRegisterDTO.getPassword().equals(userRegisterDTO.getConfirmPassword())){
+        } else if (!userRegisterDTO.getPassword().equals(userRegisterDTO.getConfirmPassword())) {
             msg = message("user.password.confirm.error");
-        }
-        else if (userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email)) != null)
-        {
+        } else if (userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email)) != null) {
             msg = email + message("email.exists");
-        }else {
+        } else {
 
             String emailKey = message("user.register.prefix") + email;
 
@@ -164,7 +155,7 @@ public class UserServiceImpl implements UserService {
                 msg = message("user.code.expire");
             } else if (!code.equals(userRegisterDTO.getCode())) {
                 msg = message("user.code.error");
-            }else {
+            } else {
                 redisTemplate.delete(emailKey);
                 //设置昵称
                 user.setNickname(email.substring(0, email.indexOf("@")));
@@ -189,10 +180,9 @@ public class UserServiceImpl implements UserService {
             throw new UserNotExistsException();
         }
         if (userResetPasswordDTO.getPassword().length() < UserConstants.PASSWORD_MIN_LENGTH
-                || userResetPasswordDTO.getPassword().length() > UserConstants.PASSWORD_MAX_LENGTH)
-        {
-            throw new UserException("user.password.length",null);
-        }else if (!userResetPasswordDTO.getPassword().equals(userResetPasswordDTO.getConfirmPassword())){
+                || userResetPasswordDTO.getPassword().length() > UserConstants.PASSWORD_MAX_LENGTH) {
+            throw new UserException("user.password.length", null);
+        } else if (!userResetPasswordDTO.getPassword().equals(userResetPasswordDTO.getConfirmPassword())) {
             throw new UserConfirmPasswordNotEqualsException();
         }
         //将邮箱转换为小写
@@ -218,7 +208,7 @@ public class UserServiceImpl implements UserService {
         //对前端传过来的明文密码进行MD5加密处理
         User user = User.builder().password(DigestUtils.md5DigestAsHex(userResetPasswordDTO.getPassword().getBytes())).email(userResetPasswordDTO.getUsername()).build();
 
-        userMapper.update(user, new LambdaQueryWrapper<User>().eq(User::getEmail,user.getEmail()));
+        userMapper.update(user, new LambdaQueryWrapper<User>().eq(User::getEmail, user.getEmail()));
 
     }
 
@@ -241,22 +231,22 @@ public class UserServiceImpl implements UserService {
         }
         Map<String, List> repository = new HashMap<>();
         List<FontVO> fonts = user.getFonts();
-        repository.put("fonts", CollUtil.isEmpty(fonts)? Collections.emptyList(): fonts);
+        repository.put("fonts", CollUtil.isEmpty(fonts) ? Collections.emptyList() : fonts);
 
         List<PaperVO> papers = user.getPapers();
-        repository.put("papers", CollUtil.isEmpty(papers)? Collections.emptyList(): papers);
+        repository.put("papers", CollUtil.isEmpty(papers) ? Collections.emptyList() : papers);
         return repository;
     }
 
     @Override
     public void updateUsername(UserUpdateDTO userUpdateDTO) {
         //检验用户名是否合法
-        if (StringUtils.isEmpty(userUpdateDTO.getUsername())||!AccountValidator.isValidUsername(userUpdateDTO.getUsername())) {
-            throw new UserException("user.username.length",null);
+        if (StringUtils.isEmpty(userUpdateDTO.getUsername()) || !AccountValidator.isValidUsername(userUpdateDTO.getUsername())) {
+            throw new UserException("user.username.length", null);
         }
         //检验用户名是否存在
         if (userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, userUpdateDTO.getUsername())) != null) {
-            throw new UserException("user.username.exists",null);
+            throw new UserException("user.username.exists", null);
         }
         User user = userMapper.selectById(UserContext.getUserId());
         if (user == null) {
@@ -269,15 +259,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public void updatePassword(UserUpdateDTO userUpdateDTO) {
         //检验密码是否合法
-        if (StringUtils.isEmpty(userUpdateDTO.getOldPassword())||StringUtils.isEmpty(userUpdateDTO.getNewPassword())||StringUtils.isEmpty(userUpdateDTO.getConfirmPassword())) {
+        if (StringUtils.isEmpty(userUpdateDTO.getOldPassword()) || StringUtils.isEmpty(userUpdateDTO.getNewPassword()) || StringUtils.isEmpty(userUpdateDTO.getConfirmPassword())) {
             throw new UserPasswordNotMatchException();
         }
         //检验新密码是否合法
         if (userUpdateDTO.getNewPassword().length() < UserConstants.PASSWORD_MIN_LENGTH
-                || userUpdateDTO.getNewPassword().length() > UserConstants.PASSWORD_MAX_LENGTH)
-        {
-            throw new UserException("user.password.length",null);
-        }else if (!userUpdateDTO.getNewPassword().equals(userUpdateDTO.getConfirmPassword())) {
+                || userUpdateDTO.getNewPassword().length() > UserConstants.PASSWORD_MAX_LENGTH) {
+            throw new UserException("user.password.length", null);
+        } else if (!userUpdateDTO.getNewPassword().equals(userUpdateDTO.getConfirmPassword())) {
             throw new UserConfirmPasswordNotEqualsException();
         }
 
@@ -287,7 +276,7 @@ public class UserServiceImpl implements UserService {
         }
         //检验旧密码是否正确
         if (!user.getPassword().equals(DigestUtils.md5DigestAsHex(userUpdateDTO.getOldPassword().getBytes()))) {
-            throw new UserException("user.old.password.error",null);
+            throw new UserException("user.old.password.error", null);
         }
 
         user.setPassword(DigestUtils.md5DigestAsHex(userUpdateDTO.getNewPassword().getBytes()));
@@ -319,6 +308,37 @@ public class UserServiceImpl implements UserService {
             throw new UserNotExistsException();
         }
         return user.getMoney();
+    }
+
+    @Override
+    public List<FriendVO> getMyFriends(Long userId) {
+        //查询好友列表
+        List<Friend> friendList = friendMapper.selectList(new LambdaQueryWrapper<Friend>().eq(Friend::getOwningId, userId));
+
+        if (CollUtil.isEmpty(friendList)) {
+            return Collections.emptyList();
+        }
+
+        return BeanUtil.copyToList(friendList, FriendVO.class);
+    }
+
+    @Override
+    public List<Address> getMyAddress(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        return user.getAddresses();
+    }
+
+    @Override
+    public List<Address> getFriendAddress(Long friendId) {
+        //查询好友地址,根据好友id和所属用户id查询
+        Friend friend = friendMapper.selectOne(new LambdaQueryWrapper<Friend>().eq(Friend::getId, friendId).eq(Friend::getOwningId, UserContext.getUserId()));
+        if (friend == null) {
+            throw new FriendNotExistsException();
+        }
+        return friend.getAddresses();
     }
 
     //生成随机用户名，数字和字母组成,

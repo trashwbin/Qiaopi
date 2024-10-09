@@ -4,6 +4,8 @@ import com.qiaopi.dto.UserLoginDTO;
 import com.qiaopi.dto.UserRegisterDTO;
 import com.qiaopi.dto.UserResetPasswordDTO;
 import com.qiaopi.dto.UserUpdateDTO;
+import com.qiaopi.entity.Address;
+import com.qiaopi.vo.FriendVO;
 import com.qiaopi.vo.UserLoginVO;
 import com.qiaopi.vo.UserVO;
 
@@ -29,4 +31,10 @@ public interface UserService {
     void updateUserInfo(UserUpdateDTO userUpdateDTO);
 
     Long getUserMoney(Long userId);
+
+    List<FriendVO> getMyFriends(Long userId);
+
+    List<Address> getMyAddress(Long userId);
+
+    List<Address> getFriendAddress(Long friendId);
 }
