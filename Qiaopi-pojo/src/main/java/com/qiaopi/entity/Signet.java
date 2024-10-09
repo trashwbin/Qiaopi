@@ -1,6 +1,5 @@
 package com.qiaopi.entity;
 
-import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,8 +8,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "字体")
-public class Font {
+@Schema(description = "印章")
+public class Signet {
     @Schema(description = "id")
     private Long id;
 
