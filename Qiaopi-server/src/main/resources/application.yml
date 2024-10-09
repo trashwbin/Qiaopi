@@ -2,8 +2,9 @@ server:
   port: 8080
 
 spring:
+#  模式切换
   profiles:
-    active: prod
+    active: dev
   main:
     allow-circular-references: true
   messages:
