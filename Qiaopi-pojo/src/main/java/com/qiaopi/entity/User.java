@@ -67,5 +67,9 @@ public class User extends BaseEntity {
     /** 拥有字体 */
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<FontVO> fonts;
+
+    /** 地址 */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<Address> addresses;
 }
 
