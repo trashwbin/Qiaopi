@@ -5,12 +5,12 @@ qiaopi:
     port: 3306
     database: qiaopi
     username: root
-    password: 1234
+    password: '050125'
 
   redis:
     host: localhost
     port: 6379
-    password: 1234
+    password: '050125'
     database: 1
 
 # knife4j项目访问访问地址:http://127.0.0.1:8080/doc.html#/home
