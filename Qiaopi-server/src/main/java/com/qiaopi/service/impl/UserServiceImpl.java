@@ -1,14 +1,20 @@
 package com.qiaopi.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qiaopi.constant.JwtClaimsConstant;
 import com.qiaopi.constant.UserConstants;
+import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.UserLoginDTO;
 import com.qiaopi.dto.UserRegisterDTO;
-import com.qiaopi.entity.User;
+import com.qiaopi.dto.UserResetPasswordDTO;
+import com.qiaopi.dto.UserUpdateDTO;
+import com.qiaopi.entity.*;
 import com.qiaopi.exception.code.CodeErrorException;
 import com.qiaopi.exception.code.CodeTimeoutException;
 import com.qiaopi.exception.user.*;
+import com.qiaopi.mapper.FriendMapper;
 import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.properties.JwtProperties;
 import com.qiaopi.service.UserService;
@@ -16,32 +22,31 @@ import com.qiaopi.utils.AccountValidator;
 import com.qiaopi.utils.JwtUtil;
 import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.utils.StringUtils;
-import com.qiaopi.vo.UserLoginVO;
+import com.qiaopi.utils.ip.IpUtils;
+import com.qiaopi.vo.*;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 import static cn.hutool.core.bean.BeanUtil.copyProperties;
-import static com.qiaopi.constant.MessageConstant.*;
 import static com.qiaopi.utils.MessageUtils.message;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor //自动注入
 public class UserServiceImpl implements UserService {
 
-    @Autowired
-    private  UserMapper userMapper;
-    @Autowired
-    private JwtProperties jwtProperties;
-    @Autowired
-    private RedisTemplate redisTemplate;
+
+    private final UserMapper userMapper;
+    private final FriendMapper friendMapper;
+    private final JwtProperties jwtProperties;
+    private final RedisTemplate redisTemplate;
 
     @Override
     public UserLoginVO login(UserLoginDTO userLoginDTO) {
@@ -52,7 +57,7 @@ public class UserServiceImpl implements UserService {
         if (code == null) {
             //验证码已过期
             throw new CodeTimeoutException();
-        //} else if (!code.equals(userLoginDTO.getCode())) {
+            //} else if (!code.equals(userLoginDTO.getCode())) {
         } else if (!code.equalsIgnoreCase(userLoginDTO.getCode())) {
             //验证码不匹配
             throw new CodeErrorException();
@@ -98,7 +103,7 @@ public class UserServiceImpl implements UserService {
 
         //更新最后登录时间，ip地址
         user.setLoginDate(LocalDateTime.now());
-        user.setLoginIp(userLoginDTO.getLoginIp());
+        user.setLoginIp(IpUtils.getIpAddr());
         userMapper.updateById(user);
 
         //生成token
@@ -109,17 +114,12 @@ public class UserServiceImpl implements UserService {
                 jwtProperties.getUserTtl(),
                 claims);
 
-        UserLoginVO userLoginVO = UserLoginVO.builder()
+        return UserLoginVO.builder()
                 .id(user.getId())
-                .username(user.getUsername())
                 .token(token)
-                .sex(user.getSex())
                 .avatar(user.getAvatar())
                 .nickname(user.getNickname())
-                .email(user.getEmail())
                 .build();
-
-        return userLoginVO;
     }
 
     @Override
@@ -130,28 +130,22 @@ public class UserServiceImpl implements UserService {
         user.setEmail(email);
 
 
-        if (StringUtils.isEmpty(email))
-        {
+        if (StringUtils.isEmpty(email)) {
             msg = message("user.email.empty");
         } else if (!AccountValidator.isValidEmail(email)) {
-            msg =message("email.format.error");
-        } else if (StringUtils.isEmpty(password))
-        {
+            msg = message("email.format.error");
+        } else if (StringUtils.isEmpty(password)) {
             msg = message("user.password.empty");
-        }
-        else if (userRegisterDTO.getCode() == null)
-        {
+        } else if (userRegisterDTO.getCode() == null) {
             msg = message("user.code.empty");
-        }
-        else if (password.length() < UserConstants.PASSWORD_MIN_LENGTH
-                || password.length() > UserConstants.PASSWORD_MAX_LENGTH)
-        {
+        } else if (password.length() < UserConstants.PASSWORD_MIN_LENGTH
+                || password.length() > UserConstants.PASSWORD_MAX_LENGTH) {
             msg = message("user.password.length");
-        }
-        else if (userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email)) != null)
-        {
+        } else if (!userRegisterDTO.getPassword().equals(userRegisterDTO.getConfirmPassword())) {
+            msg = message("user.password.confirm.error");
+        } else if (userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email)) != null) {
             msg = email + message("email.exists");
-        }else {
+        } else {
 
             String emailKey = message("user.register.prefix") + email;
 
@@ -161,7 +155,7 @@ public class UserServiceImpl implements UserService {
                 msg = message("user.code.expire");
             } else if (!code.equals(userRegisterDTO.getCode())) {
                 msg = message("user.code.error");
-            }else {
+            } else {
                 redisTemplate.delete(emailKey);
                 //设置昵称
                 user.setNickname(email.substring(0, email.indexOf("@")));
@@ -177,40 +171,175 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void resetPasswordByEmail(UserRegisterDTO userRegisterDTO) {
+    public void resetPasswordByEmail(UserResetPasswordDTO userResetPasswordDTO) {
         //检验验证码是否正确
         //从redis中获取验证码
         // 根据用户名查询用户信息
-        if (!AccountValidator.isValidEmail(userRegisterDTO.getUsername())) {
+        if (!AccountValidator.isValidEmail(userResetPasswordDTO.getUsername())) {
             //用户名不合法
             throw new UserNotExistsException();
         }
+        if (userResetPasswordDTO.getPassword().length() < UserConstants.PASSWORD_MIN_LENGTH
+                || userResetPasswordDTO.getPassword().length() > UserConstants.PASSWORD_MAX_LENGTH) {
+            throw new UserException("user.password.length", null);
+        } else if (!userResetPasswordDTO.getPassword().equals(userResetPasswordDTO.getConfirmPassword())) {
+            throw new UserConfirmPasswordNotEqualsException();
+        }
         //将邮箱转换为小写
-        userRegisterDTO.setUsername(userRegisterDTO.getUsername().toLowerCase());
+        userResetPasswordDTO.setUsername(userResetPasswordDTO.getUsername().toLowerCase());
 
-        String verify = message("user.reset.password.prefix") + userRegisterDTO.getUsername();
+        String verify = message("user.reset.password.prefix") + userResetPasswordDTO.getUsername();
         String code = (String) redisTemplate.opsForValue().get(verify);
         if (code == null) {
             //验证码已过期
             throw new CodeTimeoutException();
-        } else if (!code.equals(userRegisterDTO.getCode())) {
+        } else if (!code.equals(userResetPasswordDTO.getCode())) {
             //验证码不匹配
             throw new CodeErrorException();
         }
-        if (StringUtils.isEmpty(userRegisterDTO.getPassword())) {
+        if (StringUtils.isEmpty(userResetPasswordDTO.getPassword())) {
             //密码为空
             throw new UserPasswordNotMatchException();
         }
+
         //删除验证码
         redisTemplate.delete(verify);
         //为了方便查询，将用户名和密码封装到User对象中
         //对前端传过来的明文密码进行MD5加密处理
-        User user = User.builder().password(DigestUtils.md5DigestAsHex(userRegisterDTO.getPassword().getBytes())).email(userRegisterDTO.getUsername()).build();
+        User user = User.builder().password(DigestUtils.md5DigestAsHex(userResetPasswordDTO.getPassword().getBytes())).email(userResetPasswordDTO.getUsername()).build();
 
-        userMapper.update(user, new LambdaQueryWrapper<User>().eq(User::getEmail,user.getEmail()));
+        userMapper.update(user, new LambdaQueryWrapper<User>().eq(User::getEmail, user.getEmail()));
 
     }
 
+    @Override
+    public UserVO getUserInfo(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+
+        return copyProperties(user, UserVO.class);
+    }
+
+    @Override
+    public Map<String, List> getUserRepository(Long userId) {
+        User user = userMapper.selectById(userId);
+
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        Map<String, List> repository = new HashMap<>();
+        List<FontVO> fonts = user.getFonts();
+        repository.put("fonts", CollUtil.isEmpty(fonts) ? Collections.emptyList() : fonts);
+
+        List<PaperVO> papers = user.getPapers();
+        repository.put("papers", CollUtil.isEmpty(papers) ? Collections.emptyList() : papers);
+        return repository;
+    }
+
+    @Override
+    public void updateUsername(UserUpdateDTO userUpdateDTO) {
+        //检验用户名是否合法
+        if (StringUtils.isEmpty(userUpdateDTO.getUsername()) || !AccountValidator.isValidUsername(userUpdateDTO.getUsername())) {
+            throw new UserException("user.username.length", null);
+        }
+        //检验用户名是否存在
+        if (userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, userUpdateDTO.getUsername())) != null) {
+            throw new UserException("user.username.exists", null);
+        }
+        User user = userMapper.selectById(UserContext.getUserId());
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        user.setUsername(userUpdateDTO.getUsername());
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public void updatePassword(UserUpdateDTO userUpdateDTO) {
+        //检验密码是否合法
+        if (StringUtils.isEmpty(userUpdateDTO.getOldPassword()) || StringUtils.isEmpty(userUpdateDTO.getNewPassword()) || StringUtils.isEmpty(userUpdateDTO.getConfirmPassword())) {
+            throw new UserPasswordNotMatchException();
+        }
+        //检验新密码是否合法
+        if (userUpdateDTO.getNewPassword().length() < UserConstants.PASSWORD_MIN_LENGTH
+                || userUpdateDTO.getNewPassword().length() > UserConstants.PASSWORD_MAX_LENGTH) {
+            throw new UserException("user.password.length", null);
+        } else if (!userUpdateDTO.getNewPassword().equals(userUpdateDTO.getConfirmPassword())) {
+            throw new UserConfirmPasswordNotEqualsException();
+        }
+
+        User user = userMapper.selectById(UserContext.getUserId());
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        //检验旧密码是否正确
+        if (!user.getPassword().equals(DigestUtils.md5DigestAsHex(userUpdateDTO.getOldPassword().getBytes()))) {
+            throw new UserException("user.old.password.error", null);
+        }
+
+        user.setPassword(DigestUtils.md5DigestAsHex(userUpdateDTO.getNewPassword().getBytes()));
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public void updateUserInfo(UserUpdateDTO userUpdateDTO) {
+        User user = userMapper.selectById(UserContext.getUserId());
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        if (StringUtils.isNotEmpty(userUpdateDTO.getNickname())) {
+            user.setNickname(userUpdateDTO.getNickname());
+        }
+        if (StringUtils.isNotEmpty(userUpdateDTO.getAvatar())) {
+            user.setAvatar(userUpdateDTO.getAvatar());
+        }
+        if (StringUtils.isNotEmpty(userUpdateDTO.getSex())) {
+            user.setSex(userUpdateDTO.getSex());
+        }
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public Long getUserMoney(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        return user.getMoney();
+    }
+
+    @Override
+    public List<FriendVO> getMyFriends(Long userId) {
+        //查询好友列表
+        List<Friend> friendList = friendMapper.selectList(new LambdaQueryWrapper<Friend>().eq(Friend::getOwningId, userId));
+
+        if (CollUtil.isEmpty(friendList)) {
+            return Collections.emptyList();
+        }
+
+        return BeanUtil.copyToList(friendList, FriendVO.class);
+    }
+
+    @Override
+    public List<Address> getMyAddress(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        return user.getAddresses();
+    }
+
+    @Override
+    public List<Address> getFriendAddress(Long friendId) {
+        //查询好友地址,根据好友id和所属用户id查询
+        Friend friend = friendMapper.selectOne(new LambdaQueryWrapper<Friend>().eq(Friend::getId, friendId).eq(Friend::getOwningId, UserContext.getUserId()));
+        if (friend == null) {
+            throw new FriendNotExistsException();
+        }
+        return friend.getAddresses();
+    }
 
     //生成随机用户名，数字和字母组成,
     public String getStringRandom(int length) {

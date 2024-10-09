@@ -2,7 +2,7 @@ package com.qiaopi.enumeration;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.qiaopi.constant.AutoFillConstant;
-import com.qiaopi.context.BaseContext;
+import com.qiaopi.context.UserContext;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.reflection.MetaObject;
 import org.springframework.stereotype.Component;
@@ -16,8 +16,8 @@ public class MyMetaObjecthandler implements MetaObjectHandler {
 
     @Override
     public void insertFill(MetaObject metaObject) {
-        log.info("开始进行公共字段自动填充...");
-        Long currentId = BaseContext.getCurrentId()==null?0L:BaseContext.getCurrentId();
+//        log.info("开始进行公共字段自动填充...");
+        Long currentId = UserContext.getUserId()==null?0L: UserContext.getUserId();
         this.setFieldValByName(AutoFillConstant.CREATE_TIME, LocalDateTime.now(), metaObject);
         log.info("createTime:{}",metaObject.getValue(AutoFillConstant.CREATE_TIME));
         this.setFieldValByName(AutoFillConstant.UPDATE_TIME, LocalDateTime.now(), metaObject);
@@ -29,18 +29,18 @@ public class MyMetaObjecthandler implements MetaObjectHandler {
 
 //        metaObject.setValue(AutoFillConstant.CREATE_TIME, LocalDateTime.now());
 //        metaObject.setValue(AutoFillConstant.UPDATE_TIME, LocalDateTime.now());
-//        metaObject.setValue(AutoFillConstant.CREATE_USER, BaseContext.getCurrentId());
-//        metaObject.setValue(AutoFillConstant.UPDATE_USER, BaseContext.getCurrentId());
-        BaseContext.removeCurrentId();
+//        metaObject.setValue(AutoFillConstant.CREATE_USER, UserContext.getCurrentId());
+//        metaObject.setValue(AutoFillConstant.UPDATE_USER, UserContext.getCurrentId());
+        UserContext.removeUserId();
     }
 
     @Override
     public void updateFill(MetaObject metaObject) {
-        log.info("开始进行公共字段自动填充...");
-        Long currentId = BaseContext.getCurrentId()==null?0:BaseContext.getCurrentId();
+//        log.info("开始进行公共字段自动填充...");
+        Long currentId = UserContext.getUserId()==null?0: UserContext.getUserId();
         metaObject.setValue(AutoFillConstant.UPDATE_TIME, LocalDateTime.now());
         metaObject.setValue(AutoFillConstant.UPDATE_USER, currentId);
-        BaseContext.removeCurrentId();
+        UserContext.removeUserId();
     }
 
 

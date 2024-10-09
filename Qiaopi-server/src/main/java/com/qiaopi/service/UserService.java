@@ -2,7 +2,15 @@ package com.qiaopi.service;
 
 import com.qiaopi.dto.UserLoginDTO;
 import com.qiaopi.dto.UserRegisterDTO;
+import com.qiaopi.dto.UserResetPasswordDTO;
+import com.qiaopi.dto.UserUpdateDTO;
+import com.qiaopi.entity.Address;
+import com.qiaopi.vo.FriendVO;
 import com.qiaopi.vo.UserLoginVO;
+import com.qiaopi.vo.UserVO;
+
+import java.util.List;
+import java.util.Map;
 
 public interface UserService {
 
@@ -10,5 +18,23 @@ public interface UserService {
 
     String register(UserRegisterDTO userRegisterDTO);
 
-    void resetPasswordByEmail(UserRegisterDTO userRegisterDTO);
+    void resetPasswordByEmail(UserResetPasswordDTO userResetPasswordDTO);
+
+    UserVO getUserInfo(Long userId);
+
+    Map<String, List> getUserRepository(Long userId);
+
+    void updateUsername(UserUpdateDTO userUpdateDTO);
+
+    void updatePassword(UserUpdateDTO userUpdateDTO);
+
+    void updateUserInfo(UserUpdateDTO userUpdateDTO);
+
+    Long getUserMoney(Long userId);
+
+    List<FriendVO> getMyFriends(Long userId);
+
+    List<Address> getMyAddress(Long userId);
+
+    List<Address> getFriendAddress(Long friendId);
 }

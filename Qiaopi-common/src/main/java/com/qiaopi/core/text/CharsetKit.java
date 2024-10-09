@@ -1,4 +1,4 @@
-package com.qiaopi.text;
+package com.qiaopi.core.text;
 
 import com.qiaopi.utils.StringUtils;
 

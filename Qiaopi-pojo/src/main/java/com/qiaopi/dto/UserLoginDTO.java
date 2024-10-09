@@ -40,11 +40,5 @@ public class UserLoginDTO {
     @Schema(description = "唯一标识", example = "5df25fe5540f4f568add960e73b50f64")
     private String uuid;
 
-    /**
-     * 登录IP
-     */
-    @Schema(description = "登录IP", hidden = true)
-    private String loginIp;
-
 
 }
