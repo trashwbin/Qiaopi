@@ -80,6 +80,8 @@ VALUES ('信纸1', 'https://ooo.0x0.ooo/2024/10/05/O4Xt2I.png', 'https://ooo.0x0
 
 ```
 ### 10.9
+
+```
 -- 添加 'addresses' 字段，使用 JSON 格式存储用户地址信息
 ALTER TABLE user ADD COLUMN addresses JSON;
 
@@ -165,6 +167,8 @@ ALTER TABLE signet
 
 ALTER TABLE user ADD COLUMN signets JSON;
 ALTER TABLE user ADD COLUMN font_colors JSON;
+
+```
 
 
 
