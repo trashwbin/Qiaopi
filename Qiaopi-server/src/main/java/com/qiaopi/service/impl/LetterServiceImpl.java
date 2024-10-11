@@ -2,6 +2,7 @@ package com.qiaopi.service.impl;
 
 import cn.hutool.core.util.RandomUtil;
 import com.qiaopi.dto.LetterGenDTO;
+import com.qiaopi.dto.LetterSendDTO;
 import com.qiaopi.entity.FontColor;
 import com.qiaopi.entity.Letter;
 import com.qiaopi.entity.Paper;
@@ -11,7 +12,6 @@ import com.qiaopi.mapper.FontColorMapper;
 import com.qiaopi.mapper.FontMapper;
 import com.qiaopi.mapper.LetterMapper;
 import com.qiaopi.mapper.PaperMapper;
-import com.qiaopi.service.LetterService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +32,7 @@ import java.awt.*;
 import java.awt.Font;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -342,6 +343,7 @@ public class LetterServiceImpl implements LetterService {
         return new ArrayList<>(Arrays.asList(sender, recipient, text, font, color, stationery));
     }
 
+
     @Override
     public BufferedImage rotateImage(BufferedImage originalImage, int degrees) {
         int width = originalImage.getWidth();
@@ -395,10 +397,8 @@ public class LetterServiceImpl implements LetterService {
 
         try {
             drawMain(g2d, letterGenDTO.getLetterContent(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()));//调用数值使得文本与信纸对齐
-                Main(g2d, letterGenDTO.getSenderName(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()));
-                Main(g2d, letterGenDTO.getRecipientName(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()));
-//            drawSender(g2d, letterGenDTO.getSenderName(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()));
-//            drawRecipient(g2d, letterGenDTO.getRecipientName(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()));
+            drawSender(g2d, letterGenDTO.getSenderName(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()));
+            drawRecipient(g2d, letterGenDTO.getRecipientName(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -415,7 +415,7 @@ public class LetterServiceImpl implements LetterService {
             // 生成一个随机的文件名
             String fileName =  UUID.randomUUID()+ ".png";
             //将照片存储到服务器
-            FileInfo fileInfo = fileStorageService.of(imageBytes).setSaveFilename(fileName).setPath("letter/").upload();
+            FileInfo fileInfo = fileStorageService.of(imageBytes).setSaveFilename(fileName).upload();
             url = fileInfo.getUrl();
         /*
         // 设置响应头并返回图片
@@ -427,6 +427,73 @@ public class LetterServiceImpl implements LetterService {
         } catch (IOException e) {
             log.error("生成图片失败", e);
         }
+
+        return url;
+    }
+
+    @Override
+    public String coverGenerieren(LetterSendDTO letterSendDTO) throws IOException {
+        // 设置图片的宽和高（根据实际需求可以动态调整）
+        int width = 1000; // 图片宽度
+        int height = 550; // 图片高度
+
+        // 创建一个 BufferedImage 对象
+        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = bufferedImage.createGraphics(); // 获取Graphics2D对象，用于绘制图像
+
+        letterSendDTO.getRecipientAddress();
+
+        String tempMailingAddress = letterSendDTO.getSenderAddress().getFormattedAddress();// 寄件人地址
+        String mailingAddress = tempMailingAddress.substring(3, 6);
+
+        String tempInsideAddress = letterSendDTO.getRecipientAddress().getFormattedAddress();// 收件人地址
+        String insideAddress = tempInsideAddress.substring(0, 6);
+
+        String sender = letterSendDTO.getSenderName();// 寄件人姓名
+        String Recipient = letterSendDTO.getRecipientName();// 收件人姓名
+
+
+
+        try {
+            //x 增下减上 y调整左右位置，增左减右
+            //收信地址  insideAddress 四川省宁都市广安区
+            drawCoverMain(g2d,insideAddress,width,height,156,185);
+            //收信人  Recipient 姜峰勇
+            drawCoverSubordinate(g2d,Recipient,width,height,155,25);
+            //寄信人  sender 郭灿衡
+            drawCoverSubordinate(g2d,sender,width,height,750,405);
+            //寄信地址 mailingAddress 云南省衡原市宝兴县 insideAddress
+            drawCoverSubordinate(g2d,mailingAddress,width,height,440,405);
+            g2d.dispose();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        bufferedImage = rotateImage(bufferedImage, 90);
+        String url = null;
+        byte[] imageBytes = null; // 获取字节数组
+
+
+        try {
+            // 将图片写入字节流
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(); // 创建字节数组输出流
+            ImageIO.write(bufferedImage, "png", baos); // 将BufferedImage写入字节数组输出流
+            imageBytes = baos.toByteArray();
+
+            //生成一个随机的文件名
+            String fileName = UUID.randomUUID()+ ".png";
+            //将照片存储到服务器
+            FileInfo fileInfo = fileStorageService.of(imageBytes).setSaveFilename(fileName).upload();
+            url = fileInfo.getUrl();
+
+        } catch (IOException e) {
+            log.error("生成封面照片失败",e);
+        }
+
+     /*   // 设置响应头并返回图片
+        HttpHeaders headers = new HttpHeaders(); // 创建HttpHeaders对象
+        headers.setContentType(MediaType.IMAGE_PNG); // 设置响应内容类型为PNG图片
+        headers.setContentLength(imageBytes.length); // 设置响应内容长度*/
 
         return url;
     }
@@ -621,6 +688,183 @@ public class LetterServiceImpl implements LetterService {
             }
         }
     }
+
+
+    @Override
+    public void coverMain(Graphics2D g2d, String text, int x, int y) {
+        int charsPerLine = 15;
+        int currentX = x;
+        int currentY = y;
+
+        FontMetrics fontMetrics = g2d.getFontMetrics();
+
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+
+            // 创建一个新的 AffineTransform
+            AffineTransform affineTransform = new AffineTransform();
+
+            // 平移变换到当前字符的中心
+            affineTransform.translate(currentX + fontMetrics.charWidth(c) / 2, currentY + fontMetrics.getHeight() / 2);
+
+            // 逆时针旋转90度
+            affineTransform.rotate(-Math.PI / 2, 0, 0);
+
+            // 反向平移回到原点
+            affineTransform.translate(-(currentX + fontMetrics.charWidth(c) / 2), -(currentY + fontMetrics.getHeight() / 2));
+
+            // 应用变换并绘制字符
+            g2d.setTransform(affineTransform);
+            g2d.drawString(String.valueOf(c), currentX, currentY);
+
+            // 更新 x 坐标以便绘制下一个字符
+            currentX += fontMetrics.charWidth(c);
+
+            // 检查是否需要换行
+            if ((i + 1) % charsPerLine == 0 && i < text.length() - 1) {
+                // 重置 x 坐标
+                currentX = x;
+
+                // 更新 y 坐标
+                currentY += fontMetrics.getHeight();
+            }
+        }
+    }
+
+
+    @Override
+    public void drawCoverMain(Graphics2D g2d, String text, int width, int height, int x, int y) throws IOException {
+        // 加载书信图片
+        BufferedImage bgImage = ImageIO.read(new File("D:\\Code\\QiaoPi\\qiaopi\\Qiaopi-server\\src\\main\\resources\\images\\Cover\\Cover.png"));
+
+        //背景图适配绘制
+        g2d.drawImage(bgImage, 0, 0, width, height, null);
+
+        // 加载自定义字体
+        Font customFont; // 定义字体对象
+        try {
+            // 构建字体文件路径
+            String fontPath = "D:\\Code\\QiaoPi\\qiaopi\\Qiaopi-server\\src\\main\\resources\\fonts\\CoverFont\\草檀斋毛泽东字体.TTF";
+
+            // 加载字体文件
+            customFont = Font.createFont(Font.TRUETYPE_FONT, new File(fontPath)).deriveFont((float) 160);
+
+            // 获取本地图形环境并注册字体
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            ge.registerFont(customFont);
+
+        } catch (FontFormatException | IOException e) {
+            // 如果字体加载失败，使用默认字体
+            customFont = new Font("宋体", Font.PLAIN, 100); // 使用支持中文的默认字体，例如宋体
+        }
+
+        // 设置字体及颜色
+        g2d.setFont(customFont); // 设置字体
+        g2d.setColor(Color.decode("#030303")); // 设置字体颜色
+
+        // 获取字体度量信息
+        FontMetrics fontMetrics = g2d.getFontMetrics();
+
+        // 计算文本宽度和高度
+        int textWidth = fontMetrics.stringWidth(text);
+        int textHeight = fontMetrics.getHeight();
+
+        coverMain(g2d, text, x, y);
+
+        /*// 释放图形资源
+        g2d.dispose(); // 释放Graphics2D对象*/
+    }
+
+
+
+    @Override
+    public void coverSubordinate(Graphics2D g2d, String text, int x, int y) {
+        int charsPerLine = 15;
+        int currentX = x;
+        int currentY = y;
+
+        FontMetrics fontMetrics = g2d.getFontMetrics();
+
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+
+            // 创建一个新的 AffineTransform
+            AffineTransform affineTransform = new AffineTransform();
+
+            // 平移变换到当前字符的中心
+            affineTransform.translate(currentX + fontMetrics.charWidth(c) / 2, currentY + fontMetrics.getHeight() / 2);
+
+            // 逆时针旋转90度
+            affineTransform.rotate(-Math.PI / 2, 0, 0);
+
+            // 反向平移回到原点
+            affineTransform.translate(-(currentX + fontMetrics.charWidth(c) / 2), -(currentY + fontMetrics.getHeight() / 2));
+
+            // 应用变换并绘制字符
+            g2d.setTransform(affineTransform);
+            g2d.drawString(String.valueOf(c), currentX, currentY);
+
+            // 更新 x 坐标以便绘制下一个字符
+            currentX += fontMetrics.charWidth(c);
+
+            // 检查是否需要换行
+            if ((i + 1) % charsPerLine == 0 && i < text.length() - 1) {
+                // 重置 x 坐标
+                currentX = x;
+
+                // 更新 y 坐标
+                currentY += fontMetrics.getHeight();
+            }
+        }
+    }
+
+
+    @Override
+    public void drawCoverSubordinate(Graphics2D g2d, String text, int width, int height, int x, int y) throws IOException {
+        /*// 加载书信图片
+        BufferedImage bgImage = ImageIO.read(new File("D:\\Code\\QiaoPi\\qiaopi\\Qiaopi-server\\src\\main\\resources\\images\\Cover\\Cover.png"));
+
+        //背景图适配绘制
+        g2d.drawImage(bgImage, 0, 0, width, height, null);*/
+
+        // 加载自定义字体
+        Font customFont; // 定义字体对象
+        try {
+            // 构建字体文件路径
+            String fontPath = "D:\\Code\\QiaoPi\\qiaopi\\Qiaopi-server\\src\\main\\resources\\fonts\\CoverFont\\草檀斋毛泽东字体.TTF";
+
+            // 加载字体文件
+            customFont = Font.createFont(Font.TRUETYPE_FONT, new File(fontPath)).deriveFont((float) 110);
+
+            // 获取本地图形环境并注册字体
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            ge.registerFont(customFont);
+
+        } catch (FontFormatException | IOException e) {
+            // 如果字体加载失败，使用默认字体
+            customFont = new Font("宋体", Font.PLAIN, 180); // 使用支持中文的默认字体，例如宋体
+        }
+
+        // 设置字体及颜色
+        g2d.setFont(customFont); // 设置字体
+        g2d.setColor(Color.decode("#030303")); // 设置字体颜色
+
+        // 获取字体度量信息
+        FontMetrics fontMetrics = g2d.getFontMetrics();
+
+        // 计算文本宽度和高度
+        int textWidth = fontMetrics.stringWidth(text);
+        int textHeight = fontMetrics.getHeight();
+
+        coverSubordinate(g2d, text, x, y);
+
+        /*// 释放图形资源
+        g2d.dispose(); // 释放Graphics2D对象*/
+    }
+
+
+
+
 
 
 }
