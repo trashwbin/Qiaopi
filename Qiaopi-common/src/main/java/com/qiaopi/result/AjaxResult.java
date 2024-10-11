@@ -219,4 +219,12 @@ public class AjaxResult extends HashMap<String, Object>
         super.put(key, value);
         return this;
     }
+
+
+
+
+
+
+
+
 }

@@ -3,6 +3,7 @@ package com.qiaopi.controller.letter;
 
 import com.qiaopi.dto.LetterGenDTO;
 import com.qiaopi.entity.Letter;
+import com.qiaopi.dto.LetterSendDTO;
 import com.qiaopi.mapper.FontColorMapper;
 import com.qiaopi.mapper.FontMapper;
 import com.qiaopi.mapper.PaperMapper;
@@ -59,6 +60,23 @@ public class LetterController {
         letterService.sendLetterToEmail(letters);
         return AjaxResult.success("hi");
     }
+
+
+    @PostMapping("/sender")
+    @Operation(summary = "生成封面照片")
+    public AjaxResult CoverGenerieren(@RequestBody LetterSendDTO letterSendDTO) throws IOException {
+        log.info("生成封面照片：{}", letterSendDTO);
+        String url = letterService.coverGenerieren(letterSendDTO);
+
+        return AjaxResult.success(MessageUtils.message("letter.generateImage.success"),url);//TODO 返回网址
+    }
+
+
+
+
+
+
+
 
 }
 
