@@ -2,6 +2,7 @@ package com.qiaopi.controller.letter;
 
 
 import com.qiaopi.dto.LetterGenDTO;
+import com.qiaopi.entity.Letter;
 import com.qiaopi.mapper.FontColorMapper;
 import com.qiaopi.mapper.FontMapper;
 import com.qiaopi.mapper.PaperMapper;
@@ -26,6 +27,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/letter")
@@ -46,6 +48,17 @@ public class LetterController {
         return AjaxResult.success(MessageUtils.message("letter.generateImage.success"),url);
     }
 
+    @GetMapping()
+    public AjaxResult hi(){
+        Letter letter = new Letter();
+        letter.setRecipientEmail("3348620049@qq.com");
+        List<Letter> letters= new ArrayList<>();
+        letters.add(letter);
+//        letter.setRecipientEmail("Trashwbin@gmail.com");
+//        letters.add(letter);
+        letterService.sendLetterToEmail(letters);
+        return AjaxResult.success("hi");
+    }
 
 }
 

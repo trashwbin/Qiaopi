@@ -75,10 +75,15 @@ public class Letter extends BaseEntity {
     /**
      * 信件状态(0:未发送 1:已发送,2:传递中,3:已送达)
      */
-    private String status;
+    private int status;
 
     /**
      * 送信进度(0-10000)
      */
     private Long deliveryProgress;
+
+    /**
+     * 阅读状态(0:未读,1:已读)
+     */
+    private int readStatus;
 }

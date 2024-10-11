@@ -1,22 +1,24 @@
 package com.qiaopi.service;
 
 import com.qiaopi.dto.LetterGenDTO;
+import com.qiaopi.entity.Letter;
 import com.qiaopi.result.AjaxResult;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 public interface LetterService {
 
     /**
      * 绘制逆时针旋转90度的文本
      *
-     * @param g2d   Graphics2D 对象
-     * @param text  需要绘制的文本
-     * @param x     文本起始绘制位置的x坐标
-     * @param y     文本起始绘制位置的y坐标
+     * @param g2d  Graphics2D 对象
+     * @param text 需要绘制的文本
+     * @param x    文本起始绘制位置的x坐标
+     * @param y    文本起始绘制位置的y坐标
      */
     void Main(Graphics2D g2d, String text, int x, int y);
 
@@ -38,15 +40,16 @@ public interface LetterService {
     /**
      * 绘制逆时针旋转90度的文本
      *
-     * @param g2d Graphics2D 对象
+     * @param g2d    Graphics2D 对象
      * @param sender 需要绘制的文本
-     * @param x 文本起始绘制位置的x坐标
-     * @param y 文本起始绘制位置的y坐标
+     * @param x      文本起始绘制位置的x坐标
+     * @param y      文本起始绘制位置的y坐标
      */
     void Sender(Graphics2D g2d, String sender, int x, int y);
 
     /**
      * 绘制逆时针旋转90度的文本，并设置背景图片、字体和颜色
+     *
      * @param g2d        Graphics2D 对象
      * @param sender     需要绘制的文本
      * @param width      图片宽度
@@ -62,10 +65,10 @@ public interface LetterService {
     /**
      * 绘制逆时针旋转90度的文本
      *
-     * @param g2d   Graphics2D 对象
+     * @param g2d       Graphics2D 对象
      * @param recipient 需要绘制的文本
-     * @param x     文本起始绘制位置的x坐标
-     * @param y     文本起始绘制位置的y坐标
+     * @param x         文本起始绘制位置的x坐标
+     * @param y         文本起始绘制位置的y坐标
      */
     void Recipient(Graphics2D g2d, String recipient, int x, int y);
 
@@ -82,11 +85,12 @@ public interface LetterService {
      * @param x          文本起始绘制位置的x坐标
      * @param y          文本起始绘制位置的y坐标
      */
-    void drawRecipient(Graphics2D g2d, String recipient, int width, int height, String color, String font, String stationery, int x, int y) throws IOException ;
+    void drawRecipient(Graphics2D g2d, String recipient, int width, int height, String color, String font, String stationery, int x, int y) throws IOException;
 
 
     /**
      * 生成参数
+     *
      * @param letterGenDTO
      * @return
      */
@@ -95,6 +99,7 @@ public interface LetterService {
 
     /**
      * 旋转图片
+     *
      * @param originalImage
      * @param degrees
      * @return
@@ -104,12 +109,18 @@ public interface LetterService {
 
     /**
      * 生成字体照片
+     *
      * @param letterGenDTO
      * @return
      */
     String generateImage(LetterGenDTO letterGenDTO);
 
-    }
+
+    /**
+     *
+     */
+    void sendLetterToEmail(List<Letter> letters);
+}
 
 
 

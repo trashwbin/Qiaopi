@@ -1,7 +1,13 @@
 package com.qiaopi.service.impl;
 
+import cn.hutool.captcha.CaptchaUtil;
+import cn.hutool.captcha.LineCaptcha;
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.codec.Base64;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.io.FastByteArrayOutputStream;
+import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qiaopi.constant.JwtClaimsConstant;
 import com.qiaopi.constant.UserConstants;
@@ -11,6 +17,7 @@ import com.qiaopi.dto.UserRegisterDTO;
 import com.qiaopi.dto.UserResetPasswordDTO;
 import com.qiaopi.dto.UserUpdateDTO;
 import com.qiaopi.entity.*;
+import com.qiaopi.exception.base.BaseException;
 import com.qiaopi.exception.code.CodeErrorException;
 import com.qiaopi.exception.code.CodeTimeoutException;
 import com.qiaopi.exception.user.*;
@@ -20,21 +27,30 @@ import com.qiaopi.properties.JwtProperties;
 import com.qiaopi.service.UserService;
 import com.qiaopi.utils.AccountValidator;
 import com.qiaopi.utils.JwtUtil;
-import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.utils.StringUtils;
 import com.qiaopi.utils.ip.IpUtils;
 import com.qiaopi.vo.*;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.mail.MailException;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static cn.hutool.core.bean.BeanUtil.copyProperties;
+import static com.qiaopi.result.AjaxResult.error;
+import static com.qiaopi.result.AjaxResult.success;
 import static com.qiaopi.utils.MessageUtils.message;
 
 @Service
@@ -129,7 +145,7 @@ public class UserServiceImpl implements UserService {
         User user = new User();
         user.setEmail(email);
 
-
+        //一系列检验
         if (StringUtils.isEmpty(email)) {
             msg = message("user.email.empty");
         } else if (!AccountValidator.isValidEmail(email)) {
@@ -145,28 +161,31 @@ public class UserServiceImpl implements UserService {
             msg = message("user.password.confirm.error");
         } else if (userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email)) != null) {
             msg = email + message("email.exists");
-        } else {
-
-            String emailKey = message("user.register.prefix") + email;
-
-            String code = (String) redisTemplate.opsForValue().get(emailKey);
-
-            if (StringUtils.isEmpty(code)) {
-                msg = message("user.code.expire");
-            } else if (!code.equals(userRegisterDTO.getCode())) {
-                msg = message("user.code.error");
-            } else {
-                redisTemplate.delete(emailKey);
-                //设置昵称
-                user.setNickname(email.substring(0, email.indexOf("@")));
-                //设置用户名
-                user.setUsername(message("user.username.prefix") + System.currentTimeMillis() + getStringRandom(3));
-                //设置密码
-                user.setPassword(DigestUtils.md5DigestAsHex(password.getBytes()));
-                userMapper.insert(user);
-                msg = message("user.register.success");
-            }
         }
+        String emailKey = message("user.register.prefix") + email;
+
+        String code = (String) redisTemplate.opsForValue().get(emailKey);
+
+        if (StringUtils.isEmpty(code)) {
+            msg = message("user.code.expire");
+        } else if (!code.equals(userRegisterDTO.getCode())) {
+            msg = message("user.code.error");
+        }
+        //检验是否通过，如果不通过，抛出异常
+        if (!StringUtils.isEmpty(msg)) {
+            throw new UserException(msg);
+        }
+        //删除验证码
+        redisTemplate.delete(emailKey);
+        //设置昵称
+        user.setNickname(email.substring(0, email.indexOf("@")));
+        //设置用户名
+        user.setUsername(message("user.username.prefix") + System.currentTimeMillis() + getStringRandom(3));
+        //设置密码
+        user.setPassword(DigestUtils.md5DigestAsHex(password.getBytes()));
+        userMapper.insert(user);
+        msg = message("user.register.success");
+
         return msg;
     }
 
@@ -346,6 +365,167 @@ public class UserServiceImpl implements UserService {
             throw new FriendNotExistsException();
         }
         return friend.getAddresses();
+    }
+
+    private final JavaMailSender javaMailSender;
+    @Value("${spring.mail.username}")
+    private String sender;
+    @Value("${spring.mail.nickname}")
+    private String nickname;
+    @Override
+    public void sendResetPasswordCode(String email) {
+        email = email.toLowerCase();
+
+        //判断邮箱是否合法
+        if (!AccountValidator.isValidEmail(email)) {
+            throw new BaseException("email.format.error");
+        }
+        String verify = message("user.reset.password.prefix") + email;
+        //判断5分钟内是否发送过验证码
+        if (redisTemplate.hasKey(verify)) {
+            throw new UserException("user.get.code.limit");
+        }
+
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email));
+        // 验证邮箱是否未注册
+        if (user == null) {
+            throw new BaseException("email.not.exists");
+        }
+
+        // 创建一个邮件
+        //SimpleMailMessage message = new SimpleMailMessage();
+        // 创建一个 MimeMessage 代替 SimpleMailMessage
+        MimeMessage message = javaMailSender.createMimeMessage();
+
+        try {
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            // 设置发件人
+            helper.setFrom(nickname + '<' + sender + '>');
+
+            // 设置收件人
+            helper.setTo(email);
+
+            // 设置邮件主题
+            helper.setSubject(nickname + "-重置密码");
+
+            // 生成六位随机数
+            String code = RandomUtil.randomNumbers(6);
+            log.info("重置密码验证码：{}", code);
+
+            // 将验证码存入 redis，有效期为5分钟
+            redisTemplate.opsForValue().set(verify, code, Duration.ofMinutes(5));
+
+            // 定义邮件内容，使用 HTML
+            String content = "<div style='font-family: Arial, sans-serif;'>" +
+                    "<h1>" + nickname + "账户密码重置 </h1>" +
+                    "<h2>你好，" + user.getNickname() + "<h2>" +
+                    "<h2>【验证码】您的重置密码验证码为：" + code + "</h2>" +
+                    "<p style='font-size: 14px;'>请在五分钟内使用此验证码重置您的密码，逾期作废。</p>" +
+                    "<p style='font-size: 14px;'>如果您没有请求重置密码，请忽略此邮件。</p>" +
+                    "<hr>" +
+                    "<p style='font-size: 12px; color: gray;'>此邮件为系统自动发送，请勿回复。</p>" +
+                    "</div>";
+
+            // 设置邮件内容为 HTML
+            helper.setText(content, true);
+
+            // 发送邮件
+            javaMailSender.send(message);
+        } catch (MessagingException e) {
+            throw new UserException("user.sent.code.failed");
+        } catch (MailException e) {
+            throw new UserException("user.sent.code.failed.by.email");
+        }
+    }
+
+    @Override
+    public Map<String, String> getCode() {
+        //设置验证码的宽和高，获取验证码
+        LineCaptcha captcha = CaptchaUtil.createLineCaptcha(200, 100, 4, 30);
+
+        //设置验证码的唯一标识uuid
+        String verify = IdUtil.simpleUUID();
+
+        //图形验证码写出，可以写出到文件，也可以写出到流
+        FastByteArrayOutputStream os = new FastByteArrayOutputStream();
+        captcha.write(os);
+        //获取验证码
+        String code = captcha.getCode();
+        log.info("获取验证码:{}", code);
+
+        //将验证码存入redis
+        redisTemplate.opsForValue().set(verify, code, Duration.ofMinutes(5));
+
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>(5);
+
+        map.put("uuid", verify);
+        //map.put("code", code);
+        map.put("img", Base64.encode(os.toByteArray()));
+        return map;
+    }
+
+    @Override
+    public void sendCode(String email) {
+        // 邮箱转小写
+        email = email.toLowerCase();
+        // 验证邮箱是否已经注册
+        if (userMapper.exists(new LambdaQueryWrapper<User>().eq(User::getEmail, email))) {
+            throw new UserException(message("email.exists"));
+        }
+        //判断邮箱是否合法
+        else if (!AccountValidator.isValidEmail(email)) {
+            throw new UserException(message("email.format.error"));
+        }
+
+        String verify = message("user.register.prefix") + email;
+        //判断5分钟内是否发送过验证码
+        if (redisTemplate.hasKey(verify)) {
+            throw new UserException(message("user.sent.code.limit"));
+        }
+
+        // 创建一个 MimeMessage 代替 SimpleMailMessage
+        MimeMessage message = javaMailSender.createMimeMessage();
+
+        try {
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            // 设置发件人
+            helper.setFrom(nickname + '<' + sender + '>');
+
+            // 设置收件人
+            helper.setTo(email);
+
+            // 设置邮件主题
+            helper.setSubject("欢迎访问 " + nickname);
+
+            // 生成六位随机数
+            String code = RandomUtil.randomNumbers(6);
+            log.info("邮箱验证码：{}", code);
+
+            // 将验证码存入 redis，有效期为5分钟
+            redisTemplate.opsForValue().set(verify, code, Duration.ofMinutes(5));
+
+            // 定义邮件内容，使用 HTML
+            String content = "<div style='font-family: Arial, sans-serif;'>" +
+                    "<h1>欢迎访问 " + nickname + "</h1>" +
+                    "<h2>【验证码】您的验证码为：" + code + "</h2>" +
+                    "<p style='font-size: 14px;'>验证码五分钟内有效，逾期作废。</p>" +
+                    "<hr>" +
+                    "<p style='font-size: 12px; color: gray;'>此邮件为系统自动发送，请勿回复。</p>" +
+                    "</div>";
+
+            // 设置邮件内容为 HTML
+            helper.setText(content, true);
+
+            // 发送邮件
+            javaMailSender.send(message);
+        } catch (MessagingException e) {
+            throw new UserException("user.sent.code.failed");
+        } catch (MailException e) {
+            throw new UserException("user.sent.code.failed.by.email");
+        }
+
     }
 
     //生成随机用户名，数字和字母组成,

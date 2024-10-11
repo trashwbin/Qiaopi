@@ -133,7 +133,7 @@ public class CoverController {
      */
     private static void drawMain(Graphics2D g2d, String text, int width, int height, int x, int y) throws IOException {
         // 加载书信图片
-        BufferedImage bgImage = ImageIO.read(new File("D:\\Code\\QiaoPi\\qiaopi\\Qiaopi-server\\src\\main\\resources\\images\\Cover\\Cover.png"));
+        BufferedImage bgImage = ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Cover\\Cover.png"));
 
         //背景图适配绘制
         g2d.drawImage(bgImage, 0, 0, width, height, null);
@@ -142,7 +142,7 @@ public class CoverController {
         Font customFont; // 定义字体对象
         try {
             // 构建字体文件路径
-            String fontPath = "D:\\Code\\QiaoPi\\qiaopi\\Qiaopi-server\\src\\main\\resources\\fonts\\CoverFont\\晨光大字.TTF";
+            String fontPath = "Qiaopi-server\\src\\main\\resources\\fonts\\CoverFont\\晨光大字.TTF";
 
             // 加载字体文件
             customFont = Font.createFont(Font.TRUETYPE_FONT, new File(fontPath)).deriveFont((float) 180);
