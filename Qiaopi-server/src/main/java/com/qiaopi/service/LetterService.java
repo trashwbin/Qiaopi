@@ -1,6 +1,7 @@
 package com.qiaopi.service;
 
 import com.qiaopi.dto.LetterGenDTO;
+import com.qiaopi.result.AjaxResult;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -101,8 +102,12 @@ public interface LetterService {
     BufferedImage rotateImage(BufferedImage originalImage, int degrees);
 
 
-
-
+    /**
+     * 生成字体照片
+     * @param letterGenDTO
+     * @return
+     */
+    String generateImage(LetterGenDTO letterGenDTO);
 
     }
 

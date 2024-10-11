@@ -28,6 +28,8 @@ class QiaopiServerApplicationTests {
     @Test
     void add() {
         User user = userMapper.selectById(1L);
+
+
         List<FontVO> fonts = BeanUtil.copyToList(fontMapper.selectList(null), FontVO.class);;
 
         List<FontColorVO> fontColors =  BeanUtil.copyToList(fontColorMapper.selectList(null), FontColorVO.class);
@@ -39,6 +41,10 @@ class QiaopiServerApplicationTests {
         user.setPapers(papers);
         user.setSignets(signets);
         userMapper.updateById(user);
+
+        FontColor fontColor = fontColorMapper.selectById(1L);
+        String hexCode = fontColor.getHexCode();
+
     }
 
 }

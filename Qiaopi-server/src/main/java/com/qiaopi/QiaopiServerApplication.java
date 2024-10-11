@@ -1,14 +1,21 @@
 package com.qiaopi;
 
+import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.spring.EnableFileStorage;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 
 @SpringBootApplication
 @MapperScan("com.qiaopi.mapper")
 @EnableFileStorage
+@EnableTransactionManagement //开启注解方式的事务管理
+@Slf4j
+@EnableScheduling
 public class QiaopiServerApplication {
 
     public static void main(String[] args) {

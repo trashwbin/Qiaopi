@@ -2,6 +2,10 @@ server:
   port: 8080
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB # 单个上传文件的最大限制大小
+      max-request-size: 20MB # 单次请求的最大限制大小
 #  模式切换
   profiles:
     active: dev
@@ -113,13 +117,6 @@ qiaopi:
 #    # 设置前端传递过来的令牌名称
 #    admin-token-name: token
 
-
-  alioss:
-    endpoint: ${qiaopi.alioss.endpoint}
-    access-key-id: ${qiaopi.alioss.access-key-id}
-    access-key-secret: ${qiaopi.alioss.access-key-secret}
-    bucket-name: ${qiaopi.alioss.bucket-name}
-
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -134,6 +131,7 @@ springdoc:
 
 
 # 文件上传配置
+# 文件上传配置
 dromara:
   x-file-storage:  #文件存储配置
     default-platform: minio-1 #默认使用的存储平台
@@ -147,20 +145,3 @@ dromara:
         bucket-name: qiaopi
         domain: http://110.41.58.26:9000/qiaopi/ # 访问域名，注意“/”结尾，例如：http://minio.abc.com/abc/
         base-path: qiaopi-images/ # 基础路径
-
-
-
-
-
-
-
-    #对应平台的配置写在这里，注意缩进要对齐
-    # aliyun-oss:
-    #   - platform: aliyun-oss-1 # 存储平台标识
-    #     enable-storage: true  # 启用存储
-    #     access-key: LTAI5tLNaiHCBNss9PtQnuRc # 访问密钥
-    #     secret-key: KrOp7EyiY78PLSbxwaw8GKRGSLDWi2 # 访问密钥
-    #     end-point: oss-cn-guangzhou.aliyuncs.com
-    #     bucket-name: qiaopi # 存储空间名称
-    #     domain:  https://qiaopi.oss-cn-guangzhou.aliyuncs.com/ # 访问域名，注意“/”结尾，例如：https://abc.oss-cn-shanghai.aliyuncs.com/
-    #     base-path: qiaopi-images/ # 基础路径

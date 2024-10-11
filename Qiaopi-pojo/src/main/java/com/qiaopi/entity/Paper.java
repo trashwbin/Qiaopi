@@ -32,4 +32,17 @@ public class Paper {
 
     @Schema(description = "y偏移量")
     private String translateY;
+
+    @Schema(description = "收信人x偏移量")
+    private String recipientTranslateX;
+
+    @Schema(description = "收信人y偏移量")
+    private String recipientTranslateY;
+
+    @Schema(description = "寄信人x偏移量")
+    private String senderTranslateX;
+
+    @Schema(description = "寄信人y偏移量")
+    private String senderTranslateY;
+
 }

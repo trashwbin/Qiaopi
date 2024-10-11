@@ -4,10 +4,16 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.qiaopi.BaseEntity;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @TableName(autoResultMap = true)
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Letter extends BaseEntity {
     /**
      * 寄件人的用户ID
@@ -45,6 +51,11 @@ public class Letter extends BaseEntity {
     private String letterLink;
 
     /**
+     * 封面链接
+     */
+    private String coverLink;
+
+    /**
      * 寄件人地址
      */
     @TableField(typeHandler = JacksonTypeHandler.class)
@@ -67,7 +78,7 @@ public class Letter extends BaseEntity {
     private String status;
 
     /**
-     * 送信进度
+     * 送信进度(0-10000)
      */
-    private String deliveryProgress;
+    private Long deliveryProgress;
 }
