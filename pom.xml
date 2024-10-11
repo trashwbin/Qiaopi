@@ -142,6 +142,26 @@
             </dependency>
 
 
+
+            <!--https://x-file-storage.xuyanwu.cn/#/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8-->
+            <!--MinIO照片存储-->
+            <dependency>
+                <groupId>org.dromara.x-file-storage</groupId>
+                <artifactId>x-file-storage-spring</artifactId>
+                <version>2.2.1</version>
+            </dependency>
+            <dependency>
+                <groupId>org.dromara.x-file-storage</groupId>
+                <artifactId>x-file-storage-minio</artifactId>
+                <version>2.2.1</version>
+            </dependency>
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>8.5.2</version>
+            </dependency>
+
+
         </dependencies>
     </dependencyManagement>
 

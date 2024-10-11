@@ -63,21 +63,14 @@ public class LetterSendDTO {
     private Address recipientAddress;
 
     /**
-     * 字体ID
+     * 信的链接
      */
-    @Schema(description = "字体ID")
-    private Long fontId;
+    @Schema(description = "信的链接")
+    private String letterLink;
 
     /**
-     * 纸张ID
+     * 印章ID(后期预留)
      */
-    @Schema(description = "纸张ID")
-    private Long paperId;
-
-    /**
-     * 字体颜色ID
-     */
-    @Schema(description = "字体颜色ID")
-    private Long fontColorId;
-
+    @Schema(description = "印章ID")
+    private Long signetId;
 }

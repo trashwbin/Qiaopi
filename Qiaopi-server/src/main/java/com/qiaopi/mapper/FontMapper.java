@@ -5,4 +5,5 @@ import com.qiaopi.entity.Font;
 import com.qiaopi.entity.Signet;
 
 public interface FontMapper extends BaseMapper<Font> {
+
 }
