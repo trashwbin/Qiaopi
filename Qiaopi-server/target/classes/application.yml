@@ -4,7 +4,7 @@ server:
 spring:
 #  模式切换
   profiles:
-    active: prod
+    active: dev
   main:
     allow-circular-references: true
   messages:
@@ -135,16 +135,32 @@ springdoc:
 
 # 文件上传配置
 dromara:
-  x-file-storage: #文件存储配置
-    default-platform: aliyun-oss-1 #默认使用的存储平台
-    thumbnail-suffix: ".min.jpg" #缩略图后缀，例如【.min.jpg】【.png】
-    #对应平台的配置写在这里，注意缩进要对齐
-    aliyun-oss:
-      - platform: aliyun-oss-1 # 存储平台标识
+  x-file-storage:  #文件存储配置
+    default-platform: minio-1 #默认使用的存储平台
+    thumbnail-suffix: ".min.png" #缩略图后缀，例如【.min.jpg】【.png】
+    minio:
+      - platform: minio-1
         enable-storage: true  # 启用存储
-        access-key: LTAI5tLNaiHCBNss9PtQnuRc # 访问密钥
-        secret-key: KrOp7EyiY78PLSbxwaw8GKRGSLDWi2 # 访问密钥
-        end-point: oss-cn-guangzhou.aliyuncs.com
-        bucket-name: qiaopi # 存储空间名称
-        domain:  https://qiaopi.oss-cn-guangzhou.aliyuncs.com/ # 访问域名，注意“/”结尾，例如：https://abc.oss-cn-shanghai.aliyuncs.com/
+        access-key: RmDw4oSAqY95M6DHdwWQ
+        secret-key: VLku3W6TTjCi1a30GIjhbq59LHDUoJax1wKFsYEQ
+        end-point: http://110.41.58.26:9000
+        bucket-name: qiaopi
+        domain: http://110.41.58.26:9000/qiaopi/ # 访问域名，注意“/”结尾，例如：http://minio.abc.com/abc/
         base-path: qiaopi-images/ # 基础路径
+
+
+
+
+
+
+
+    #对应平台的配置写在这里，注意缩进要对齐
+    # aliyun-oss:
+    #   - platform: aliyun-oss-1 # 存储平台标识
+    #     enable-storage: true  # 启用存储
+    #     access-key: LTAI5tLNaiHCBNss9PtQnuRc # 访问密钥
+    #     secret-key: KrOp7EyiY78PLSbxwaw8GKRGSLDWi2 # 访问密钥
+    #     end-point: oss-cn-guangzhou.aliyuncs.com
+    #     bucket-name: qiaopi # 存储空间名称
+    #     domain:  https://qiaopi.oss-cn-guangzhou.aliyuncs.com/ # 访问域名，注意“/”结尾，例如：https://abc.oss-cn-shanghai.aliyuncs.com/
+    #     base-path: qiaopi-images/ # 基础路径
