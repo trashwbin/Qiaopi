@@ -1,6 +1,9 @@
 package com.qiaopi.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.RandomUtil;
+import com.qiaopi.constant.LetterStatus;
+import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.LetterGenDTO;
 import com.qiaopi.dto.LetterSendDTO;
 import com.qiaopi.entity.FontColor;
@@ -12,6 +15,8 @@ import com.qiaopi.mapper.FontColorMapper;
 import com.qiaopi.mapper.FontMapper;
 import com.qiaopi.mapper.LetterMapper;
 import com.qiaopi.mapper.PaperMapper;
+import com.qiaopi.service.LetterService;
+import com.qiaopi.utils.PositionUtil;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +31,6 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 
-
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.Font;
@@ -37,6 +41,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -415,7 +420,7 @@ public class LetterServiceImpl implements LetterService {
             // 生成一个随机的文件名
             String fileName =  UUID.randomUUID()+ ".png";
             //将照片存储到服务器
-            FileInfo fileInfo = fileStorageService.of(imageBytes).setSaveFilename(fileName).upload();
+            FileInfo fileInfo = fileStorageService.of(imageBytes).setSaveFilename(fileName).setPath("letter/").upload();
             url = fileInfo.getUrl();
         /*
         // 设置响应头并返回图片
@@ -483,20 +488,15 @@ public class LetterServiceImpl implements LetterService {
             //生成一个随机的文件名
             String fileName = UUID.randomUUID()+ ".png";
             //将照片存储到服务器
-            FileInfo fileInfo = fileStorageService.of(imageBytes).setSaveFilename(fileName).upload();
+            FileInfo fileInfo = fileStorageService.of(imageBytes).setSaveFilename(fileName).setPath("cover/").upload();
             url = fileInfo.getUrl();
 
         } catch (IOException e) {
             log.error("生成封面照片失败",e);
         }
-
-     /*   // 设置响应头并返回图片
-        HttpHeaders headers = new HttpHeaders(); // 创建HttpHeaders对象
-        headers.setContentType(MediaType.IMAGE_PNG); // 设置响应内容类型为PNG图片
-        headers.setContentLength(imageBytes.length); // 设置响应内容长度*/
-
         return url;
     }
+
 
     @Override
     public void sendLetterToEmail(List<Letter> letters) {
@@ -735,7 +735,7 @@ public class LetterServiceImpl implements LetterService {
     @Override
     public void drawCoverMain(Graphics2D g2d, String text, int width, int height, int x, int y) throws IOException {
         // 加载书信图片
-        BufferedImage bgImage = ImageIO.read(new File("D:\\Code\\QiaoPi\\qiaopi\\Qiaopi-server\\src\\main\\resources\\images\\Cover\\Cover.png"));
+        BufferedImage bgImage = ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Cover\\Cover.png"));
 
         //背景图适配绘制
         g2d.drawImage(bgImage, 0, 0, width, height, null);
@@ -744,7 +744,7 @@ public class LetterServiceImpl implements LetterService {
         Font customFont; // 定义字体对象
         try {
             // 构建字体文件路径
-            String fontPath = "D:\\Code\\QiaoPi\\qiaopi\\Qiaopi-server\\src\\main\\resources\\fonts\\CoverFont\\草檀斋毛泽东字体.TTF";
+            String fontPath = "Qiaopi-server\\src\\main\\resources\\fonts\\CoverFont\\草檀斋毛泽东字体.TTF";
 
             // 加载字体文件
             customFont = Font.createFont(Font.TRUETYPE_FONT, new File(fontPath)).deriveFont((float) 160);
@@ -831,7 +831,7 @@ public class LetterServiceImpl implements LetterService {
         Font customFont; // 定义字体对象
         try {
             // 构建字体文件路径
-            String fontPath = "D:\\Code\\QiaoPi\\qiaopi\\Qiaopi-server\\src\\main\\resources\\fonts\\CoverFont\\草檀斋毛泽东字体.TTF";
+            String fontPath = "Qiaopi-server\\src\\main\\resources\\fonts\\CoverFont\\草檀斋毛泽东字体.TTF";
 
             // 加载字体文件
             customFont = Font.createFont(Font.TRUETYPE_FONT, new File(fontPath)).deriveFont((float) 110);
@@ -862,8 +862,35 @@ public class LetterServiceImpl implements LetterService {
         g2d.dispose(); // 释放Graphics2D对象*/
     }
 
+    @Override
+    public void sendLetterPre(LetterSendDTO letterSendDTO){
 
+        Letter letter = BeanUtil.copyProperties(letterSendDTO, Letter.class);
+        letter.setSenderUserId(UserContext.getUserId());
+        try {
+            String coverLink = coverGenerieren(letterSendDTO);
+            letter.setCoverLink(coverLink);
 
+            double distance = PositionUtil.getDistance(letterSendDTO.getSenderAddress().getLongitude(), letterSendDTO.getSenderAddress().getLatitude(), letterSendDTO.getRecipientAddress().getLongitude(), letterSendDTO.getRecipientAddress().getLatitude());
+            //距离换算时间,速度为每小时40公里
+            double time = distance / 40000;
+            //时间换算为秒
+            long timeMin = (long) (time * 60 * 60);
+            //当前时间
+            LocalDateTime now = LocalDateTime.now();
+            //发送时间
+            LocalDateTime deliveryTime = now.plusSeconds(timeMin);
+            letter.setExpectedDeliveryTime(deliveryTime);
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        letter.setStatus(LetterStatus.TRANSIT);
+        letter.setReadStatus(LetterStatus.NOT_READ);
+        letter.setDeliveryProgress(0L);
+
+        letterMapper.insert(letter);
+    }
 
 
 

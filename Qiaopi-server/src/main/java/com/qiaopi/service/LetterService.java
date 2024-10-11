@@ -169,12 +169,16 @@ public interface LetterService {
     void drawCoverSubordinate(Graphics2D g2d, String text, int width, int height, int x, int y) throws IOException;
 
 
-}
-
     /**
      *
      */
     void sendLetterToEmail(List<Letter> letters);
+
+    /**
+     * 发送信件前封装
+     * @param letterSendDTO
+     */
+    void sendLetterPre(LetterSendDTO letterSendDTO);
 }
 
 

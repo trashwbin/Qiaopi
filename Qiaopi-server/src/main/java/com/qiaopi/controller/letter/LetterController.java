@@ -62,13 +62,12 @@ public class LetterController {
     }
 
 
-    @PostMapping("/sender")
+    @PostMapping("/sendLetter")
     @Operation(summary = "生成封面照片")
     public AjaxResult CoverGenerieren(@RequestBody LetterSendDTO letterSendDTO) throws IOException {
-        log.info("生成封面照片：{}", letterSendDTO);
-        String url = letterService.coverGenerieren(letterSendDTO);
-
-        return AjaxResult.success(MessageUtils.message("letter.generateImage.success"),url);//TODO 返回网址
+        log.info("生成封面照片并发送：{}", letterSendDTO);
+        letterService.sendLetterPre(letterSendDTO);
+        return AjaxResult.success(MessageUtils.message("letter.generateImage.success"));
     }
 
 
