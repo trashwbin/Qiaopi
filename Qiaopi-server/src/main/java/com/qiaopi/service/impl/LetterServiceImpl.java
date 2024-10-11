@@ -380,7 +380,7 @@ public class LetterServiceImpl implements LetterService {
         String color = Parameters.get(4);
         String stationery = Parameters.get(5);*/
 
-        FontColor fontColor = fontColorMapper.selectById(letterGenDTO.getFontId());
+        FontColor fontColor = fontColorMapper.selectById(letterGenDTO.getFontColorId());
         com.qiaopi.entity.Font font = fontMapper.selectById(letterGenDTO.getFontId());
         Paper paper = paperMapper.selectById(letterGenDTO.getPaperId());
 
