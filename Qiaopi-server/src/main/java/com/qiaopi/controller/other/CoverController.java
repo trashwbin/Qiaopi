@@ -1,3 +1,4 @@
+/*
 package com.qiaopi.controller.other;
 
 
@@ -72,14 +73,16 @@ public class CoverController {
 
 
 
-    /**
+    */
+/**
      * 绘制逆时针旋转90度的文本
      *
      * @param g2d   Graphics2D 对象
      * @param text  需要绘制的文本
      * @param x     文本起始绘制位置的x坐标
      * @param y     文本起始绘制位置的y坐标
-     */
+     *//*
+
     private static void Main(Graphics2D g2d, String text, int x, int y) {
         int charsPerLine = 15;
         int currentX = x;
@@ -121,7 +124,8 @@ public class CoverController {
     }
 
 
-    /**
+    */
+/**
      * 绘制逆时针旋转90度的文本
      *
      * @param g2d        Graphics2D 对象
@@ -130,7 +134,8 @@ public class CoverController {
      * @param height     图片宽度
      * @param x          文本起始绘制位置的x坐标
      * @param y          文本起始绘制位置的y坐标
-     */
+     *//*
+
     private static void drawMain(Graphics2D g2d, String text, int width, int height, int x, int y) throws IOException {
         // 加载书信图片
         BufferedImage bgImage = ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Cover\\Cover.png"));
@@ -169,8 +174,11 @@ public class CoverController {
 
         Main(g2d, text, x, y);
 
-        /*// 释放图形资源
-        g2d.dispose(); // 释放Graphics2D对象*/
+        */
+/*//*
+/ 释放图形资源
+        g2d.dispose(); // 释放Graphics2D对象*//*
+
     }
 
 
@@ -216,7 +224,8 @@ public class CoverController {
     }
 
 
-    /**
+    */
+/**
      * 绘制逆时针旋转90度的文本
      *
      * @param g2d        Graphics2D 对象
@@ -225,13 +234,17 @@ public class CoverController {
      * @param height     图片宽度
      * @param x          文本起始绘制位置的x坐标
      * @param y          文本起始绘制位置的y坐标
-     */
+     *//*
+
     private static void drawSubordinate(Graphics2D g2d, String text, int width, int height, int x, int y) throws IOException {
-        /*// 加载书信图片
+        */
+/*//*
+/ 加载书信图片
         BufferedImage bgImage = ImageIO.read(new File("D:\\Code\\QiaoPi\\qiaopi\\Qiaopi-server\\src\\main\\resources\\images\\Cover\\Cover.png"));
 
         //背景图适配绘制
-        g2d.drawImage(bgImage, 0, 0, width, height, null);*/
+        g2d.drawImage(bgImage, 0, 0, width, height, null);*//*
+
 
         // 加载自定义字体
         Font customFont; // 定义字体对象
@@ -264,8 +277,11 @@ public class CoverController {
 
         Subordinate(g2d, text, x, y);
 
-        /*// 释放图形资源
-        g2d.dispose(); // 释放Graphics2D对象*/
+        */
+/*//*
+/ 释放图形资源
+        g2d.dispose(); // 释放Graphics2D对象*//*
+
     }
 
 
@@ -277,3 +293,4 @@ public class CoverController {
 
 
 }
+*/

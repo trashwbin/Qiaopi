@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -30,7 +31,7 @@ public class LetterTask {
      @Scheduled(cron = "0 * * * * ?")
     public void processLetterTask(){
          List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>()
-                 .le(Letter::getExpectedDeliveryTime, System.currentTimeMillis())
+                 .le(Letter::getExpectedDeliveryTime, LocalDateTime.now())
                  .eq(Letter::getStatus, LetterStatus.TRANSIT));
          if (!letters.isEmpty()) {
              letterService.sendLetterToEmail(letters);

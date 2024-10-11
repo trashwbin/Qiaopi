@@ -3,7 +3,7 @@ package com.qiaopi.service;
 import com.qiaopi.dto.LetterGenDTO;
 import com.qiaopi.entity.Letter;
 import com.qiaopi.dto.LetterSendDTO;
-import com.qiaopi.result.AjaxResult;
+import com.qiaopi.vo.LetterVO;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -176,9 +176,21 @@ public interface LetterService {
 
     /**
      * 发送信件前封装
+     *
      * @param letterSendDTO
+     * @return
      */
-    void sendLetterPre(LetterSendDTO letterSendDTO);
+    LetterVO sendLetterPre(LetterSendDTO letterSendDTO);
+
+    /**
+     * 获取我写的侨批
+     * @return
+     */
+    List<LetterVO> getMySendLetter();
+
+    List<LetterVO> getMyReceiveLetter();
+
+    List<LetterVO> getMyNotReadLetter();
 }
 
 

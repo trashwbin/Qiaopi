@@ -1,7 +1,10 @@
 package com.qiaopi.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.collection.CollUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.qiaopi.constant.LetterStatus;
 import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.LetterGenDTO;
@@ -9,19 +12,15 @@ import com.qiaopi.dto.LetterSendDTO;
 import com.qiaopi.entity.FontColor;
 import com.qiaopi.entity.Letter;
 import com.qiaopi.entity.Paper;
-import com.qiaopi.exception.letter.LetterException;
-import com.qiaopi.exception.user.UserException;
-import com.qiaopi.mapper.FontColorMapper;
-import com.qiaopi.mapper.FontMapper;
-import com.qiaopi.mapper.LetterMapper;
-import com.qiaopi.mapper.PaperMapper;
+import com.qiaopi.entity.User;
+import com.qiaopi.mapper.*;
 import com.qiaopi.service.LetterService;
 import com.qiaopi.utils.PositionUtil;
+import com.qiaopi.vo.LetterVO;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.checkerframework.checker.units.qual.A;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +28,7 @@ import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 
 import javax.imageio.ImageIO;
@@ -36,20 +36,17 @@ import java.awt.*;
 import java.awt.Font;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.List;
-import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static com.qiaopi.utils.MessageUtils.message;
-import static java.awt.SystemColor.text;
 
 
 @Service
@@ -67,6 +64,8 @@ public class LetterServiceImpl implements LetterService {
     private final FileStorageService fileStorageService;
 
     private final LetterMapper letterMapper;
+
+    private final UserMapper userMapper;
 
     private final JavaMailSender javaMailSender;
     @Value("${spring.mail.username}")
@@ -518,7 +517,8 @@ public class LetterServiceImpl implements LetterService {
                 // 设置邮件主题
                 helper.setSubject("您的好友给您寄了一封侨批喔");
 
-                // 定义邮件内容，使用 HTML
+                // 定义邮件内容，使用 HTML,
+                //(QQ邮箱网页版会屏蔽ip的图片)
                 String content = "<!DOCTYPE html>\n" +
                         "<html lang=\"zh-CN\">\n" +
                         "\n" +
@@ -552,6 +552,8 @@ public class LetterServiceImpl implements LetterService {
                         "        /* 20px */\n" +
                         "        padding: 1.25em;\n" +
                         "        /* 20px */\n" +
+                        "        position: relative;\n" +
+                        "        z-index: -99;\n" +
                         "      }\n" +
                         "\n" +
                         "      .box #header {\n" +
@@ -577,7 +579,9 @@ public class LetterServiceImpl implements LetterService {
                         "        /* 20px */\n" +
                         "        background-position: bottom;\n" +
                         "        background-size: cover;\n" +
-                        "        background-repeat: no-repeat;\n" +
+                        "        background-repeat: no-repeat;\n         " +
+                        "        position: relative;\n" +
+                        "        z-index: -2;\n" +
                         "      }\n" +
                         "\n" +
                         "      .box #body p img {\n" +
@@ -596,7 +600,6 @@ public class LetterServiceImpl implements LetterService {
                         "        font-size: 1.125em;\n" +
                         "        /* 18px */\n" +
                         "        color: #333;\n" +
-                        "        margin: 0 auto;\n" +
                         "        /* 100px */\n" +
                         "        display: block;\n" +
                         "      }\n" +
@@ -620,11 +623,12 @@ public class LetterServiceImpl implements LetterService {
                         "        background-position: center;\n" +
                         "        display: block;\n" +
                         "        margin: 0 auto;\n" +
-                        "        background-image: url('http://110.41.58.26:9000/qiaopi/logo/0aa60e7f-2204-4331-9064-d1b4e3c7930a.png');\n" +
+                        "        background-image: url('"+letter.getCoverLink()+"');\n" +
                         "        width: 12.5em;\n" +
                         "        /* 200px */\n" +
                         "        height: 21.0625em;\n" +
                         "        /* 335px */\n" +
+                        "        border-radius: 1.5em;\n" +
                         "        z-index: 1;\n" +
                         "      }\n" +
                         "\n" +
@@ -655,11 +659,11 @@ public class LetterServiceImpl implements LetterService {
                         "          <span style=\"color:#A52328; display:inline-block; line-height: 2.75em;\">侨缘信使</span>\n" +
                         "        </p>\n" +
                         "      </div>\n" +
-                        "      <p class=\"message\">您的好友给您发了一封侨批喔，<a href=\"http://53035272.vip.cpolar.top\">快来看看吧</a></p>\n" +
+                        "      <p class=\"message\">"+letter.getRecipientName()+",您的好友给您发了一封侨批喔,<a href=\"http://53035272.vip.cpolar.top\">快来看看吧</a></p>\n" +
                         "      <div id=\"body\">\n" +
                         "\n" +
                         "        <p>&nbsp;</p>\n" +
-                        "        <a href=\"http://53035272.vip.cpolar.top\" id=\"a\">\n" +
+                        "        <a href=\"http://53035272.vip.cpolar.top\" style=\"margin: 0 auto; display: block; width: 12.5em;height: 21.0625em;\">\n" +
                         "          <div id=\"cover\">\n" +
                         "          </div>\n" +
                         "        </a>\n" +
@@ -686,6 +690,8 @@ public class LetterServiceImpl implements LetterService {
             } catch (Exception e){
                 log.error(message("unknown.error"),letter); ;
             }
+            letter.setStatus(LetterStatus.DELIVERED);
+            letterMapper.updateById(letter);
         }
     }
 
@@ -863,10 +869,12 @@ public class LetterServiceImpl implements LetterService {
     }
 
     @Override
-    public void sendLetterPre(LetterSendDTO letterSendDTO){
+    public LetterVO sendLetterPre(LetterSendDTO letterSendDTO){
 
         Letter letter = BeanUtil.copyProperties(letterSendDTO, Letter.class);
         letter.setSenderUserId(UserContext.getUserId());
+        //或许保留原格式也是一种选择
+        //letter.setLetterContent(letterSendDTO.getLetterContent().trim());
         try {
             String coverLink = coverGenerieren(letterSendDTO);
             letter.setCoverLink(coverLink);
@@ -890,10 +898,58 @@ public class LetterServiceImpl implements LetterService {
         letter.setDeliveryProgress(0L);
 
         letterMapper.insert(letter);
+
+        return BeanUtil.copyProperties(letter, LetterVO.class);
     }
 
+    @Override
+    public List<LetterVO> getMySendLetter() {
+        List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getSenderUserId, UserContext.getUserId()));
+        //每次要查的时候再更新这个数据，减少更新次数
+        letters.forEach(letter -> {
+            long progress = getProgress(letter.getCreateTime(), letter.getExpectedDeliveryTime());
+            letter.setDeliveryProgress(progress);
+        });
+        //更新进度
+        letterMapper.updateById(letters);
+        return BeanUtil.copyToList(letters, LetterVO.class);
+    }
 
+    @Override
+    public List<LetterVO> getMyReceiveLetter() {
+        User user = userMapper.selectById(UserContext.getUserId());
+        //查询收信人为当前用户的信件
+        List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getRecipientEmail, user.getEmail()).eq(Letter::getStatus, LetterStatus.DELIVERED));
+        letters.forEach(letter -> {
+            letter.setRecipientUserId(UserContext.getUserId());
+        });
+        //更新letter的收信人id
+        letterMapper.updateById(letters);
+        return BeanUtil.copyToList(letters, LetterVO.class);
+    }
 
+    @Override
+    public List<LetterVO> getMyNotReadLetter() {
+        //获取这人的全部收到的信
+        List<LetterVO> myReceiveLetter = getMyReceiveLetter();
+        if (myReceiveLetter.isEmpty()) {
+            return Collections.emptyList();
+        }
+        //筛选未读的信
+        return myReceiveLetter.stream()
+            .filter(letter -> letter.getReadStatus() == LetterStatus.NOT_READ)
+            .collect(Collectors.toList());
+    }
+
+    //通过开始时间和结束时间计算进度
+    private long getProgress(LocalDateTime startTime, LocalDateTime endTime) {
+        long progress = 0;
+        long total = Duration.between(startTime, endTime).toMillis();
+        long current = Duration.between(startTime, LocalDateTime.now()).toMillis();
+        progress = current * 10000 / total;
+        //防止进度超过10000
+        return progress<0||progress>10000 ? 10000 : progress;
+    }
 }
 
 
