@@ -582,9 +582,7 @@ public class LetterServiceImpl implements LetterService {
                         "        border-radius: 1.25em;\n" +
                         "        /* 20px */\n" +
                         "        padding: 1.25em;\n" +
-                        "        /* 20px */\n" +
-                        "        position: relative;\n" +
-                        "        z-index: -99;\n" +
+                        "        z-index: -5;\n" +
                         "      }\n" +
                         "\n" +
                         "      .box #header {\n" +
@@ -610,9 +608,8 @@ public class LetterServiceImpl implements LetterService {
                         "        /* 20px */\n" +
                         "        background-position: bottom;\n" +
                         "        background-size: cover;\n" +
-                        "        background-repeat: no-repeat;\n         " +
+                        "        background-repeat: no-repeat;\n" +
                         "        position: relative;\n" +
-                        "        z-index: -2;\n" +
                         "      }\n" +
                         "\n" +
                         "      .box #body p img {\n" +
@@ -658,8 +655,8 @@ public class LetterServiceImpl implements LetterService {
                         "        width: 12.5em;\n" +
                         "        /* 200px */\n" +
                         "        height: 21.0625em;\n" +
-                        "        /* 335px */\n" +
                         "        border-radius: 1.5em;\n" +
+                        "        /* 335px */\n" +
                         "        z-index: 1;\n" +
                         "      }\n" +
                         "\n" +
@@ -678,7 +675,7 @@ public class LetterServiceImpl implements LetterService {
                         "        /* 1px */\n" +
                         "        border-radius: 0.3125em;\n" +
                         "        /* 5px */\n" +
-                        "        font-size: 1em;\n" +
+                        "        font-size: .7em;\n" +
                         "        /* 16px */\n" +
                         "        z-index: -1;\n" +
                         "      }\n" +
@@ -694,7 +691,7 @@ public class LetterServiceImpl implements LetterService {
                         "      <div id=\"body\">\n" +
                         "\n" +
                         "        <p>&nbsp;</p>\n" +
-                        "        <a href=\"http://53035272.vip.cpolar.top\" style=\"margin: 0 auto; display: block; width: 12.5em;height: 21.0625em;\">\n" +
+                        "        <a href=\"http://53035272.vip.cpolar.top\" style=\"margin: 0 auto; display: block; height: 21.0625em; \">\n" +
                         "          <div id=\"cover\">\n" +
                         "          </div>\n" +
                         "        </a>\n" +
