@@ -14,4 +14,8 @@ public class UserException extends BaseException
     {
         super("user", code, args, null);
     }
+
+    public UserException(String code) {
+        super("user",code);
+    }
 }

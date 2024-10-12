@@ -21,6 +21,28 @@ public class Paper {
     @Schema(description = "预览图片")
     private String previewImage;
 
-    @Schema(description = "字体文件")
+    @Schema(description = "纸张路径")
     private String FilePath;
+
+    @Schema(description = "字体大小")
+    private String fontSize;
+
+    @Schema(description = "x偏移量")
+    private String translateX;
+
+    @Schema(description = "y偏移量")
+    private String translateY;
+
+    @Schema(description = "收信人x偏移量")
+    private String recipientTranslateX;
+
+    @Schema(description = "收信人y偏移量")
+    private String recipientTranslateY;
+
+    @Schema(description = "寄信人x偏移量")
+    private String senderTranslateX;
+
+    @Schema(description = "寄信人y偏移量")
+    private String senderTranslateY;
+
 }

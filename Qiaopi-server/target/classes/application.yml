@@ -1,0 +1,122 @@
+server:
+  port: 8080
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB # 单个上传文件的最大限制大小
+      max-request-size: 20MB # 单次请求的最大限制大小
+#  模式切换
+  profiles:
+    active: prod
+  main:
+    allow-circular-references: true
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+    cache-duration: -1 # 可以设置缓存时间，-1 表示不缓存
+    fallback-to-system-locale: true
+  datasource:
+    #   数据源基本配置
+    driver-class-name: ${qiaopi.datasource.driver-class-name}
+    url: jdbc:mysql://${qiaopi.datasource.host}:${qiaopi.datasource.port}/${qiaopi.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${qiaopi.datasource.username}
+    password: ${qiaopi.datasource.password}
+    type: com.alibaba.druid.pool.DruidDataSource
+  #   数据源其他配置
+  druid:
+    #     配置初始化大小、最小、最大线程数
+    initialSize: 5
+    minIdle: 5
+    #     CPU核数+1，也可以大些但不要超过20，数据库加锁时连接过多性能下降
+    maxActive: 20
+    #     最大等待时间，内网：800，外网：1200（三次握手1s）
+    maxWait: 60000
+    timeBetweenEvictionRunsMillis: 60000
+    #     配置一个连接在池中最大空间时间，单位是毫秒
+    minEvictableIdleTimeMillis: 300000
+    validationQuery: SELECT 1
+    testWhileIdle: true
+    #     设置从连接池获取连接时是否检查连接有效性，true检查，false不检查
+    testOnBorrow: true
+    #     设置从连接池归还连接时是否检查连接有效性，true检查，false不检查
+    testOnReturn: true
+    #     可以支持PSCache（提升写入、查询效率）
+    poolPreparedStatements: true
+    #   配置监控统计拦截的filters，去掉后监控界面sql无法统计，'wall'用于防火墙
+    filters: stat,wall,log4j
+    #     保持长连接
+    keepAlive: true
+    maxPoolPreparedStatementPerConnectionSize: 20
+    useGlobalDataSourceStat: true
+    connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500
+  data:
+    redis:
+      host: ${qiaopi.redis.host}
+      password: ${qiaopi.redis.password}
+      database: ${qiaopi.redis.database}
+      port: ${qiaopi.redis.port}
+  mail:
+    host: smtp.qq.com
+    protocol: smtp
+    default-encoding: UTF-8
+    username: 2794939382@qq.com
+    password: icgqucgqohfcddca
+
+    nickname: 侨缘信使
+    properties:
+      mail.smtp.auth: true #启用SMTP服务器的身份验证，这是为了确保只有合法用户可以发送邮件。
+      mail.smtp.starttls.enable: #启用TLS加密，这是为了确保邮件传输的安全性。
+      mail.smtp.starttls.required: true #要求使用TLS加密，如果连接不是通过TLS加密传输，则连接将失败。
+
+
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: auto # 全局id类型为自增长
+    mapper-locations: "classpath*:/mapper/**/*.xml" # Mapper.xml文件地址，当前这个是默认值
+
+
+
+
+qiaopi:
+  jwt:
+#    一定要超过长度，否则会报错。确保secretKey至少有32个字符。
+    user-secret-key: qiaopiqiaopiqiaopiqiaopiqiaopiqiaopiqiaopiqiaopiqiaopi
+    user-ttl: 720000000
+    user-token-name: Authorization
+#    # 设置jwt签名加密时使用的秘钥
+#    admin-secret-key: abc
+#    # 设置jwt过期时间
+#    admin-ttl: 7200000
+#    # 设置前端传递过来的令牌名称
+#    admin-token-name: token
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: 'qiaopi'
+      paths-to-match: '/**'
+      packages-to-scan: com.qiaopi.controller
+
+
+# 文件上传配置
+# 文件上传配置
+dromara:
+  x-file-storage:  #文件存储配置
+    default-platform: minio-1 #默认使用的存储平台
+    thumbnail-suffix: ".min.png" #缩略图后缀，例如【.min.jpg】【.png】
+    minio:
+      - platform: minio-1
+        enable-storage: true  # 启用存储
+        access-key: RmDw4oSAqY95M6DHdwWQ
+        secret-key: VLku3W6TTjCi1a30GIjhbq59LHDUoJax1wKFsYEQ
+        end-point: http://110.41.58.26:9000
+        bucket-name: qiaopi
+        domain: http://110.41.58.26:9000/qiaopi/ # 访问域名，注意“/”结尾，例如：http://minio.abc.com/abc/
+        base-path: qiaopi-images/ # 基础路径
