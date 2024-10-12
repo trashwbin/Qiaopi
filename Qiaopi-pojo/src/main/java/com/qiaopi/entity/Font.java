@@ -20,6 +20,6 @@ public class Font {
     @Schema(description = "预览图片")
     private String previewImage;
 
-    @Schema(description = "字体文件")
+    @Schema(description = "文件路径")
     private String FilePath;
 }
