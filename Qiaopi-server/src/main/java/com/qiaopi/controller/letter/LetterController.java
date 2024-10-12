@@ -52,17 +52,17 @@ public class LetterController {
         return AjaxResult.success(message("letter.generateImage.success"),url);
     }
 
-    /*
     @GetMapping()
     @Operation(summary = "发信功能测试")
     public AjaxResult hi(){
         Letter letter = new Letter();
-        letter.setRecipientEmail("3348620049@qq.com");
+//        letter.setRecipientEmail("3348620049@qq.com");
+        letter.setRecipientEmail("trashwbin@qq.com");
         List<Letter> letters= new ArrayList<>();
         letters.add(letter);
         letterService.sendLetterToEmail(letters);
         return AjaxResult.success("hi");
-    }*/
+    }
 
 
     @PostMapping("/sendLetter")
