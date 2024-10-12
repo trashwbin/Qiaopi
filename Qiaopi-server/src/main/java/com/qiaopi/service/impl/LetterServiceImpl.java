@@ -74,7 +74,6 @@ public class LetterServiceImpl implements LetterService {
     @Value("${spring.mail.nickname}")
     private String nickname;
 
-    @Override
     public void Main(Graphics2D g2d, String text, int x, int y) {
         int charsPerLine = 15;
         int currentX = x;
@@ -115,8 +114,7 @@ public class LetterServiceImpl implements LetterService {
         }
     }
 
-    @Override
-    public void drawMain(Graphics2D g2d, String text, int width, int height, String color, String font, String stationery, int x, int y) throws IOException {
+    public void drawMain(Graphics2D g2d, String text, int width, int height, String color, String font, String stationery, int x, int y){
         // 加载书信图片
         //BufferedImage bgImage = ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Stationery\\0"+stationery+".png"));
 //        BufferedImage bgImage = ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Stationery\\" + stationery));
@@ -131,8 +129,8 @@ public class LetterServiceImpl implements LetterService {
                 bgImage = ImageIO.read(inputStream);
             }
         } catch (IOException e) {
-            System.err.println("加载背景图片时发生错误: " + e.getMessage());
-            e.printStackTrace();
+            log.error("加载背景图片时发生错误: " + e.getMessage());
+//            e.printStackTrace();
         }
 
         //背景图适配绘制
@@ -187,6 +185,7 @@ public class LetterServiceImpl implements LetterService {
         } catch (FontFormatException | IOException e) {
             // 如果字体加载失败，使用默认字体
             customFont = new Font("宋体", Font.PLAIN, 50); // 使用支持中文的默认字体，例如宋体
+            log.error("加载字体文件时发生错误: " + e.getMessage());
         }
 
 
@@ -207,7 +206,6 @@ public class LetterServiceImpl implements LetterService {
         //g2d.dispose(); // 释放Graphics2D对象
     }
 
-    @Override
     public void Sender(Graphics2D g2d, String sender, int x, int y) {
         int charsPerLine = 15;
         int currentX = x;
@@ -248,7 +246,6 @@ public class LetterServiceImpl implements LetterService {
         }
     }
 
-    @Override
     public void drawSender(Graphics2D g2d, String sender, int width, int height, String color, String font, String stationery, int x, int y) throws IOException {
         // 加载书信图片
         BufferedImage bgImage = ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Stationery\\" + stationery));
@@ -293,7 +290,6 @@ public class LetterServiceImpl implements LetterService {
         //g2d.dispose(); // 释放Graphics2D对象
     }
 
-    @Override
     public void Recipient(Graphics2D g2d, String recipient, int x, int y) {
         int charsPerLine = 15;
         int currentX = x;
@@ -334,7 +330,6 @@ public class LetterServiceImpl implements LetterService {
         }
     }
 
-    @Override
     public void drawRecipient(Graphics2D g2d, String recipient, int width, int height, String color, String font, String stationery, int x, int y) throws IOException {
 
         // 加载书信图片
@@ -377,9 +372,6 @@ public class LetterServiceImpl implements LetterService {
         // 释放图形资源
         //g2d.dispose(); // 释放Graphics2D对象
     }
-
-
-    @Override
     public ArrayList<String> generationParameters(LetterGenDTO letterGenDTO) {
         String sender = letterGenDTO.getSenderName(); //寄件人的姓名
         String recipient = letterGenDTO.getRecipientName();//收件人的姓名
@@ -397,8 +389,6 @@ public class LetterServiceImpl implements LetterService {
         return new ArrayList<>(Arrays.asList(sender, recipient, text, font, color, stationery));
     }
 
-
-    @Override
     public BufferedImage rotateImage(BufferedImage originalImage, int degrees) {
         int width = originalImage.getWidth();
         int height = originalImage.getHeight();
@@ -449,15 +439,11 @@ public class LetterServiceImpl implements LetterService {
         com.qiaopi.entity.Font font = fontMapper.selectById(letterGenDTO.getFontId());
         Paper paper = paperMapper.selectById(letterGenDTO.getPaperId());
 
-        try {
-            drawMain(g2d, letterGenDTO.getLetterContent(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()));//调用数值使得文本与信纸对齐
-//            Main(g2d,letterGenDTO.getSenderName(),Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()));
-//            Main(g2d,letterGenDTO.getRecipientName(),Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()));
-            drawSender(g2d, letterGenDTO.getSenderName(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()));
-            drawRecipient(g2d, letterGenDTO.getRecipientName(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        drawMain(g2d, letterGenDTO.getLetterContent(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()));//调用数值使得文本与信纸对齐
+        Main(g2d,letterGenDTO.getSenderName(),Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()));
+        Main(g2d,letterGenDTO.getRecipientName(),Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()));
+//            drawSender(g2d, letterGenDTO.getSenderName(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()));
+//            drawRecipient(g2d, letterGenDTO.getRecipientName(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()));
 
         bufferedImage = rotateImage(bufferedImage, 90);
         String url = null;
@@ -487,8 +473,7 @@ public class LetterServiceImpl implements LetterService {
         return url;
     }
 
-    @Override
-    public String coverGenerieren(LetterSendDTO letterSendDTO) throws IOException {
+    public String coverGenerieren(LetterSendDTO letterSendDTO) {
         // 设置图片的宽和高（根据实际需求可以动态调整）
         int width = 1000; // 图片宽度
         int height = 550; // 图片高度
@@ -509,21 +494,16 @@ public class LetterServiceImpl implements LetterService {
         String Recipient = letterSendDTO.getRecipientName();// 收件人姓名
 
 
-
-        try {
-            //x 增下减上 y调整左右位置，增左减右
-            //收信地址  insideAddress 四川省宁都市广安区
-            drawCoverMain(g2d,insideAddress,width,height,156,185);
-            //收信人  Recipient 姜峰勇
-            drawCoverSubordinate(g2d,Recipient,width,height,155,25);
-            //寄信人  sender 郭灿衡
-            drawCoverSubordinate(g2d,sender,width,height,750,405);
-            //寄信地址 mailingAddress 云南省衡原市宝兴县 insideAddress
-            drawCoverSubordinate(g2d,mailingAddress,width,height,440,405);
-            g2d.dispose();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        //x 增下减上 y调整左右位置，增左减右
+        //收信地址  insideAddress 四川省宁都市广安区
+        drawCoverMain(g2d,insideAddress,width,height,156,185);
+        //收信人  Recipient 姜峰勇
+        drawCoverSubordinate(g2d,Recipient,width,height,155,25);
+        //寄信人  sender 郭灿衡
+        drawCoverSubordinate(g2d,sender,width,height,750,405);
+        //寄信地址 mailingAddress 云南省衡原市宝兴县 insideAddress
+        drawCoverSubordinate(g2d,mailingAddress,width,height,440,405);
+        g2d.dispose();
 
         bufferedImage = rotateImage(bufferedImage, 90);
         String url = null;
@@ -746,9 +726,6 @@ public class LetterServiceImpl implements LetterService {
             letterMapper.updateById(letter);
         }
     }
-
-
-    @Override
     public void coverMain(Graphics2D g2d, String text, int x, int y) {
         int charsPerLine = 15;
         int currentX = x;
@@ -788,10 +765,7 @@ public class LetterServiceImpl implements LetterService {
             }
         }
     }
-
-
-    @Override
-    public void drawCoverMain(Graphics2D g2d, String text, int width, int height, int x, int y) throws IOException {
+    public void drawCoverMain(Graphics2D g2d, String text, int width, int height, int x, int y){
         // 加载书信图片
         BufferedImage bgImage = null;
 //                ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Cover\\Cover.png"));
@@ -859,9 +833,6 @@ public class LetterServiceImpl implements LetterService {
         g2d.dispose(); // 释放Graphics2D对象*/
     }
 
-
-
-    @Override
     public void coverSubordinate(Graphics2D g2d, String text, int x, int y) {
         int charsPerLine = 15;
         int currentX = x;
@@ -901,10 +872,7 @@ public class LetterServiceImpl implements LetterService {
             }
         }
     }
-
-
-    @Override
-    public void drawCoverSubordinate(Graphics2D g2d, String text, int width, int height, int x, int y) throws IOException {
+    public void drawCoverSubordinate(Graphics2D g2d, String text, int width, int height, int x, int y){
         // 加载自定义字体
 /*        Font customFont; // 定义字体对象
         try {
@@ -957,6 +925,7 @@ public class LetterServiceImpl implements LetterService {
         } catch (FontFormatException | IOException e) {
             // 如果字体加载失败，使用默认字体
             customFont = new Font("宋体", Font.PLAIN, 100); // 使用支持中文的默认字体，例如宋体
+            log.error("加载字体文件时发生错误: " + e.getMessage());
         }
 
         g2d.setFont(customFont); // 设置字体
@@ -981,24 +950,20 @@ public class LetterServiceImpl implements LetterService {
         letter.setSenderUserId(UserContext.getUserId());
         //或许保留原格式也是一种选择
         //letter.setLetterContent(letterSendDTO.getLetterContent().trim());
-        try {
-            String coverLink = coverGenerieren(letterSendDTO);
-            letter.setCoverLink(coverLink);
+        String coverLink = coverGenerieren(letterSendDTO);
+        letter.setCoverLink(coverLink);
 
-            double distance = PositionUtil.getDistance(letterSendDTO.getSenderAddress().getLongitude(), letterSendDTO.getSenderAddress().getLatitude(), letterSendDTO.getRecipientAddress().getLongitude(), letterSendDTO.getRecipientAddress().getLatitude());
-            //距离换算时间,速度为每小时40公里
-            double time = distance / 40000;
-            //时间换算为秒
-            long timeMin = (long) (time * 60 * 60);
-            //当前时间
-            LocalDateTime now = LocalDateTime.now();
-            //发送时间
-            LocalDateTime deliveryTime = now.plusSeconds(timeMin);
-            letter.setExpectedDeliveryTime(deliveryTime);
+        double distance = PositionUtil.getDistance(letterSendDTO.getSenderAddress().getLongitude(), letterSendDTO.getSenderAddress().getLatitude(), letterSendDTO.getRecipientAddress().getLongitude(), letterSendDTO.getRecipientAddress().getLatitude());
+        //距离换算时间,速度为每小时40公里
+        double time = distance / 40000;
+        //时间换算为秒
+        long timeMin = (long) (time * 60 * 60);
+        //当前时间
+        LocalDateTime now = LocalDateTime.now();
+        //发送时间
+        LocalDateTime deliveryTime = now.plusSeconds(timeMin);
+        letter.setExpectedDeliveryTime(deliveryTime);
 
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
         letter.setStatus(LetterStatus.TRANSIT);
         letter.setReadStatus(LetterStatus.NOT_READ);
         letter.setDeliveryProgress(0L);
