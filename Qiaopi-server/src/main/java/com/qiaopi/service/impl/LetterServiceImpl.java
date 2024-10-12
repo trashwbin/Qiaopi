@@ -39,6 +39,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -118,13 +119,26 @@ public class LetterServiceImpl implements LetterService {
     public void drawMain(Graphics2D g2d, String text, int width, int height, String color, String font, String stationery, int x, int y) throws IOException {
         // 加载书信图片
         //BufferedImage bgImage = ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Stationery\\0"+stationery+".png"));
-        BufferedImage bgImage = ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Stationery\\" + stationery));
-
+//        BufferedImage bgImage = ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Stationery\\" + stationery));
+        // 加载书信图片
+        BufferedImage bgImage = null;
+//                ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Cover\\Cover.png"));
+        try {
+            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("images/Stationery/" + stationery);
+            if (inputStream == null) {
+                log.error("无法找到指定的图像文件: images/Stationery/" + stationery);
+            } else {
+                bgImage = ImageIO.read(inputStream);
+            }
+        } catch (IOException e) {
+            System.err.println("加载背景图片时发生错误: " + e.getMessage());
+            e.printStackTrace();
+        }
 
         //背景图适配绘制
         g2d.drawImage(bgImage, 0, 0, width, height, null);
 
-        // 加载自定义字体
+/*        // 加载自定义字体
         Font customFont; // 定义字体对象
         try {
             // 构建字体文件路径
@@ -140,7 +154,41 @@ public class LetterServiceImpl implements LetterService {
         } catch (FontFormatException | IOException e) {
             // 如果字体加载失败，使用默认字体
             customFont = new Font("宋体", Font.PLAIN, 50); // 使用支持中文的默认字体，例如宋体
+        }*/
+
+        // 加载自定义字体
+        Font customFont = null; // 定义字体对象
+        try {
+//            // 构建字体文件路径
+//            String fontPath = "resources\\fonts\\CoverFont\\草檀斋毛泽东字体.TTF";
+//
+//            // 加载字体文件
+//            customFont = Font.createFont(Font.TRUETYPE_FONT, new File(fontPath)).deriveFont((float) 160);
+
+            // 假设当前类为 MyClass
+
+// 调整字体文件路径以匹配类路径
+            String fontPath = "fonts/MainContent/" + font;
+
+// 使用类加载器获取字体文件输入流
+            InputStream fontStream = getClass().getClassLoader().getResourceAsStream(fontPath);
+
+            if (fontStream != null) {
+                // 加载字体文件
+                customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont((float) 50);
+            } else {
+                log.error("字体文件未找到: " + fontPath);
+            }
+
+            // 获取本地图形环境并注册字体
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            ge.registerFont(customFont);
+
+        } catch (FontFormatException | IOException e) {
+            // 如果字体加载失败，使用默认字体
+            customFont = new Font("宋体", Font.PLAIN, 50); // 使用支持中文的默认字体，例如宋体
         }
+
 
         // 设置字体及颜色
         g2d.setFont(customFont); // 设置字体
@@ -225,6 +273,8 @@ public class LetterServiceImpl implements LetterService {
             // 如果字体加载失败，使用默认字体
             customFont = new Font("宋体", Font.PLAIN, 50); // 使用支持中文的默认字体，例如宋体
         }
+
+
 
         // 设置字体及颜色
         g2d.setFont(customFont); // 设置字体
@@ -401,6 +451,8 @@ public class LetterServiceImpl implements LetterService {
 
         try {
             drawMain(g2d, letterGenDTO.getLetterContent(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()));//调用数值使得文本与信纸对齐
+//            Main(g2d,letterGenDTO.getSenderName(),Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()));
+//            Main(g2d,letterGenDTO.getRecipientName(),Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()));
             drawSender(g2d, letterGenDTO.getSenderName(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()));
             drawRecipient(g2d, letterGenDTO.getRecipientName(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()));
         } catch (IOException e) {
@@ -741,19 +793,45 @@ public class LetterServiceImpl implements LetterService {
     @Override
     public void drawCoverMain(Graphics2D g2d, String text, int width, int height, int x, int y) throws IOException {
         // 加载书信图片
-        BufferedImage bgImage = ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Cover\\Cover.png"));
-
+        BufferedImage bgImage = null;
+//                ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Cover\\Cover.png"));
+        try {
+            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("images/Cover/Cover.png");
+            if (inputStream == null) {
+                log.error("无法找到指定的图像文件: images/Cover/Cover.png");
+            } else {
+                bgImage = ImageIO.read(inputStream);
+            }
+        } catch (IOException e) {
+            System.err.println("加载背景图片时发生错误: " + e.getMessage());
+            e.printStackTrace();
+        }
         //背景图适配绘制
         g2d.drawImage(bgImage, 0, 0, width, height, null);
 
         // 加载自定义字体
-        Font customFont; // 定义字体对象
+        Font customFont = null; // 定义字体对象
         try {
-            // 构建字体文件路径
-            String fontPath = "Qiaopi-server\\src\\main\\resources\\fonts\\CoverFont\\草檀斋毛泽东字体.TTF";
+//            // 构建字体文件路径
+//            String fontPath = "resources\\fonts\\CoverFont\\草檀斋毛泽东字体.TTF";
+//
+//            // 加载字体文件
+//            customFont = Font.createFont(Font.TRUETYPE_FONT, new File(fontPath)).deriveFont((float) 160);
 
-            // 加载字体文件
-            customFont = Font.createFont(Font.TRUETYPE_FONT, new File(fontPath)).deriveFont((float) 160);
+            // 假设当前类为 MyClass
+
+// 调整字体文件路径以匹配类路径
+            String fontPath = "fonts/CoverFont/草檀斋毛泽东字体.TTF";
+
+// 使用类加载器获取字体文件输入流
+            InputStream fontStream = getClass().getClassLoader().getResourceAsStream(fontPath);
+
+            if (fontStream != null) {
+                // 加载字体文件
+                customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont((float) 160);
+            } else {
+                log.error("字体文件未找到: " + fontPath);
+            }
 
             // 获取本地图形环境并注册字体
             GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
@@ -827,17 +905,11 @@ public class LetterServiceImpl implements LetterService {
 
     @Override
     public void drawCoverSubordinate(Graphics2D g2d, String text, int width, int height, int x, int y) throws IOException {
-        /*// 加载书信图片
-        BufferedImage bgImage = ImageIO.read(new File("D:\\Code\\QiaoPi\\qiaopi\\Qiaopi-server\\src\\main\\resources\\images\\Cover\\Cover.png"));
-
-        //背景图适配绘制
-        g2d.drawImage(bgImage, 0, 0, width, height, null);*/
-
         // 加载自定义字体
-        Font customFont; // 定义字体对象
+/*        Font customFont; // 定义字体对象
         try {
             // 构建字体文件路径
-            String fontPath = "Qiaopi-server\\src\\main\\resources\\fonts\\CoverFont\\草檀斋毛泽东字体.TTF";
+            String fontPath = "resources\\fonts\\CoverFont\\草檀斋毛泽东字体.TTF";
 
             // 加载字体文件
             customFont = Font.createFont(Font.TRUETYPE_FONT, new File(fontPath)).deriveFont((float) 110);
@@ -853,8 +925,42 @@ public class LetterServiceImpl implements LetterService {
 
         // 设置字体及颜色
         g2d.setFont(customFont); // 设置字体
-        g2d.setColor(Color.decode("#030303")); // 设置字体颜色
+        g2d.setColor(Color.decode("#030303")); // 设置字体颜色*/
 
+        Font customFont = null; // 定义字体对象
+        try {
+//            // 构建字体文件路径
+//            String fontPath = "resources\\fonts\\CoverFont\\草檀斋毛泽东字体.TTF";
+//
+//            // 加载字体文件
+//            customFont = Font.createFont(Font.TRUETYPE_FONT, new File(fontPath)).deriveFont((float) 110);
+
+            // 假设当前类为 MyClass
+
+// 调整字体文件路径以匹配类路径
+            String fontPath = "fonts/CoverFont/草檀斋毛泽东字体.TTF";
+
+// 使用类加载器获取字体文件输入流
+            InputStream fontStream = getClass().getClassLoader().getResourceAsStream(fontPath);
+
+            if (fontStream != null) {
+                // 加载字体文件
+                customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont((float) 110);
+            } else {
+                log.error("字体文件未找到: " + fontPath);
+            }
+
+            // 获取本地图形环境并注册字体
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            ge.registerFont(customFont);
+
+        } catch (FontFormatException | IOException e) {
+            // 如果字体加载失败，使用默认字体
+            customFont = new Font("宋体", Font.PLAIN, 100); // 使用支持中文的默认字体，例如宋体
+        }
+
+        g2d.setFont(customFont); // 设置字体
+        g2d.setColor(Color.decode("#030303")); // 设置字体颜色*/
         // 获取字体度量信息
         FontMetrics fontMetrics = g2d.getFontMetrics();
 
