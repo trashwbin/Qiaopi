@@ -56,13 +56,6 @@ import static com.qiaopi.utils.MessageUtils.message;
 public class UserController {
 
     private final UserService userService;
-    private final JavaMailSender javaMailSender;
-    private final RedisTemplate redisTemplate;
-    private final UserMapper userMapper;
-    @Value("${spring.mail.username}")
-    private String sender;
-    @Value("${spring.mail.nickname}")
-    private String nickname;
 
     /**
      * 登录
@@ -73,45 +66,19 @@ public class UserController {
     @PostMapping("/login")
     @Operation(summary = "用户登录")
     public AjaxResult login(@RequestBody UserLoginDTO userLoginDTO) {
-
-
         log.info("用户登录：{}", userLoginDTO);
-
         UserLoginVO userLoginVO = userService.login(userLoginDTO);
         return success(message("user.login.success"), userLoginVO);
     }
 
     /**
      * 获取验证码
-     *
      * @return
      */
     @GetMapping("/getCode")
     @Operation(summary = "获取验证码")
     public AjaxResult getCode() {
-
-        //设置验证码的宽和高，获取验证码
-        LineCaptcha captcha = CaptchaUtil.createLineCaptcha(200, 100, 4, 30);
-
-        //设置验证码的唯一标识uuid
-        String verify = IdUtil.simpleUUID();
-
-        //图形验证码写出，可以写出到文件，也可以写出到流
-        FastByteArrayOutputStream os = new FastByteArrayOutputStream();
-        captcha.write(os);
-        //获取验证码
-        String code = captcha.getCode();
-        log.info("获取验证码:{}", code);
-
-        //将验证码存入redis
-        redisTemplate.opsForValue().set(verify, code, Duration.ofMinutes(5));
-
-        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>(5);
-
-        map.put("uuid", verify);
-        //map.put("code", code);
-        map.put("img", Base64.encode(os.toByteArray()));
-
+        Map<String, String> map = userService.getCode();
         return success(message("user.get.code.success"), map);
     }
 
@@ -125,106 +92,13 @@ public class UserController {
     @Operation(summary = "用户注册")
     public AjaxResult register(@RequestBody UserRegisterDTO userRegisterDTO) {
         log.info("用户注册：{}", userRegisterDTO);
-
-        String msg = userService.register(userRegisterDTO);
-
-        log.info("用户注册结果：{}", msg);
-        return StringUtils.equals(msg, message("user.register.success")) ? success(msg) : error(msg);
+        return success(userService.register(userRegisterDTO));
     }
 
     @GetMapping("/sendCode")
     @Operation(summary = "发送验证码")
     public AjaxResult sendCode(@RequestParam("email") String email) {
-        // 邮箱转小写
-        email = email.toLowerCase();
-        // 验证邮箱是否已经注册
-        if (userMapper.exists(new LambdaQueryWrapper<User>().eq(User::getEmail, email))) {
-            return error(message("email.exists"));
-        }
-        //判断邮箱是否合法
-        else if (!AccountValidator.isValidEmail(email)) {
-            return error(message("email.format.error"));
-        }
-
-        String verify = message("user.register.prefix") + email;
-        //判断5分钟内是否发送过验证码
-        if (redisTemplate.hasKey(verify)) {
-            return error(message("user.sent.code.limit"));
-        }
-
-        // 创建一个邮件
-        //SimpleMailMessage message = new SimpleMailMessage();
-        // 创建一个 MimeMessage 代替 SimpleMailMessage
-        MimeMessage message = javaMailSender.createMimeMessage();
-
-        try {
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
-
-            // 设置发件人
-            helper.setFrom(nickname + '<' + sender + '>');
-
-            // 设置收件人
-            helper.setTo(email);
-
-            // 设置邮件主题
-            helper.setSubject("欢迎访问 " + nickname);
-
-            // 生成六位随机数
-            String code = RandomUtil.randomNumbers(6);
-            log.info("邮箱验证码：{}", code);
-
-            // 将验证码存入 redis，有效期为5分钟
-            redisTemplate.opsForValue().set(verify, code, Duration.ofMinutes(5));
-
-            // 定义邮件内容，使用 HTML
-            String content = "<div style='font-family: Arial, sans-serif;'>" +
-                    "<h1>欢迎访问 " + nickname + "</h1>" +
-                    "<h2>【验证码】您的验证码为：" + code + "</h2>" +
-                    "<p style='font-size: 14px;'>验证码五分钟内有效，逾期作废。</p>" +
-                    "<hr>" +
-                    "<p style='font-size: 12px; color: gray;'>此邮件为系统自动发送，请勿回复。</p>" +
-                    "</div>";
-
-            // 设置邮件内容为 HTML
-            helper.setText(content, true);
-
-            // 发送邮件
-            javaMailSender.send(message);
-        } catch (MessagingException e) {
-            return error(message("user.sent.code.failed"));
-        } catch (MailException e) {
-            return error(message("user.sent.code.failed") + "，请检查邮箱是否正确");
-        }
-
-        /*
-        // 设置发件人
-        message.setFrom(nickname+'<'+sender+'>');
-
-        // 设置收件人
-        message.setTo(email);
-
-        // 设置邮件主题
-        message.setSubject("欢迎访问"+nickname);
-
-        //生成六位随机数
-        String code = RandomUtil.randomNumbers(6);
-
-        //将验证码存入redis，有效期为5分钟
-        redisTemplate.opsForValue().set(verify, code, Duration.ofMinutes(5));
-
-        String content = "【验证码】您的验证码为：" + code + " 。 验证码五分钟内有效，逾期作废。\n\n\n" +
-                "------------------------------\n\n\n" ;
-
-        message.setText(content);
-
-        // 发送邮件
-        javaMailSender.send(message);
-        */
-
-//        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>(5);
-//        map.put("uuid", verify);
-        //map.put("code", code);
-
+        userService.sendCode(email);
         return success(message("user.sent.code.success"));
     }
 
@@ -242,69 +116,8 @@ public class UserController {
     @Operation(summary = "发送重置密码验证码")
     public AjaxResult sendResetPasswordCode(@RequestParam("email") String email) {
 
-        email = email.toLowerCase();
+        userService.sendResetPasswordCode(email);
 
-        //判断邮箱是否合法
-        if (!AccountValidator.isValidEmail(email)) {
-            return error(message("email.format.error"));
-        }
-        String verify = message("user.reset.password.prefix") + email;
-        //判断5分钟内是否发送过验证码
-        if (redisTemplate.hasKey(verify)) {
-            return error(message("user.get.code.limit"));
-        }
-
-        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email));
-        // 验证邮箱是否未注册
-        if (user == null) {
-            return error(message("email.not.exists"));
-        }
-
-        // 创建一个邮件
-        //SimpleMailMessage message = new SimpleMailMessage();
-        // 创建一个 MimeMessage 代替 SimpleMailMessage
-        MimeMessage message = javaMailSender.createMimeMessage();
-
-        try {
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
-
-            // 设置发件人
-            helper.setFrom(nickname + '<' + sender + '>');
-
-            // 设置收件人
-            helper.setTo(email);
-
-            // 设置邮件主题
-            helper.setSubject(nickname + "-重置密码");
-
-            // 生成六位随机数
-            String code = RandomUtil.randomNumbers(6);
-            log.info("重置密码验证码：{}", code);
-
-            // 将验证码存入 redis，有效期为5分钟
-            redisTemplate.opsForValue().set(verify, code, Duration.ofMinutes(5));
-
-            // 定义邮件内容，使用 HTML
-            String content = "<div style='font-family: Arial, sans-serif;'>" +
-                    "<h1>" + nickname + "账户密码重置 </h1>" +
-                    "<h2>你好，" + user.getNickname() + "<h2>" +
-                    "<h2>【验证码】您的重置密码验证码为：" + code + "</h2>" +
-                    "<p style='font-size: 14px;'>请在五分钟内使用此验证码重置您的密码，逾期作废。</p>" +
-                    "<p style='font-size: 14px;'>如果您没有请求重置密码，请忽略此邮件。</p>" +
-                    "<hr>" +
-                    "<p style='font-size: 12px; color: gray;'>此邮件为系统自动发送，请勿回复。</p>" +
-                    "</div>";
-
-            // 设置邮件内容为 HTML
-            helper.setText(content, true);
-
-            // 发送邮件
-            javaMailSender.send(message);
-        } catch (MessagingException e) {
-            return error(message("user.sent.code.failed"));
-        } catch (MailException e) {
-            return error(message("user.sent.code.failed") + "，请检查邮箱是否正确");
-        }
 
         return success(message("user.sent.code.success"));
     }
@@ -370,7 +183,7 @@ public class UserController {
 
     @GetMapping("/getFriendAddress")
     @Operation(summary = "获取当前好友地址")
-    public AjaxResult getFriendAddress(@RequestParam("FriendId") Long friendId){
+    public AjaxResult getFriendAddress(@RequestParam("friendId") Long friendId){
         log.info("获取当前好友地址：{}",friendId);
         List<Address> addresses = userService.getFriendAddress(friendId);
         return success(message("user.get.friend.address.success"),addresses);

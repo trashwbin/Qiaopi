@@ -37,4 +37,10 @@ public interface UserService {
     List<Address> getMyAddress(Long userId);
 
     List<Address> getFriendAddress(Long friendId);
+
+    void sendResetPasswordCode(String email);
+
+    Map<String, String> getCode();
+
+    void sendCode(String email);
 }

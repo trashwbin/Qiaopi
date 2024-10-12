@@ -57,11 +57,7 @@ public class CommonController {
             String filePath = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMM")) + "/" ;
 
             // 上传文件
-            FileInfo fileInfo = fileStorageService.of(file)
-                    .setPath(filePath)
-                    .setProgressListener((progressSize,allSize) ->
-                            log.info("已上传 {} 总大小{}", progressSize, allSize == null ? "未知" : allSize))
-                    .upload();
+            FileInfo fileInfo = fileStorageService.of(file).upload();
 
             ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>(5);
 
