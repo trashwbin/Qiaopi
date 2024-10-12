@@ -528,7 +528,6 @@ public class LetterServiceImpl implements LetterService {
         return url;
     }
 
-
     @Override
     public void sendLetterToEmail(List<Letter> letters) {
         // 创建一个邮件
@@ -942,7 +941,6 @@ public class LetterServiceImpl implements LetterService {
         /*// 释放图形资源
         g2d.dispose(); // 释放Graphics2D对象*/
     }
-
     @Override
     public LetterVO sendLetterPre(LetterSendDTO letterSendDTO){
 
@@ -954,6 +952,9 @@ public class LetterServiceImpl implements LetterService {
         letter.setCoverLink(coverLink);
 
         double distance = PositionUtil.getDistance(letterSendDTO.getSenderAddress().getLongitude(), letterSendDTO.getSenderAddress().getLatitude(), letterSendDTO.getRecipientAddress().getLongitude(), letterSendDTO.getRecipientAddress().getLatitude());
+
+        // 确保距离至少为200公里
+        distance = Math.max(distance, 200000); // 200公里转换为米
         //距离换算时间,速度为每小时40公里
         double time = distance / 40000;
         //时间换算为秒
@@ -972,7 +973,6 @@ public class LetterServiceImpl implements LetterService {
 
         return BeanUtil.copyProperties(letter, LetterVO.class);
     }
-
     @Override
     public List<LetterVO> getMySendLetter() {
         List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getSenderUserId, UserContext.getUserId()));
@@ -985,7 +985,6 @@ public class LetterServiceImpl implements LetterService {
         letterMapper.updateById(letters);
         return BeanUtil.copyToList(letters, LetterVO.class);
     }
-
     @Override
     public List<LetterVO> getMyReceiveLetter() {
         User user = userMapper.selectById(UserContext.getUserId());
