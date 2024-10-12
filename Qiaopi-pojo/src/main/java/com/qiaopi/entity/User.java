@@ -5,10 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.qiaopi.BaseEntity;
-import com.qiaopi.vo.FontColorVO;
-import com.qiaopi.vo.FontVO;
-import com.qiaopi.vo.PaperVO;
-import com.qiaopi.vo.SignetVO;
+import com.qiaopi.vo.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -78,5 +75,8 @@ public class User extends BaseEntity {
 
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<FontColorVO> fontColors;
+
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<FunctionCardVO> functionCards;
 }
 

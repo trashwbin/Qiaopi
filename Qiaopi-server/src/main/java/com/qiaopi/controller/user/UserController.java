@@ -21,6 +21,7 @@ import com.qiaopi.service.UserService;
 import com.qiaopi.utils.AccountValidator;
 import com.qiaopi.utils.StringUtils;
 import com.qiaopi.vo.FriendVO;
+import com.qiaopi.vo.FunctionCardVO;
 import com.qiaopi.vo.UserLoginVO;
 import com.qiaopi.vo.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -194,6 +195,13 @@ public class UserController {
         log.info("获取我的地址：{}",UserContext.getUserId());
         List<Address> addresses = userService.getMyAddress(UserContext.getUserId());
         return success(message("user.get.address.success"),addresses);
+    }
+
+    @GetMapping("/getMyFunctionCard")
+    @Operation(summary = "获取我的功能卡")
+    public AjaxResult getMyFunctionCard(){
+        log.info("获取我的功能卡：{}",UserContext.getUserId());
+        return success(message("user.get.function.card.success"),userService.getMyFunctionCard(UserContext.getUserId()));
     }
 }
 

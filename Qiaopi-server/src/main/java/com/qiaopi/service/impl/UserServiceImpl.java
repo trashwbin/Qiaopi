@@ -528,6 +528,15 @@ public class UserServiceImpl implements UserService {
 
     }
 
+    @Override
+    public List<FunctionCardVO> getMyFunctionCard(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        return user.getFunctionCards();
+    }
+
     //生成随机用户名，数字和字母组成,
     public String getStringRandom(int length) {
 
