@@ -139,7 +139,7 @@ public class UserController {
         return success(message("user.get.repository.success"),userRepository);
     }
 
-    @PostMapping("/updateUsername")
+    @PutMapping("/updateUsername")
     @Operation(summary = "修改用户名")
     public AjaxResult updateUsername(@RequestBody UserUpdateDTO userUpdateDTO) {
         log.info("修改用户名：{}", userUpdateDTO.getUsername());
@@ -147,7 +147,7 @@ public class UserController {
         return success(message("user.update.username.success"));
     }
 
-    @PostMapping("/updatePassword")
+    @PutMapping("/updatePassword")
     @Operation(summary = "修改密码")
     public AjaxResult updatePassword(@RequestBody UserUpdateDTO userUpdateDTO) {
         log.info("用户修改密码:{}",UserContext.getUserId());
@@ -155,7 +155,14 @@ public class UserController {
         return success(message("user.update.password.success"));
     }
 
-    @PostMapping("/updateUserInfo")
+    @GetMapping("/getAvatarList")
+    @Operation(summary = "获取头像列表")
+    public AjaxResult getAvatarList(){
+        log.info("获取头像列表");
+        return success(message("user.get.avatar.list.success"),userService.getAvatarList());
+    }
+
+    @PutMapping("/updateUserInfo")
     @Operation(summary = "修改用户信息")
     public AjaxResult updateUserInfo(@RequestBody UserUpdateDTO userUpdateDTO) {
         log.info("修改用户信息：{}", userUpdateDTO);
@@ -203,6 +210,8 @@ public class UserController {
         log.info("获取我的功能卡：{}",UserContext.getUserId());
         return success(message("user.get.function.card.success"),userService.getMyFunctionCard(UserContext.getUserId()));
     }
+
+
 }
 
 
