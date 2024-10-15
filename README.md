@@ -182,6 +182,10 @@ ALTER TABLE user ADD COLUMN signets JSON;
 ALTER TABLE user ADD COLUMN font_colors JSON;
 
 
+```
+### 10.14
+
+```
 
 -- 更改bottle表
 CREATE TABLE bottle (
