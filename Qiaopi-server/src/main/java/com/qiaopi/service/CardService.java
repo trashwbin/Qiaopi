@@ -1,7 +1,8 @@
 package com.qiaopi.service;
 
 import com.qiaopi.dto.FunctionCardUseDTO;
+import com.qiaopi.vo.LetterVO;
 
 public interface CardService {
-    void useCard(FunctionCardUseDTO functionCardUseDTO);
+    LetterVO useCard(FunctionCardUseDTO functionCardUseDTO);
 }
