@@ -12,6 +12,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class BottleVo {
 
+    /**
+     * 漂流瓶id
+     */
+    @Schema(description = "漂流瓶id")
+    @TableField(value = "id")
+    private Long id;
+
 
     /**
      * 用户id
@@ -56,9 +63,6 @@ public class BottleVo {
     @Schema(description = "漂流瓶图片地址")
     @TableField(value = "bottle_url")
     private String bottleUrl;
-
-
-
 
 
 }
