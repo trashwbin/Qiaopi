@@ -351,9 +351,12 @@ public class BottleServiceImpl implements BottleService {
             // 没有找到符合条件的漂流瓶
             return null;
         }
-
         // 将 Bottle 转换为 BottleVo 进行返回
         BottleVo bottleVo = convertToBottleVo(bottle);
+
+        bottle.setIsPicked(0);//表示以捡走
+        bottleMapper.updateById(bottle);
+        bottleVo.setId(bottle.getId());
         return bottleVo;
     }
 
@@ -406,6 +409,8 @@ public class BottleServiceImpl implements BottleService {
         // 返回符合条件的 Bottle 集合
         return bottles;
     }
+
+
 
 
 
