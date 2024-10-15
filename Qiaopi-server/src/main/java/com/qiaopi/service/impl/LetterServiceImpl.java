@@ -115,12 +115,9 @@ public class LetterServiceImpl implements LetterService {
     }
 
     public void drawMain(Graphics2D g2d, String text, int width, int height, String color, String font, String stationery, int x, int y){
-        // 加载书信图片
-        //BufferedImage bgImage = ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Stationery\\0"+stationery+".png"));
-//        BufferedImage bgImage = ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Stationery\\" + stationery));
-        // 加载书信图片
+
         BufferedImage bgImage = null;
-//                ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Cover\\Cover.png"));
+
         try {
             InputStream inputStream = getClass().getClassLoader().getResourceAsStream("images/Stationery/" + stationery);
             if (inputStream == null) {
@@ -130,42 +127,15 @@ public class LetterServiceImpl implements LetterService {
             }
         } catch (IOException e) {
             log.error("加载背景图片时发生错误: " + e.getMessage());
-//            e.printStackTrace();
         }
 
         //背景图适配绘制
         g2d.drawImage(bgImage, 0, 0, width, height, null);
 
-/*        // 加载自定义字体
-        Font customFont; // 定义字体对象
-        try {
-            // 构建字体文件路径
-            String fontPath = "Qiaopi-server\\src\\main\\resources\\fonts\\MainContent\\" + font;
-
-            // 加载字体文件
-            customFont = Font.createFont(Font.TRUETYPE_FONT, new File(fontPath)).deriveFont((float) 50);
-
-            // 获取本地图形环境并注册字体
-            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-            ge.registerFont(customFont);
-
-        } catch (FontFormatException | IOException e) {
-            // 如果字体加载失败，使用默认字体
-            customFont = new Font("宋体", Font.PLAIN, 50); // 使用支持中文的默认字体，例如宋体
-        }*/
 
         // 加载自定义字体
         Font customFont = null; // 定义字体对象
         try {
-//            // 构建字体文件路径
-//            String fontPath = "resources\\fonts\\CoverFont\\草檀斋毛泽东字体.TTF";
-//
-//            // 加载字体文件
-//            customFont = Font.createFont(Font.TRUETYPE_FONT, new File(fontPath)).deriveFont((float) 160);
-
-            // 假设当前类为 MyClass
-
-// 调整字体文件路径以匹配类路径
             String fontPath = "fonts/MainContent/" + font;
 
 // 使用类加载器获取字体文件输入流
@@ -201,9 +171,6 @@ public class LetterServiceImpl implements LetterService {
         int textHeight = fontMetrics.getHeight();
 
         Main(g2d, text, x, y);
-
-        // 释放图形资源
-        //g2d.dispose(); // 释放Graphics2D对象
     }
 
     public void Sender(Graphics2D g2d, String sender, int x, int y) {
@@ -250,9 +217,6 @@ public class LetterServiceImpl implements LetterService {
         // 加载书信图片
         BufferedImage bgImage = ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Stationery\\" + stationery));
 
-        /*//背景图适配绘制
-        g2d.drawImage(bgImage,0,0,width,height,null);*/
-
         // 加载自定义字体
         Font customFont; // 定义字体对象
         try {
@@ -285,9 +249,6 @@ public class LetterServiceImpl implements LetterService {
         int textHeight = fontMetrics.getHeight();
 
         Sender(g2d, sender, x, y);
-
-        // 释放图形资源
-        //g2d.dispose(); // 释放Graphics2D对象
     }
 
     public void Recipient(Graphics2D g2d, String recipient, int x, int y) {
@@ -334,9 +295,6 @@ public class LetterServiceImpl implements LetterService {
 
         // 加载书信图片
         BufferedImage bgImage = ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Stationery\\" + stationery));
-
-        /*//背景图适配绘制
-        g2d.drawImage(bgImage,0,0,width,height,null);*/
 
         // 加载自定义字体
         Font customFont; // 定义字体对象
@@ -427,14 +385,6 @@ public class LetterServiceImpl implements LetterService {
         BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = bufferedImage.createGraphics(); // 获取Graphics2D对象，用于绘制图像
 
-        /*ArrayList<String> Parameters = generationParameters(letterGenDTO);
-        String sender = Parameters.get(0);
-        String recipient = Parameters.get(1);
-        String text = Parameters.get(2);
-        String font = Parameters.get(3);
-        String color = Parameters.get(4);
-        String stationery = Parameters.get(5);*/
-
         FontColor fontColor = fontColorMapper.selectById(letterGenDTO.getFontColorId());
         com.qiaopi.entity.Font font = fontMapper.selectById(letterGenDTO.getFontId());
         Paper paper = paperMapper.selectById(letterGenDTO.getPaperId());
@@ -442,8 +392,6 @@ public class LetterServiceImpl implements LetterService {
         drawMain(g2d, letterGenDTO.getLetterContent(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()));//调用数值使得文本与信纸对齐
         Main(g2d,letterGenDTO.getSenderName(),Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()));
         Main(g2d,letterGenDTO.getRecipientName(),Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()));
-//            drawSender(g2d, letterGenDTO.getSenderName(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()));
-//            drawRecipient(g2d, letterGenDTO.getRecipientName(), width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()));
 
         bufferedImage = rotateImage(bufferedImage, 90);
         String url = null;
