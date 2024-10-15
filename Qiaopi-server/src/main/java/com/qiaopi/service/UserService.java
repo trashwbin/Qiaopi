@@ -5,6 +5,7 @@ import com.qiaopi.dto.UserRegisterDTO;
 import com.qiaopi.dto.UserResetPasswordDTO;
 import com.qiaopi.dto.UserUpdateDTO;
 import com.qiaopi.entity.Address;
+import com.qiaopi.entity.Avatar;
 import com.qiaopi.vo.FriendVO;
 import com.qiaopi.vo.FunctionCardVO;
 import com.qiaopi.vo.UserLoginVO;
@@ -46,4 +47,6 @@ public interface UserService {
     void sendCode(String email);
 
     List<FunctionCardVO> getMyFunctionCard(Long userId);
+
+    List<Avatar> getAvatarList();
 }
