@@ -943,6 +943,8 @@ public class LetterServiceImpl implements LetterService {
 
         Letter letter = BeanUtil.copyProperties(letterSendDTO, Letter.class);
         letter.setSenderUserId(UserContext.getUserId());
+        //将收件人邮箱转换为小写，保证数据库都是小写
+        letter.setRecipientEmail(letterSendDTO.getRecipientEmail().toLowerCase());
         //或许保留原格式也是一种选择
         //letter.setLetterContent(letterSendDTO.getLetterContent().trim());
         String coverLink = coverGenerieren(letterSendDTO);
