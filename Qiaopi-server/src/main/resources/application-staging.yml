@@ -21,7 +21,7 @@ knife4j:
     # language: 设置Knife4j UI的语言,默认为zh_cn,可选值为zh_cn或en
     language: zh_cn
   #开启生产环境屏蔽
-  production: true
+  production: false
   #是否启用登录认证
 #  basic:
 #    enable: false

@@ -181,8 +181,44 @@ ALTER TABLE signet
 ALTER TABLE user ADD COLUMN signets JSON;
 ALTER TABLE user ADD COLUMN font_colors JSON;
 
+
+```
+### 10.14
+
 ```
 
+-- 更改bottle表
+CREATE TABLE bottle (
+                        id BIGINT AUTO_INCREMENT PRIMARY KEY,  -- 漂流瓶ID
+                        user_id BIGINT NOT NULL,                      -- 用户ID
+                        nick_name VARCHAR(50) NOT NULL,               -- 用户昵称
+                        email VARCHAR(100) NOT NULL,                  -- 用户邮箱
+                        sender_address VARCHAR(255) NOT NULL,         -- 发送者地址
+                        content TEXT NOT NULL,                        -- 漂流瓶内容
+                        created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 创建时间
+);
 
+ALTER TABLE bottle
+    ADD COLUMN is_picked TINYINT(1) DEFAULT 1 COMMENT '判断是否被捡走 (0 为捡走，1 为未捡走，默认 1)';
 
+-- 添加 createTime 和 updateTime 字段，默认值为当前时间
+ALTER TABLE bottle
+    ADD COLUMN create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    ADD COLUMN update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间';
+
+-- 添加 createUser 和 updateUser 字段
+ALTER TABLE bottle
+    ADD COLUMN create_user VARCHAR(50) NOT NULL DEFAULT 'system' COMMENT '创建用户',
+    ADD COLUMN update_user VARCHAR(50) NOT NULL DEFAULT 'system' COMMENT '更新用户';
+
+-- 删除 created_time 列
+ALTER TABLE bottle
+    DROP COLUMN created_time;
+
+TRUNCATE TABLE bottle;
+
+ALTER TABLE bottle
+    ADD COLUMN bottle_url VARCHAR(255) DEFAULT '' COMMENT '漂流瓶的图片或文件URL';
+ALTER TABLE bottle
+    ADD COLUMN remark VARCHAR(255) DEFAULT '' COMMENT '备注';
 
