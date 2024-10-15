@@ -19,12 +19,12 @@ public class FunctionCardVO {
     private String cardDesc;
     @Schema(description = "卡片预览链接")
     private String cardPreviewLink;
-    @Schema(description = "可减少时间")
-    private String reduceTime;
-    @Schema(description = "可加速速率")
-    private String speedRate;
-    @Schema(description = "备注")
-    private String remark;
+//    @Schema(description = "可减少时间")
+//    private String reduceTime;
+//    @Schema(description = "可加速速率")
+//    private String speedRate;
+//    @Schema(description = "备注")
+//    private String remark;
     @Schema(description = "用户拥有数量")
     private int number;
 }

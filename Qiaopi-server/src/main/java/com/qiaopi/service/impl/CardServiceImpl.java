@@ -1,5 +1,6 @@
 package com.qiaopi.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.qiaopi.constant.LetterStatus;
 import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.FunctionCardUseDTO;
@@ -16,6 +17,7 @@ import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.service.CardService;
 import com.qiaopi.service.LetterService;
 import com.qiaopi.vo.FunctionCardVO;
+import com.qiaopi.vo.LetterVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -42,7 +44,7 @@ public class CardServiceImpl implements CardService {
 
     @Override
     @Transactional
-    public void useCard(FunctionCardUseDTO functionCardUseDTO) {
+    public LetterVO useCard(FunctionCardUseDTO functionCardUseDTO) {
 
         // 1. 根据功能卡id查询功能卡信息
         FunctionCard functionCard = cardMapper.selectById(functionCardUseDTO.getCardId());
@@ -123,12 +125,13 @@ public class CardServiceImpl implements CardService {
                 letterMapper.updateById(letter);
                 // 发送信件
                 letterService.sendLetterToEmail(Collections.singletonList(letter));
-                return;
+                return BeanUtil.copyProperties(letter, LetterVO.class);
             } else {
                 letter.setExpectedDeliveryTime(LocalDateTime.now().plus(adjustedMillis, ChronoUnit.MILLIS));
             }
         }
         //6 更新信件状态
         letterMapper.updateById(letter);
+        return BeanUtil.copyProperties(letter, LetterVO.class);
     }
 }
