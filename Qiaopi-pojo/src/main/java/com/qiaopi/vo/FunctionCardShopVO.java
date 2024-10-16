@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class FunctionCardVO {
+public class FunctionCardShopVO {
     @Schema(description = "主键")
     private Long id;
     @Schema(description = "卡片类型")
@@ -27,4 +27,7 @@ public class FunctionCardVO {
 //    private String remark;
     @Schema(description = "用户拥有数量")
     private int number;
+
+    @Schema(description = "纸张价格")
+    private int price;
 }

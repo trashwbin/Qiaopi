@@ -38,7 +38,7 @@ spring:
     validationQuery: SELECT 1
     testWhileIdle: true
     #     设置从连接池获取连接时是否检查连接有效性，true检查，false不检查
-    testOnBorrow: true
+    testOnBorrow: false
     #     设置从连接池归还连接时是否检查连接有效性，true检查，false不检查
     testOnReturn: true
     #     可以支持PSCache（提升写入、查询效率）

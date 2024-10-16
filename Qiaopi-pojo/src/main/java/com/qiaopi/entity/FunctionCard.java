@@ -27,4 +27,6 @@ public class FunctionCard {
     private String speedRate;
     @Schema(description = "备注")
     private String remark;
+    @Schema(description = "功能卡价格")
+    private int price;
 }

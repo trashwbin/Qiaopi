@@ -49,8 +49,8 @@ public class UserUpdateDTO {
     private String nickname;
 
     /** 用户头像 */
-    @Schema(description = "用户头像" , example = "http://www.qiaopi.com/xxx.jpg")
-    private String avatar;
+    @Schema(description = "用户头像id" , example = "1")
+    private Long avatarId;
 
     /** 用户性别 */
     @Schema(description = "用户性别" , example = "男")

@@ -45,4 +45,6 @@ public class Paper {
     @Schema(description = "寄信人y偏移量")
     private String senderTranslateY;
 
+    @Schema(description = "纸张价格")
+    private int price;
 }
