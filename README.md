@@ -85,13 +85,6 @@ VALUES ('信纸1', 'https://ooo.0x0.ooo/2024/10/05/O4Xt2I.png', 'https://ooo.0x0
        ('信纸3', 'https://ooo.0x0.ooo/2024/10/05/O4Xt2I.png', 'https://ooo.0x0.ooo/2024/10/05/O4Xt2I.png');
 ```
 
-### 10.11
-
-```mysql
-CREATE TABLE `letter` ( `id` BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID', `sender_user_id` BIGINT COMMENT '寄件人的用户ID', `sender_name` VARCHAR(255) COMMENT '寄件人的姓名', `recipient_email` VARCHAR(255) COMMENT '收件人的邮箱', `recipient_user_id` BIGINT COMMENT '收件人的用户ID(非必需项)', `recipient_name` VARCHAR(255) COMMENT '收件人的姓名', `letter_content` TEXT COMMENT '信的内容', `letter_link` VARCHAR(255) COMMENT '信的链接', `cover_link` VARCHAR(255) COMMENT '封面链接', `sender_address` JSON COMMENT '寄件人地址', `recipient_address` JSON COMMENT '收件人地址', `expected_delivery_time` DATETIME COMMENT '预计送达时间', `status` INT COMMENT '信件状态(0:未发送 1:已发送,2:传递中,3:已送达)', `delivery_progress` BIGINT COMMENT '送信进度(0-10000)', `read_status` INT COMMENT '阅读状态(0:未读,1:已读)', `create_user` BIGINT COMMENT '创建者', `create_time` DATETIME COMMENT '创建时间', `update_user` BIGINT COMMENT '更新者', `update_time` DATETIME COMMENT '更新时间', `remark` VARCHAR(255) COMMENT '备注' ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='信件表';
-
-ALTER TABLE `paper` ADD COLUMN `recipient_translate_x` VARCHAR(255) DEFAULT NULL COMMENT '收信人x偏移量', ADD COLUMN `recipient_translate_y` VARCHAR(255) DEFAULT NULL COMMENT '收信人y偏移量', ADD COLUMN `sender_translate_x` VARCHAR(255) DEFAULT NULL COMMENT '寄信人x偏移量', ADD COLUMN `sender_translate_y` VARCHAR(255) DEFAULT NULL COMMENT '寄信人y偏移量';
-```
 ### 10.9
 
 ```
@@ -182,6 +175,14 @@ ALTER TABLE user ADD COLUMN signets JSON;
 ALTER TABLE user ADD COLUMN font_colors JSON;
 
 
+```
+
+### 10.11
+
+```mysql
+CREATE TABLE `letter` ( `id` BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID', `sender_user_id` BIGINT COMMENT '寄件人的用户ID', `sender_name` VARCHAR(255) COMMENT '寄件人的姓名', `recipient_email` VARCHAR(255) COMMENT '收件人的邮箱', `recipient_user_id` BIGINT COMMENT '收件人的用户ID(非必需项)', `recipient_name` VARCHAR(255) COMMENT '收件人的姓名', `letter_content` TEXT COMMENT '信的内容', `letter_link` VARCHAR(255) COMMENT '信的链接', `cover_link` VARCHAR(255) COMMENT '封面链接', `sender_address` JSON COMMENT '寄件人地址', `recipient_address` JSON COMMENT '收件人地址', `expected_delivery_time` DATETIME COMMENT '预计送达时间', `status` INT COMMENT '信件状态(0:未发送 1:已发送,2:传递中,3:已送达)', `delivery_progress` BIGINT COMMENT '送信进度(0-10000)', `read_status` INT COMMENT '阅读状态(0:未读,1:已读)', `create_user` BIGINT COMMENT '创建者', `create_time` DATETIME COMMENT '创建时间', `update_user` BIGINT COMMENT '更新者', `update_time` DATETIME COMMENT '更新时间', `remark` VARCHAR(255) COMMENT '备注' ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='信件表';
+
+ALTER TABLE `paper` ADD COLUMN `recipient_translate_x` VARCHAR(255) DEFAULT NULL COMMENT '收信人x偏移量', ADD COLUMN `recipient_translate_y` VARCHAR(255) DEFAULT NULL COMMENT '收信人y偏移量', ADD COLUMN `sender_translate_x` VARCHAR(255) DEFAULT NULL COMMENT '寄信人x偏移量', ADD COLUMN `sender_translate_y` VARCHAR(255) DEFAULT NULL COMMENT '寄信人y偏移量';
 ```
 ### 10.14
 
