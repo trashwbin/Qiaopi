@@ -63,9 +63,9 @@ public class BottleController {
 
     @GetMapping("/sendFriendRequest")
     @Operation(summary = "请求成为好友")
-    public AjaxResult sendFriendRequest(@RequestBody BottleVo bottleVo) {
+    public AjaxResult sendFriendRequest(@RequestBody Long id) {
         log.info("请求成为好友");
-        String reply = friendService.sendFriendRequest(bottleVo);
+        String reply = friendService.sendFriendRequest(id);
         return AjaxResult.success(MessageUtils.message("Friend.application.sent.success"),reply);
     }
 
@@ -74,7 +74,12 @@ public class BottleController {
     public AjaxResult ProcessingFriendRequests() {
         log.info("处理好友申请");
         List<FriendRequest> friendRequests = friendService.ProcessingFriendRequests();
-        return AjaxResult.success(MessageUtils.message("Friend.Processing.requests"),friendRequests);
+        if (friendRequests.isEmpty()) {
+            return AjaxResult.success(MessageUtils.message("friend.friendRequest.empty"));
+        } else {
+            return AjaxResult.success(MessageUtils.message("friend.Processing.requests"),friendRequests);
+
+        }
     }
 
     @PostMapping("/BecomeFriend")
@@ -84,6 +89,9 @@ public class BottleController {
         String reply = friendService.BecomeFriend(beFriendDTO);
         return AjaxResult.success(MessageUtils.message("Friend.application.success"),reply);
     }
+
+
+
 
 
 

@@ -13,7 +13,7 @@ public interface FriendService {
     /**
      * 请求成为好友
      */
-    String sendFriendRequest(BottleVo bottleVo);
+    String sendFriendRequest(Long id);
 
     /**
      * 处理好友申请

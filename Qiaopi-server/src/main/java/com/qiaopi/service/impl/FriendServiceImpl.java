@@ -7,12 +7,15 @@ import com.qiaopi.entity.Bottle;
 import com.qiaopi.entity.Friend;
 import com.qiaopi.entity.FriendRequest;
 import com.qiaopi.entity.User;
+import com.qiaopi.exception.bottle.BottleException;
+import com.qiaopi.exception.friend.FriendException;
 import com.qiaopi.mapper.BottleMapper;
 import com.qiaopi.mapper.FriendMapper;
 import com.qiaopi.mapper.FriendRequestMapper;
 import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.service.BottleService;
 import com.qiaopi.service.FriendService;
+import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.vo.BottleVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,33 +47,41 @@ public class FriendServiceImpl implements FriendService {
 
 
     @Override
-    public String sendFriendRequest(BottleVo bottleVo) {
-        //获取到当前请求的用户id
-        Long currentUserId  = UserContext.getUserId();
+    public String sendFriendRequest(Long id) {
+        Long currentUserId  = null;
+        try {
+            //获取到当前请求的用户id
+            currentUserId = UserContext.getUserId();
+        } catch (Exception e) {
+            throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));
+        }
 
         // 重新从数据库中获取最新的 Bottle，确保数据一致性和安全性
-        Bottle latestBottle = bottleMapper.selectById(bottleVo.getId());
+        Bottle latestBottle = bottleMapper.selectById(id);
 
 
         // 校验：当前用户是否有权操作此漂流瓶
         if (!canCurrentUserOperateBottle(currentUserId, latestBottle)) {
-            String replyEnable = "你无权操作该漂流瓶";
-            log.info("用户无权操作该漂流瓶");
-            return replyEnable;
+            throw new FriendException(MessageUtils.message("friend.no.bottle.permission"));
         }
 
-        // 从最新的 Bottle 对象中获取 userId，并发送好友请求
-        Long targetUserId = latestBottle.getUserId();
+        try {
+            // 从最新的 Bottle 对象中获取 userId，并发送好友请求
+            Long targetUserId = latestBottle.getUserId();
 
-        // 插入好友申请
-        FriendRequest friendRequest = new FriendRequest();
-        friendRequest.setSenderId(currentUserId);
-        friendRequest.setReceiverId(targetUserId);
-        friendRequest.setStatus(0); // 0表示待处理
-        friendRequestMapper.insert(friendRequest);
+            // 插入好友申请
+            FriendRequest friendRequest = new FriendRequest();
+            friendRequest.setSenderId(currentUserId);
+            friendRequest.setReceiverId(targetUserId);
+            friendRequest.setStatus(0); // 0表示待处理
+            friendRequestMapper.insert(friendRequest);
+        } catch (Exception e) {
+            throw new FriendException(MessageUtils.message("friend.create.Request.failed"));
+        }
 
-        String replySuccess = "好友申请已发送";
-        return "好友申请已发送";
+        //String replySuccess = "好友申请已发送";
+        String replySuccess = MessageUtils.message("friend.request.sended.success");
+        return replySuccess;
 
     }
 
@@ -91,8 +102,13 @@ public class FriendServiceImpl implements FriendService {
 
     @Override
     public List<FriendRequest> ProcessingFriendRequests() {
-        //获取当前线程的用户id 此当前用户的id也为被请求人id
-        Long receiverId = UserContext.getUserId();
+        Long receiverId = null;
+        try {
+            //获取当前线程的用户id 此当前用户的id也为被请求人id
+            receiverId = UserContext.getUserId();
+        } catch (Exception e) {
+            throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));
+        }
 
         QueryWrapper<FriendRequest> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("receiver_id", receiverId).eq("status", 0); // 查询待处理的请求
@@ -110,25 +126,33 @@ public class FriendServiceImpl implements FriendService {
         } else {
             isAccepted = false;
         }
+        Long currentUserId = null;
 
-        //获取当前线程用户的id
-        Long currentUserId = UserContext.getUserId();
+        try {
+            //获取当前线程用户的id
+            currentUserId = UserContext.getUserId();
+        } catch (Exception e) {
+            throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));
+        }
+        FriendRequest friendRequest = null;
 
-        //根据用户id找到对应的请求
-        FriendRequest friendRequest = friendRequestMapper.selectById(requestId);
-
+        try {
+            //根据用户id找到对应的请求
+            friendRequest = friendRequestMapper.selectById(requestId);
+        } catch (Exception e) {
+            throw new FriendException(MessageUtils.message("friedn.friendRequestFinded.failed"));
+        }
 
 
         if (friendRequest == null || friendRequest.getStatus() != 0) {
             //若好友申请不存在或者已处理
-            String replyempty = "暂无好友申请";
-            return replyempty;
+            throw new FriendException(MessageUtils.message("friend.friendRequest.empty"));
         }
 
         // 检查当前用户是否是接收者
         if (!friendRequest.getReceiverId().equals(currentUserId)) {
-            String replyUnable = "您没有权限处理此好友申请";
-            return replyUnable;
+            //您没有权限处理此好友申请
+            throw new FriendException(MessageUtils.message("friend.friendRequest.no.permission"));
         }
 
 
@@ -137,19 +161,23 @@ public class FriendServiceImpl implements FriendService {
             friendRequest.setStatus(1); // 1表示已接受
             friendRequest.setUpdateTime(LocalDateTime.now());
 
-            // 添加双方的好友关系
-            addFriend(friendRequest.getReceiverId(), friendRequest.getSenderId());
+            try {
+                // 添加双方的好友关系
+                addFriend(friendRequest.getReceiverId(), friendRequest.getSenderId());
+            } catch (Exception e) {
+                throw new FriendException(MessageUtils.message("friend.add.failed"));
+            }
 
             friendRequestMapper.updateById(friendRequest);
 
-            String replyAccept = "已接受好友申请";
+            String replyAccept = MessageUtils.message("friend.application.accepted");
             return replyAccept;
         } else {
             // 更新好友申请状态为已拒绝
             friendRequest.setStatus(2); // 2表示已拒绝
             friendRequest.setUpdateTime(LocalDateTime.now());
             friendRequestMapper.updateById(friendRequest);
-            String replyRefuse = "好友申请已拒绝";
+            String replyRefuse = MessageUtils.message("friend.application.refused");
             return replyRefuse;
         }
 
