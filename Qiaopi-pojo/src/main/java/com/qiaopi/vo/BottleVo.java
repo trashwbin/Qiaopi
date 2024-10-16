@@ -2,6 +2,7 @@ package com.qiaopi.vo;
 
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.qiaopi.entity.Address;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,6 +12,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BottleVo {
+
+    /**
+     * 漂流瓶id
+     */
+    @Schema(description = "漂流瓶id")
+    @TableField(value = "id")
+    private Long id;
 
 
     /**
@@ -40,7 +48,7 @@ public class BottleVo {
      */
     @Schema(description = "发送者地址")
     @TableField(value = "sender_address")
-    private String senderAddress;
+    private Address senderAddress;
 
 
     /**
@@ -56,9 +64,6 @@ public class BottleVo {
     @Schema(description = "漂流瓶图片地址")
     @TableField(value = "bottle_url")
     private String bottleUrl;
-
-
-
 
 
 }
