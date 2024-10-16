@@ -54,7 +54,7 @@ public class Bottle extends BaseEntity {
      */
     @Schema(description = "发送者地址")
     @TableField(value = "sender_address")
-    private String senderAddress;
+    private Address senderAddress;
 
 
     /**

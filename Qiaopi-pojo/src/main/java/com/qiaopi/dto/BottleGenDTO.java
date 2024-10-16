@@ -1,6 +1,7 @@
 package com.qiaopi.dto;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.qiaopi.entity.Address;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -20,7 +21,7 @@ public class BottleGenDTO {
      * 发送者地址
      */
     @Schema(description = "发送者地址")
-    private String senderAddress;
+    private Address senderAddress;
 
 
     /**

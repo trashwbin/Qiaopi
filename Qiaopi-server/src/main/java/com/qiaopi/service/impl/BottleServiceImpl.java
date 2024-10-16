@@ -9,11 +9,17 @@ import com.qiaopi.dto.LetterGenDTO;
 import com.qiaopi.entity.Bottle;
 import com.qiaopi.entity.Letter;
 import com.qiaopi.entity.User;
+import com.qiaopi.exception.bottle.BottleException;
+import com.qiaopi.exception.user.UserException;
 import com.qiaopi.mapper.BottleMapper;
 import com.qiaopi.mapper.FontMapper;
 import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.service.BottleService;
+import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.vo.BottleVo;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.FileInfo;
@@ -54,26 +60,41 @@ public class BottleServiceImpl implements BottleService {
     @Override
     public String GenerateDriftBottle(BottleGenDTO bottleGenDTO) {
         Bottle bottle = BeanUtil.copyProperties(bottleGenDTO, Bottle.class);
-        //获取到当前请求的用户id
-        Long userId = UserContext.getUserId();
-        bottle.setUserId(userId);
-        //通过获取到的用户id去获取到用户邮箱和用户昵称
+        Long userId = null;
 
-        User user = userMapper.selectById(userId);
 
-        //将bottle对象补充完整
-        bottle.setEmail(user.getEmail());
-        bottle.setNickName(user.getNickname());
-        //bottle.setCreatedTime(LocalDateTime.now());
+        try {
+            //获取到当前请求的用户id
+            userId = UserContext.getUserId();
+            bottle.setUserId(userId);
+        } catch (Exception e) {
+            //throw new UserException("获取不到线程id");
+            throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));//TODO
+        }
+        String url = null;
 
-        //根据bottle的字体，字体颜色和文本，信纸生成信，并且展示给用户（返回）
-        //生成
-        String url = generateImage(bottle);
 
-        bottle.setBottleUrl(url);
+        try {
+            //通过获取到的用户id去获取到用户邮箱和用户昵称
+            User user = userMapper.selectById(userId);
 
-        //存bottle里面的数据
-        bottleMapper.insert(bottle);
+            //将bottle对象补充完整
+            bottle.setEmail(user.getEmail());
+            bottle.setNickName(user.getNickname());
+            //bottle.setCreatedTime(LocalDateTime.now());
+
+            //根据bottle的字体，字体颜色和文本，信纸生成信，并且展示给用户（返回）
+            //生成
+            url = generateImage(bottle);
+
+            bottle.setBottleUrl(url);
+
+            //存bottle里面的数据
+            bottleMapper.insert(bottle);
+        } catch (Exception e) {
+            throw new BottleException(MessageUtils.message("bottle.creation.failed"));//TODO
+        }
+
         //返回
         return url;
     }
@@ -288,35 +309,48 @@ public class BottleServiceImpl implements BottleService {
      */
     @Override
     public String showBottle() {
-        //获取到当前请求的用户id
-        Long userId = UserContext.getUserId();
+        Long userId = null;
+
+        try {
+            //获取到当前请求的用户id
+            userId = UserContext.getUserId();
+        } catch (Exception e) {
+            throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));//TODO
+        }
 
 
         //获取到非空的id记录的bottle集合
-        List<Bottle> nonEmptyIdRecords = getNonEmptyIdRecords();
-
+        //List<Bottle> nonEmptyIdRecords = getNonEmptyIdRecords();
         List<Bottle> bottles = getNonEmptyIdRecords();  // 获取数据库中的id不为空的记录
+        if (bottles.isEmpty()) {
+            throw new BottleException(MessageUtils.message("bottle.Database.Bottles.empty"));
+        }
 
-        while (true) {
-            int index = random.nextInt(bottles.size());
 
-            Bottle bottle = bottles.get(index);
+        try {
+            while (true) {
+                int index = random.nextInt(bottles.size());
 
-            if (bottle.getIsPicked() == 1) {
-                //没被捡走
-                //设置更新时间和更新人
-                bottle.setUpdateTime(LocalDateTime.now());
-                bottle.setUpdateUser(userId);
-                int result = bottleMapper.updateById(bottle);
+                Bottle bottle = bottles.get(index);
 
-                //获取照片地址
-                String bottleUrl = bottle.getBottleUrl();
-                //返回图片地址
-                return bottleUrl;
-            } else if (bottle.getIsPicked() == 0) {
-                //被捡走，重新获取
-                continue;
+                if (bottle.getIsPicked() == 1) {
+                    //没被捡走
+                    //设置更新时间和更新人
+                    bottle.setUpdateTime(LocalDateTime.now());
+                    bottle.setUpdateUser(userId);
+                    int result = bottleMapper.updateById(bottle);
+
+                    //获取照片地址
+                    String bottleUrl = bottle.getBottleUrl();
+                    //返回图片地址
+                    return bottleUrl;
+                } else if (bottle.getIsPicked() == 0) {
+                    //被捡走，重新获取
+                    continue;
+                }
             }
+        } catch (Exception e) {
+            throw new BottleException(MessageUtils.message("bottle.get.From.Database.failed"));
         }
 
 
@@ -339,23 +373,28 @@ public class BottleServiceImpl implements BottleService {
      */
     @Override
     public BottleVo getBottle() {
-        //获取到当前请求的用户id
-        Long userId = UserContext.getUserId();
+        Long userId = null;
+        try {
+            //获取到当前请求的用户id
+            userId = UserContext.getUserId();
+        } catch (Exception e) {
+            throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));
+        }
 
-       // List<Bottle> nonEmptyIdRecords = findBottlesByUpdateUser(userId);
 
         // 获取距离当前时间最近的漂流瓶
         Bottle bottle = getMostRecentBottleByUserId(userId);
 
         if (bottle == null) {
             // 没有找到符合条件的漂流瓶
-            return null;
+            throw new BottleException(MessageUtils.message("bottle.not.accord.condition"));
         }
         // 将 Bottle 转换为 BottleVo 进行返回
         BottleVo bottleVo = convertToBottleVo(bottle);
 
         bottle.setIsPicked(0);//表示以捡走
         bottleMapper.updateById(bottle);
+
         bottleVo.setId(bottle.getId());
         return bottleVo;
     }
