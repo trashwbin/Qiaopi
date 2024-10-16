@@ -3,7 +3,9 @@ package com.qiaopi.controller.Bottle;
 
 import com.qiaopi.dto.BeFriendDTO;
 import com.qiaopi.dto.BottleGenDTO;
+import com.qiaopi.dto.FriendSendDTO;
 import com.qiaopi.dto.LetterGenDTO;
+import com.qiaopi.entity.Address;
 import com.qiaopi.entity.FriendRequest;
 import com.qiaopi.result.AjaxResult;
 import com.qiaopi.service.BottleService;
@@ -52,21 +54,12 @@ public class BottleController {
     }
 
 
-    @GetMapping("/getDriftBottle")
-    @Operation(summary = "捡走漂流瓶")
-    public AjaxResult getBottleById() {
-        log.info("捡走漂流瓶");
-        BottleVo bottleVo = bottleService.getBottle();
-        return AjaxResult.success(MessageUtils.message("bottle.getBottleById.success"),bottleVo);
-    }
-
-
     @GetMapping("/sendFriendRequest")
     @Operation(summary = "请求成为好友")
-    public AjaxResult sendFriendRequest(@RequestParam("bottleId") Long id) {
+    public AjaxResult toBeFriends(@RequestBody FriendSendDTO friendSendDTO) {
         log.info("请求成为好友");
-        String reply = friendService.sendFriendRequest(id);
-        return AjaxResult.success(MessageUtils.message("Friend.application.sent.success"),reply);
+        bottleService.getBottle(friendSendDTO);
+        return AjaxResult.success(MessageUtils.message("Friend.application.sent.success"));
     }
 
     @GetMapping("/ProcessingFriendRequests")
@@ -86,8 +79,17 @@ public class BottleController {
     @Operation(summary = "成为好友")
     public AjaxResult BecomeFriend(@RequestBody BeFriendDTO beFriendDTO) {
         log.info("成为好友");
-        String reply = friendService.BecomeFriend(beFriendDTO);
+        String reply = friendService.becomeFriend(beFriendDTO);
         return AjaxResult.success(MessageUtils.message("Friend.application.success"),reply);
+    }
+
+
+    @GetMapping("/ThrowBack")
+    @Operation(summary = "扔回")
+    public AjaxResult ThrowBack() {
+        log.info("扔回漂流瓶");
+        bottleService.ThrowBack();
+        return AjaxResult.success(MessageUtils.message("bottle.throw.back.success"));
     }
 
 
