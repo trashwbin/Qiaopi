@@ -10,11 +10,11 @@ public interface FriendService {
 
 
 
-    /**
+ /*   *//**
      * 请求成为好友
-     */
-    String sendFriendRequest(Long id);
-
+     *//*
+    String sendFriendRequest();
+*/
     /**
      * 处理好友申请
      * @return
@@ -25,5 +25,7 @@ public interface FriendService {
     /**
      * 成为好友
      */
-    String BecomeFriend(BeFriendDTO beFriendDTO);
+    String becomeFriend(BeFriendDTO beFriendDTO);
+
+
 }
