@@ -225,7 +225,6 @@ ALTER TABLE bottle
 ### 10.15
 
 ```
-# 10.15
 
 CREATE TABLE IF NOT EXISTS `avatar` (
                                         `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT 'id',
