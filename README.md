@@ -222,3 +222,16 @@ ALTER TABLE bottle
 ALTER TABLE bottle
     ADD COLUMN remark VARCHAR(255) DEFAULT '' COMMENT '备注';
 
+### 10.15
+
+```
+# 10.15
+
+CREATE TABLE IF NOT EXISTS `avatar` (
+                                        `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT 'id',
+                                        `name` VARCHAR(255) NOT NULL COMMENT '头像名称',
+                                        `url` VARCHAR(255) NOT NULL COMMENT '头像预览图片',
+                                        PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='头像';
+```
+
