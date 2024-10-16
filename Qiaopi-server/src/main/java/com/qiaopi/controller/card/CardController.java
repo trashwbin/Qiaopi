@@ -31,8 +31,13 @@ public class CardController {
     @Operation(summary = "使用功能卡")
     public AjaxResult useCard(@RequestBody FunctionCardUseDTO functionCardUseDTO) {
         log.info("使用功能卡：{}", functionCardUseDTO);
-        cardService.useCard(functionCardUseDTO);
-        return AjaxResult.success(message("card.useCard.success"));
+        return AjaxResult.success(message("card.useCard.success"), cardService.useCard(functionCardUseDTO));
+    }
+    @GetMapping("/list")
+    @Operation(summary = "获取功能卡商城列表")
+    public AjaxResult list() {
+        log.info("获取功能卡商城列表");
+        return AjaxResult.success(message("card.list.success"),cardService.list());
     }
 
 }

@@ -21,4 +21,7 @@ public class Signet {
 
     @Schema(description = "文件路径")
     private String FilePath;
+
+    @Schema(description = "印章价格")
+    private int price;
 }
