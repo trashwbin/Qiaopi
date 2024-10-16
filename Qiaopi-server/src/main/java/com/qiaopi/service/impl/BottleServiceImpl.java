@@ -1,6 +1,7 @@
 package com.qiaopi.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.BottleGenDTO;
@@ -319,10 +320,10 @@ public class BottleServiceImpl implements BottleService {
             throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));//TODO
         }
 
-
         //获取到非空的id记录的bottle集合
         //List<Bottle> nonEmptyIdRecords = getNonEmptyIdRecords();
-        List<Bottle> bottles = getNonEmptyIdRecords();  // 获取数据库中的id不为空的记录
+        // 获取数据库中的id不为空的记录
+        List<Bottle> bottles = getNonEmptyIdRecords();
         if (bottles.isEmpty()) {
             throw new BottleException(MessageUtils.message("bottle.Database.Bottles.empty"));
         }
@@ -362,9 +363,9 @@ public class BottleServiceImpl implements BottleService {
      * 获取id不为空的记录
      */
     public List<Bottle> getNonEmptyIdRecords() {
-        QueryWrapper<Bottle> queryWrapper = new QueryWrapper<>();
-        queryWrapper.isNotNull("id"); // 查询条件：id 不为空
-        return bottleMapper.selectList(queryWrapper);
+
+         // 查询条件：id 不为空
+        return bottleMapper.selectList(new LambdaQueryWrapper<Bottle>().eq(Bottle::getIsPicked, 1).notIn(Bottle::getUserId,UserContext.getUserId()).notIn(Bottle::getUpdateUser,UserContext.getUserId()));
     }
 
 
@@ -425,7 +426,8 @@ public class BottleServiceImpl implements BottleService {
     public Bottle getMostRecentBottleByUserId(Long userId) {
         // 构建查询条件
         QueryWrapper<Bottle> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("update_user", userId)             // 查询条件：update_user 等于传入的 userId
+        queryWrapper.eq("update_user", userId)
+                .notIn("update_user",UserContext.getUserId())             // 查询条件：update_user 等于传入的 userId
                 .orderByDesc("create_time")           // 按 created_time 降序排序
                 .last("LIMIT 1");                      // 只取最近的一条记录
 
