@@ -222,6 +222,9 @@ ALTER TABLE bottle
 ALTER TABLE bottle
     ADD COLUMN remark VARCHAR(255) DEFAULT '' COMMENT '备注';
 
+```
+
+
 ### 10.15
 
 ```
