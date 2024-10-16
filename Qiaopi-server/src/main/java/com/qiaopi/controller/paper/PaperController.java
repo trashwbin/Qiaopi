@@ -1,6 +1,7 @@
 package com.qiaopi.controller.paper;
 
 
+import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.FunctionCardUseDTO;
 import com.qiaopi.result.AjaxResult;
 import com.qiaopi.service.CardService;
@@ -10,10 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import static com.qiaopi.utils.MessageUtils.message;
 
@@ -32,6 +30,13 @@ public class PaperController {
         return AjaxResult.success(message("paper.list.success"), paperService.list());
     }
 
+    @PostMapping("/buyPaper")
+    @Operation(summary = "购买纸张")
+    public AjaxResult buyPaper(@RequestParam Long paperId) {
+        log.info("用户{},购买纸张：{}", UserContext.getUserId(),paperId);
+        paperService.buyPaper(paperId);
+        return AjaxResult.success(message("paper.buyPaper.success"));
+    }
 }
 
 
