@@ -194,7 +194,7 @@ CREATE TABLE bottle (
                         user_id BIGINT NOT NULL,                      -- 用户ID
                         nick_name VARCHAR(50) NOT NULL,               -- 用户昵称
                         email VARCHAR(100) NOT NULL,                  -- 用户邮箱
-                        sender_address VARCHAR(255) NOT NULL,         -- 发送者地址
+                        sender_address JSON NOT NULL,         -- 发送者地址
                         content TEXT NOT NULL,                        -- 漂流瓶内容
                         created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 创建时间
 );
@@ -236,5 +236,27 @@ CREATE TABLE IF NOT EXISTS `avatar` (
                                         `url` VARCHAR(255) NOT NULL COMMENT '头像预览图片',
                                         PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='头像';
+```
+
+###10.16
+
+```
+alter table font
+    add price int null comment '商品价格';
+
+
+alter table font_color
+    add preview_image varchar(255)  comment '预览图片',
+    add price int null comment '商品价格';
+
+
+alter table paper
+    add price int null comment '商品价格';
+
+alter table signet
+    add price int null comment '商品价格';
+
+alter table function_card
+    add price int null comment '商品价格';
 ```
 
