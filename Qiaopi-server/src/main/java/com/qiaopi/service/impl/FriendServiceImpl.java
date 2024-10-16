@@ -3,10 +3,7 @@ package com.qiaopi.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.BeFriendDTO;
-import com.qiaopi.entity.Bottle;
-import com.qiaopi.entity.Friend;
-import com.qiaopi.entity.FriendRequest;
-import com.qiaopi.entity.User;
+import com.qiaopi.entity.*;
 import com.qiaopi.exception.bottle.BottleException;
 import com.qiaopi.exception.friend.FriendException;
 import com.qiaopi.mapper.BottleMapper;
@@ -45,6 +42,7 @@ public class FriendServiceImpl implements FriendService {
     @Autowired
     private UserMapper userMapper;
 
+/*
 
     @Override
     public String sendFriendRequest(Long id) {
@@ -85,6 +83,7 @@ public class FriendServiceImpl implements FriendService {
 
     }
 
+*/
 
 
 
@@ -117,10 +116,12 @@ public class FriendServiceImpl implements FriendService {
     }
 
     @Override
-    public String BecomeFriend( BeFriendDTO beFriendDTO) {
+    public String becomeFriend( BeFriendDTO beFriendDTO) {
         Long requestId = beFriendDTO.getRequestId();
         Long longIsAccepted = beFriendDTO.getIsAccepted();
         Boolean isAccepted;
+
+
         if (longIsAccepted == 1) {
             isAccepted = true;
         } else {
@@ -134,8 +135,8 @@ public class FriendServiceImpl implements FriendService {
         } catch (Exception e) {
             throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));
         }
-        FriendRequest friendRequest = null;
 
+        FriendRequest friendRequest = null;
         try {
             //根据用户id找到对应的请求
             friendRequest = friendRequestMapper.selectById(requestId);
@@ -163,7 +164,10 @@ public class FriendServiceImpl implements FriendService {
 
             try {
                 // 添加双方的好友关系
-                addFriend(friendRequest.getReceiverId(), friendRequest.getSenderId());
+                List<Address> mineToFriendAddresses = beFriendDTO.getAddresses();//请求人的地址
+                List<Address> friendToMeAddress = friendRequest.getGiveAddress();
+
+                addFriend(friendRequest.getReceiverId(), friendRequest.getSenderId(), mineToFriendAddresses,friendToMeAddress);
             } catch (Exception e) {
                 throw new FriendException(MessageUtils.message("friend.add.failed"));
             }
@@ -184,7 +188,7 @@ public class FriendServiceImpl implements FriendService {
     }
 
     // 添加好友关系
-    private void addFriend(Long userId, Long friendId) {
+    private void addFriend(Long userId, Long friendId, List<Address> mineToFriendAddresses, List<Address> friendToMeAddress) {
         //先设置用户的好友信息
         Friend myNewFriend = new Friend();
 
@@ -197,7 +201,7 @@ public class FriendServiceImpl implements FriendService {
         myNewFriend.setName(friend.getNickname());
         myNewFriend.setSex(friend.getSex());
         myNewFriend.setEmail(friend.getEmail());
-        myNewFriend.setAddresses(friend.getAddresses());
+        myNewFriend.setAddresses(friendToMeAddress);
         myNewFriend.setOwningId(userId);
         friendMapper.insert(myNewFriend);
 
@@ -215,7 +219,7 @@ public class FriendServiceImpl implements FriendService {
         BecomeFriendOfTheOtherParty.setName(myInfoOfUser.getNickname());
         BecomeFriendOfTheOtherParty.setSex(myInfoOfUser.getSex());
         BecomeFriendOfTheOtherParty.setEmail(myInfoOfUser.getEmail());
-        BecomeFriendOfTheOtherParty.setAddresses(myInfoOfUser.getAddresses());
+        BecomeFriendOfTheOtherParty.setAddresses(mineToFriendAddresses);
         BecomeFriendOfTheOtherParty.setOwningId(friendId);
 
         friendMapper.insert(BecomeFriendOfTheOtherParty);
