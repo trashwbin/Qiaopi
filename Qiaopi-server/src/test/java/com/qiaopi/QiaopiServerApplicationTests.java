@@ -26,7 +26,7 @@ class QiaopiServerApplicationTests {
     private CardMapper cardMapper;
     @Test
     void add() {
-        User user = userMapper.selectById(1L);
+
 
 
         List<FontVO> fonts = BeanUtil.copyToList(fontMapper.selectList(null), FontVO.class);;
@@ -40,6 +40,8 @@ class QiaopiServerApplicationTests {
         functionCards.forEach(card -> {
             card.setNumber(999);
         });
+        User user = new User();
+        user.setId(1L);
         user.setFontColors(fontColors);
         user.setFonts(fonts);
         user.setPapers(papers);

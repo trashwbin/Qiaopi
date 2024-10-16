@@ -16,6 +16,7 @@ import com.qiaopi.mapper.LetterMapper;
 import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.service.CardService;
 import com.qiaopi.service.LetterService;
+import com.qiaopi.vo.FunctionCardShopVO;
 import com.qiaopi.vo.FunctionCardVO;
 import com.qiaopi.vo.LetterVO;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.qiaopi.utils.MessageUtils.message;
 
@@ -133,5 +136,18 @@ public class CardServiceImpl implements CardService {
         //6 更新信件状态
         letterMapper.updateById(letter);
         return BeanUtil.copyProperties(letter, LetterVO.class);
+    }
+
+    @Override
+    public List<FunctionCardShopVO> list() {
+
+        User user = userMapper.selectById(UserContext.getUserId());
+        Map<Long, Integer> userFunctionCardList = user.getFunctionCards().stream().collect(Collectors.groupingBy(FunctionCardVO::getId,Collectors.summingInt(FunctionCardVO::getNumber)));
+        List<FunctionCardShopVO> functionCardShopVOS = cardMapper.selectList(null).stream().map(functionCard -> {
+            FunctionCardShopVO functionCardShopVO = BeanUtil.copyProperties(functionCard, FunctionCardShopVO.class);
+            functionCardShopVO.setNumber(userFunctionCardList.getOrDefault(functionCard.getId(),0));
+            return functionCardShopVO;
+        }).collect(Collectors.toList());
+        return functionCardShopVOS;
     }
 }
