@@ -238,7 +238,7 @@ CREATE TABLE IF NOT EXISTS `avatar` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='头像';
 ```
 
-###10.16
+###  10.16
 
 ```
 alter table font
@@ -258,5 +258,23 @@ alter table signet
 
 alter table function_card
     add price int null comment '商品价格';
+
+-- auto-generated definition
+create table friend_request
+(
+    id           bigint auto_increment
+        primary key,
+    sender_id    bigint                                 not null,
+    receiver_id  bigint                                 not null,
+    status       int          default 0                 not null,
+    create_time  timestamp    default CURRENT_TIMESTAMP null,
+    create_user  bigint       default -1                null,
+    update_user  bigint       default -1                null,
+    update_time  timestamp    default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP,
+    remark       varchar(255) default ''                null comment '备注',
+    give_address varchar(255)                           null,
+    constraint unique_request
+        unique (sender_id, receiver_id)
+);
 ```
 
