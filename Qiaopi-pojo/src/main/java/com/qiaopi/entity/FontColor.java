@@ -21,4 +21,10 @@ public class FontColor {
 
     @Schema(description="颜色的RGB代码")
     private String rgbValue;
+
+    @Schema(description = "颜色价格")
+    private int price;
+
+    @Schema(description = "预览图片")
+    private String previewImage;
 }
