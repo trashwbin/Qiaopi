@@ -30,7 +30,7 @@ public class BeFriendDTO {
      * 好友地址
      */
     @Schema(description = "好友地址")
-    private List<Address> addresses;
+    private Address addresses;
 
 
 

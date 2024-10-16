@@ -19,7 +19,7 @@ public class FriendSendDTO {
      * 提供自己的地址
      */
     @Schema(description = "提供自己的地址")
-    private List<Address> giveAddresss;
+    private Address giveAddresss;
 
 
     /**
