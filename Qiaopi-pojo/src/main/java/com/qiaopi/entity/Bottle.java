@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.qiaopi.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -13,10 +14,11 @@ import lombok.NoArgsConstructor;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
-@TableName("bottle")
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@TableName(autoResultMap = true)
 public class Bottle extends BaseEntity {
 
     /**
@@ -53,8 +55,8 @@ public class Bottle extends BaseEntity {
      * 发送者地址
      */
     @Schema(description = "发送者地址")
-    @TableField(value = "sender_address")
-    private String senderAddress;
+    @TableField(value = "sender_address",typeHandler = JacksonTypeHandler.class)
+    private Address senderAddress;
 
 
     /**
