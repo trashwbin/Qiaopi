@@ -39,7 +39,13 @@ public class CardController {
         log.info("获取功能卡商城列表");
         return AjaxResult.success(message("card.list.success"),cardService.list());
     }
-
+    @PostMapping("/buyCard")
+    @Operation(summary = "购买功能卡")
+    public AjaxResult buyCard(@RequestParam Long cardId) {
+        log.info("购买功能卡：{}", cardId);
+        cardService.buyCard(cardId);
+        return AjaxResult.success(message("card.buyCard.success"));
+    }
 }
 
 

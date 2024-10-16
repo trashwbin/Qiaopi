@@ -191,12 +191,21 @@ public class UserServiceImpl implements UserService {
         //注册后添加默认参数
         //设置默认头像
         user.setAvatar(avatarMapper.selectById(1).getUrl());
+        //设置默认性别
+        user.setSex("男");
         //设置默认字体颜色
         user.setFontColors(Collections.singletonList(BeanUtil.copyProperties(fontColorMapper.selectById(1), FontColorVO.class)));
         //设置默认字体
         user.setFonts(Collections.singletonList(BeanUtil.copyProperties(fontMapper.selectById(1), FontVO.class)));
         //设置默认纸张
         user.setPapers(Collections.singletonList(BeanUtil.copyProperties(paperMapper.selectById(1), PaperVO.class)));
+        //设置默认功能卡
+        user.setFunctionCards(Collections.emptyList());
+        //设置默认印章
+        user.setSignets(Collections.emptyList());
+        //设置默认地址
+        user.setAddresses(Collections.emptyList());
+
         //设置默认余额
         user.setMoney(100L);
         userMapper.insert(user);
