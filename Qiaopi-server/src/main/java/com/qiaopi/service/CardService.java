@@ -10,4 +10,6 @@ public interface CardService {
     LetterVO useCard(FunctionCardUseDTO functionCardUseDTO);
 
     List<FunctionCardShopVO> list();
+
+    void buyCard(Long cardId);
 }

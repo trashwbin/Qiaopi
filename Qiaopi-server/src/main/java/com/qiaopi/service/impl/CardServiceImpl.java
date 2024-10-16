@@ -11,6 +11,7 @@ import com.qiaopi.exception.base.BaseException;
 import com.qiaopi.exception.card.CardException;
 import com.qiaopi.exception.letter.LetterException;
 import com.qiaopi.exception.user.UserException;
+import com.qiaopi.exception.user.UserNotExistsException;
 import com.qiaopi.mapper.CardMapper;
 import com.qiaopi.mapper.LetterMapper;
 import com.qiaopi.mapper.UserMapper;
@@ -149,5 +150,44 @@ public class CardServiceImpl implements CardService {
             return functionCardShopVO;
         }).collect(Collectors.toList());
         return functionCardShopVOS;
+    }
+
+    @Override
+    @Transactional
+    public void buyCard(Long cardId) {
+        FunctionCard functionCard = cardMapper.selectById(cardId);
+        if (functionCard == null) {
+            throw new CardException(message("card.not.exists"));
+        }
+        User user = userMapper.selectById(UserContext.getUserId());
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        List<FunctionCardVO> userFunctionCards = user.getFunctionCards();
+        if (userFunctionCards == null) {
+            userFunctionCards = Collections.emptyList();
+        }
+        if (user.getMoney()<functionCard.getPrice()){
+            throw new BaseException(message("user.money.not.enough"));
+        }else {
+            user.setMoney(user.getMoney()-functionCard.getPrice());
+        }
+        boolean hasCard = false;
+        for (FunctionCardVO functionCardVO : userFunctionCards) {
+            if (functionCardVO.getId().equals(cardId)) {
+                functionCardVO.setNumber(functionCardVO.getNumber() + 1);
+                hasCard = true;
+                break;
+            }
+        }
+        if (!hasCard) {
+            FunctionCardVO functionCardVO = BeanUtil.copyProperties(functionCard, FunctionCardVO.class);
+            functionCardVO.setNumber(1);
+            userFunctionCards.add(functionCardVO);
+        }else {
+            user.setFunctionCards(userFunctionCards);
+        }
+
+        userMapper.updateById(user);
     }
 }
