@@ -7,4 +7,6 @@ import java.util.List;
 public interface PaperService {
 
     List<PaperShopVO> list();
+
+    void buyPaper(Long paperId);
 }

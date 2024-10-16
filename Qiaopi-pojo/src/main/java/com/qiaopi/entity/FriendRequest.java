@@ -1,13 +1,17 @@
 package com.qiaopi.entity;
 
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.qiaopi.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "好友")
@@ -27,12 +31,9 @@ public class FriendRequest extends BaseEntity {
     @Schema(description = "请求状态")
     private int status;
 
-
-
-
-
-
-
-
+    /** 地址 */
+    @Schema(description = "地址")
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Address giveAddress;
 
 }

@@ -1,9 +1,12 @@
 package com.qiaopi.dto;
 
+import com.qiaopi.entity.Address;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -22,5 +25,13 @@ public class BeFriendDTO {
      */
     @Schema(description = "是否同意，1为同意，2为拒绝")
     private Long isAccepted;
+
+    /**
+     * 好友地址
+     */
+    @Schema(description = "好友地址")
+    private Address addresses;
+
+
 
 }

@@ -3,18 +3,16 @@ package com.qiaopi.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.BottleGenDTO;
-import com.qiaopi.dto.BottlePaperDTO;
+import com.qiaopi.dto.FriendSendDTO;
 import com.qiaopi.dto.LetterGenDTO;
-import com.qiaopi.entity.Bottle;
-import com.qiaopi.entity.Letter;
-import com.qiaopi.entity.User;
+import com.qiaopi.entity.*;
 import com.qiaopi.exception.bottle.BottleException;
+import com.qiaopi.exception.friend.FriendException;
 import com.qiaopi.exception.user.UserException;
-import com.qiaopi.mapper.BottleMapper;
-import com.qiaopi.mapper.FontMapper;
-import com.qiaopi.mapper.UserMapper;
+import com.qiaopi.mapper.*;
 import com.qiaopi.service.BottleService;
 import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.vo.BottleVo;
@@ -30,6 +28,7 @@ import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.Font;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -51,6 +50,12 @@ public class BottleServiceImpl implements BottleService {
     //private Set<Integer> usedIds = new HashSet<>();// 用来存储已经使用过的ID
     private Random random = new Random();
 
+    @Autowired
+    private FriendRequestMapper friendRequestMapper;
+
+
+
+
 
 
     /**
@@ -69,8 +74,7 @@ public class BottleServiceImpl implements BottleService {
             userId = UserContext.getUserId();
             bottle.setUserId(userId);
         } catch (Exception e) {
-            //throw new UserException("获取不到线程id");
-            throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));//TODO
+            throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));
         }
         String url = null;
 
@@ -94,7 +98,7 @@ public class BottleServiceImpl implements BottleService {
             bottleMapper.insert(bottle);
         } catch (Exception e) {
             log.error(e.getMessage());
-            throw new BottleException(MessageUtils.message("bottle.creation.failed"));//TODO
+            throw new BottleException(MessageUtils.message("bottle.creation.failed"));
         }
 
         //返回
@@ -317,7 +321,7 @@ public class BottleServiceImpl implements BottleService {
             //获取到当前请求的用户id
             userId = UserContext.getUserId();
         } catch (Exception e) {
-            throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));//TODO
+            throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));
         }
 
         //获取到非空的id记录的bottle集合
@@ -340,6 +344,7 @@ public class BottleServiceImpl implements BottleService {
                     //设置更新时间和更新人
                     bottle.setUpdateTime(LocalDateTime.now());
                     bottle.setUpdateUser(userId);
+                    bottle.setIsPicked(0);
                     int result = bottleMapper.updateById(bottle);
 
                     //获取照片地址
@@ -374,32 +379,55 @@ public class BottleServiceImpl implements BottleService {
      * @return
      */
     @Override
-    public BottleVo getBottle() {
-        Long userId = null;
+    public void getBottle(FriendSendDTO friendSendDTO) {
+
+
+        //List<Address> giveAddresss, String context
+        Long currentUserId = null;
         try {
             //获取到当前请求的用户id
-            userId = UserContext.getUserId();
+            currentUserId = UserContext.getUserId();
         } catch (Exception e) {
             throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));
         }
 
-
         // 获取距离当前时间最近的漂流瓶
-        Bottle bottle = getMostRecentBottleByUserId(userId);
+        Bottle bottle = getMostRecentBottleByUserId(currentUserId);
 
         if (bottle == null) {
             // 没有找到符合条件的漂流瓶
             throw new BottleException(MessageUtils.message("bottle.not.accord.condition"));
         }
+
+        /*
         // 将 Bottle 转换为 BottleVo 进行返回
-        BottleVo bottleVo = convertToBottleVo(bottle);
+        BottleVo bottleVo = convertToBottleVo(bottle);*/
 
-        bottle.setIsPicked(0);//表示以捡走
-        bottleMapper.updateById(bottle);
+        try {
+            // 从最新的 Bottle 对象中获取 userId，并发送好友请求
+            Long targetUserId = bottle.getUserId();
 
+            // 插入好友申请
+            FriendRequest friendRequest = new FriendRequest();
+            friendRequest.setSenderId(currentUserId);
+            friendRequest.setReceiverId(targetUserId);
+            friendRequest.setStatus(0); // 0表示待处理
+            friendRequest.setGiveAddress(friendSendDTO.getGiveAddresss());
+            friendRequestMapper.insert(friendRequest);
+        } catch (Exception e) {
+            throw new FriendException(MessageUtils.message("friend.create.Request.failed"));
+        }
+        //String replySuccess = "好友申请已发送";
+        //String replySuccess = MessageUtils.message("friend.request.sended.success");
+
+
+
+      /*
         bottleVo.setId(bottle.getId());
-        return bottleVo;
+        return bottleVo;*/
+
     }
+
 
     /**
      * 将 Bottle 对象转换为 BottleVo 对象
@@ -427,7 +455,7 @@ public class BottleServiceImpl implements BottleService {
         // 构建查询条件
         QueryWrapper<Bottle> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("update_user", userId)
-                .notIn("update_user",UserContext.getUserId())             // 查询条件：update_user 等于传入的 userId
+                //.notIn("update_user",userId)             // 查询条件：update_user 等于传入的 userId
                 .orderByDesc("create_time")           // 按 created_time 降序排序
                 .last("LIMIT 1");                      // 只取最近的一条记录
 
@@ -453,6 +481,35 @@ public class BottleServiceImpl implements BottleService {
     }
 
 
+
+
+
+    @Override
+    public void ThrowBack() {
+        Long currentUserId = null;
+        try {
+            //获取到当前请求的用户id
+            currentUserId = UserContext.getUserId();
+        } catch (Exception e) {
+            throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));
+        }
+
+        try {
+            // 获取距离当前时间最近的漂流瓶
+            Bottle bottle = getMostRecentBottleByUserId(currentUserId);
+            // 构建更新条件
+            UpdateWrapper<Bottle> updateWrapper1 = new UpdateWrapper<>();
+            updateWrapper1.eq("id", bottle.getId())            // 根据 id 匹配记录
+                    .set("is_picked", 1);                // 设置 is_picked 字段为 1
+
+            // 执行更新
+            bottleMapper.update(null, updateWrapper1);
+        } catch (Exception e) {
+            throw new BottleException(MessageUtils.message("bottle.throw.back.failed"));
+        }
+
+
+    }
 
 
 

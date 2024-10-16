@@ -34,6 +34,20 @@ public class FontController {
         return AjaxResult.success(message("font.color.list.success"),fontService.listColor());
     }
 
+    @PostMapping("/buyFont")
+    @Operation(summary = "购买字体")
+    public AjaxResult buyFont(@RequestParam Long fontId) {
+        log.info("购买字体：{}", fontId);
+        fontService.buyFont(fontId);
+        return AjaxResult.success(message("font.buyFont.success"));
+    }
+    @PostMapping("/buyFontColor")
+    @Operation(summary = "购买字体颜色")
+    public AjaxResult buyFontColor(@RequestParam Long fontColorId) {
+        log.info("购买字体颜色：{}", fontColorId);
+        fontService.buyFontColor(fontColorId);
+        return AjaxResult.success(message("font.color.buyFontColor.success"));
+    }
 }
 
 
