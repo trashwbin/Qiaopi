@@ -63,7 +63,7 @@ public class BottleController {
 
     @GetMapping("/sendFriendRequest")
     @Operation(summary = "请求成为好友")
-    public AjaxResult sendFriendRequest(@RequestBody Long id) {
+    public AjaxResult sendFriendRequest(@RequestParam("bottleId") Long id) {
         log.info("请求成为好友");
         String reply = friendService.sendFriendRequest(id);
         return AjaxResult.success(MessageUtils.message("Friend.application.sent.success"),reply);

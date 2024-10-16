@@ -92,6 +92,7 @@ public class BottleServiceImpl implements BottleService {
             //存bottle里面的数据
             bottleMapper.insert(bottle);
         } catch (Exception e) {
+            log.error(e.getMessage());
             throw new BottleException(MessageUtils.message("bottle.creation.failed"));//TODO
         }
 
