@@ -22,4 +22,9 @@ public class Font {
 
     @Schema(description = "文件路径")
     private String FilePath;
+
+    @Schema(description = "字体价格")
+    private int price;
+
+
 }

@@ -891,6 +891,8 @@ public class LetterServiceImpl implements LetterService {
 
         Letter letter = BeanUtil.copyProperties(letterSendDTO, Letter.class);
         letter.setSenderUserId(UserContext.getUserId());
+        //将收件人邮箱转换为小写，保证数据库都是小写
+        letter.setRecipientEmail(letterSendDTO.getRecipientEmail().toLowerCase());
         //或许保留原格式也是一种选择
         //letter.setLetterContent(letterSendDTO.getLetterContent().trim());
         String coverLink = coverGenerieren(letterSendDTO);
@@ -920,7 +922,7 @@ public class LetterServiceImpl implements LetterService {
     }
     @Override
     public List<LetterVO> getMySendLetter() {
-        List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getSenderUserId, UserContext.getUserId()));
+        List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getSenderUserId, UserContext.getUserId()).orderByDesc(Letter::getCreateTime));
         //每次要查的时候再更新这个数据，减少更新次数
         letters.forEach(letter -> {
             long progress = getProgress(letter.getCreateTime(), letter.getExpectedDeliveryTime());
@@ -928,13 +930,14 @@ public class LetterServiceImpl implements LetterService {
         });
         //更新进度
         letterMapper.updateById(letters);
+
         return BeanUtil.copyToList(letters, LetterVO.class);
     }
     @Override
     public List<LetterVO> getMyReceiveLetter() {
         User user = userMapper.selectById(UserContext.getUserId());
         //查询收信人为当前用户的信件
-        List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getRecipientEmail, user.getEmail()).eq(Letter::getStatus, LetterStatus.DELIVERED));
+        List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getRecipientEmail, user.getEmail()).eq(Letter::getStatus, LetterStatus.DELIVERED).orderByDesc(Letter::getExpectedDeliveryTime));
         letters.forEach(letter -> {
             letter.setRecipientUserId(UserContext.getUserId());
         });

@@ -21,12 +21,12 @@ import com.qiaopi.exception.base.BaseException;
 import com.qiaopi.exception.code.CodeErrorException;
 import com.qiaopi.exception.code.CodeTimeoutException;
 import com.qiaopi.exception.user.*;
-import com.qiaopi.mapper.FriendMapper;
-import com.qiaopi.mapper.UserMapper;
+import com.qiaopi.mapper.*;
 import com.qiaopi.properties.JwtProperties;
 import com.qiaopi.service.UserService;
 import com.qiaopi.utils.AccountValidator;
 import com.qiaopi.utils.JwtUtil;
+import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.utils.StringUtils;
 import com.qiaopi.utils.ip.IpUtils;
 import com.qiaopi.vo.*;
@@ -61,6 +61,10 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final FriendMapper friendMapper;
+    private final AvatarMapper avatarMapper;
+    private final FontColorMapper fontColorMapper;
+    private final FontMapper fontMapper;
+    private final PaperMapper paperMapper;
     private final JwtProperties jwtProperties;
     private final RedisTemplate redisTemplate;
 
@@ -183,6 +187,18 @@ public class UserServiceImpl implements UserService {
         user.setUsername(message("user.username.prefix") + System.currentTimeMillis() + getStringRandom(3));
         //设置密码
         user.setPassword(DigestUtils.md5DigestAsHex(password.getBytes()));
+
+        //注册后添加默认参数
+        //设置默认头像
+        user.setAvatar(avatarMapper.selectById(1).getUrl());
+        //设置默认字体颜色
+        user.setFontColors(Collections.singletonList(BeanUtil.copyProperties(fontColorMapper.selectById(1), FontColorVO.class)));
+        //设置默认字体
+        user.setFonts(Collections.singletonList(BeanUtil.copyProperties(fontMapper.selectById(1), FontVO.class)));
+        //设置默认纸张
+        user.setPapers(Collections.singletonList(BeanUtil.copyProperties(paperMapper.selectById(1), PaperVO.class)));
+        //设置默认余额
+        user.setMoney(100L);
         userMapper.insert(user);
         msg = message("user.register.success");
 
@@ -200,7 +216,7 @@ public class UserServiceImpl implements UserService {
         }
         if (userResetPasswordDTO.getPassword().length() < UserConstants.PASSWORD_MIN_LENGTH
                 || userResetPasswordDTO.getPassword().length() > UserConstants.PASSWORD_MAX_LENGTH) {
-            throw new UserException("user.password.length", null);
+            throw new UserException(message("user.password.length"));
         } else if (!userResetPasswordDTO.getPassword().equals(userResetPasswordDTO.getConfirmPassword())) {
             throw new UserConfirmPasswordNotEqualsException();
         }
@@ -266,13 +282,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updateUsername(UserUpdateDTO userUpdateDTO) {
+        //管理员用户名禁止更改
+        if (UserContext.getUserId()==1L){
+            throw new UserException(MessageUtils.message("user.admin.error"));
+        }
         //检验用户名是否合法
         if (StringUtils.isEmpty(userUpdateDTO.getUsername()) || !AccountValidator.isValidUsername(userUpdateDTO.getUsername())) {
-            throw new UserException("user.username.length", null);
+            throw new UserException(message("user.username.length"));
         }
         //检验用户名是否存在
         if (userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, userUpdateDTO.getUsername())) != null) {
-            throw new UserException("user.username.exists", null);
+            throw new UserException(message("user.username.exists"));
         }
         User user = userMapper.selectById(UserContext.getUserId());
         if (user == null) {
@@ -318,8 +338,9 @@ public class UserServiceImpl implements UserService {
         if (StringUtils.isNotEmpty(userUpdateDTO.getNickname())) {
             user.setNickname(userUpdateDTO.getNickname());
         }
-        if (StringUtils.isNotEmpty(userUpdateDTO.getAvatar())) {
-            user.setAvatar(userUpdateDTO.getAvatar());
+        if (userUpdateDTO.getAvatarId()!=null) {
+            Avatar avatar = avatarMapper.selectById(userUpdateDTO.getAvatarId());
+            user.setAvatar(avatar.getUrl());
         }
         if (StringUtils.isNotEmpty(userUpdateDTO.getSex())) {
             user.setSex(userUpdateDTO.getSex());
@@ -378,18 +399,18 @@ public class UserServiceImpl implements UserService {
 
         //判断邮箱是否合法
         if (!AccountValidator.isValidEmail(email)) {
-            throw new BaseException("email.format.error");
+            throw new BaseException(message("email.format.error"));
         }
         String verify = message("user.reset.password.prefix") + email;
         //判断5分钟内是否发送过验证码
         if (redisTemplate.hasKey(verify)) {
-            throw new UserException("user.get.code.limit");
+            throw new UserException(message("user.get.code.limit"));
         }
 
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email));
         // 验证邮箱是否未注册
         if (user == null) {
-            throw new BaseException("email.not.exists");
+            throw new BaseException(message("email.not.exists"));
         }
 
         // 创建一个邮件
@@ -433,9 +454,9 @@ public class UserServiceImpl implements UserService {
             // 发送邮件
             javaMailSender.send(message);
         } catch (MessagingException e) {
-            throw new UserException("user.sent.code.failed");
+            throw new UserException(message("user.sent.code.failed"));
         } catch (MailException e) {
-            throw new UserException("user.sent.code.failed.by.email");
+            throw new UserException(message("user.sent.code.failed.by.email"));
         }
     }
 
@@ -521,9 +542,9 @@ public class UserServiceImpl implements UserService {
             // 发送邮件
             javaMailSender.send(message);
         } catch (MessagingException e) {
-            throw new UserException("user.sent.code.failed");
+            throw new UserException(message("user.sent.code.failed"));
         } catch (MailException e) {
-            throw new UserException("user.sent.code.failed.by.email");
+            throw new UserException(message("user.sent.code.failed.by.email"));
         }
 
     }
@@ -535,6 +556,11 @@ public class UserServiceImpl implements UserService {
             throw new UserNotExistsException();
         }
         return user.getFunctionCards();
+    }
+
+    @Override
+    public List<Avatar> getAvatarList() {
+        return avatarMapper.selectList(null);
     }
 
     //生成随机用户名，数字和字母组成,

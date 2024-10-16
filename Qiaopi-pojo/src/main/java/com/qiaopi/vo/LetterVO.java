@@ -14,6 +14,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class LetterVO {
     /**
+     * 信件id
+     */
+    private Long id;
+
+    /**
      * 寄件人的姓名
      */
     private String senderName;
@@ -69,4 +74,8 @@ public class LetterVO {
      * 阅读状态(0:未读,1:已读)
      */
     private int readStatus;
+    /**
+     * 创建时间
+     */
+    private LocalDateTime createTime;
 }
