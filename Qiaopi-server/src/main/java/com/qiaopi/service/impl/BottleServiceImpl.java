@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.BottleGenDTO;
-import com.qiaopi.dto.BottlePaperDTO;
 import com.qiaopi.dto.FriendSendDTO;
 import com.qiaopi.dto.LetterGenDTO;
 import com.qiaopi.entity.*;

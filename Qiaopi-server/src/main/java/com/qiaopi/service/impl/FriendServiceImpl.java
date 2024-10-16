@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -119,7 +120,7 @@ public class FriendServiceImpl implements FriendService {
     public String becomeFriend( BeFriendDTO beFriendDTO) {
         Long requestId = beFriendDTO.getRequestId();
         Long longIsAccepted = beFriendDTO.getIsAccepted();
-        Boolean isAccepted;
+        boolean isAccepted;
 
 
         if (longIsAccepted == 1) {
@@ -164,8 +165,8 @@ public class FriendServiceImpl implements FriendService {
 
             try {
                 // 添加双方的好友关系
-                List<Address> mineToFriendAddresses = beFriendDTO.getAddresses();//请求人的地址
-                List<Address> friendToMeAddress = friendRequest.getGiveAddress();
+                Address mineToFriendAddresses = beFriendDTO.getAddresses();//请求人的地址
+                Address friendToMeAddress = friendRequest.getGiveAddress();
 
                 addFriend(friendRequest.getReceiverId(), friendRequest.getSenderId(), mineToFriendAddresses,friendToMeAddress);
             } catch (Exception e) {
@@ -188,7 +189,7 @@ public class FriendServiceImpl implements FriendService {
     }
 
     // 添加好友关系
-    private void addFriend(Long userId, Long friendId, List<Address> mineToFriendAddresses, List<Address> friendToMeAddress) {
+    private void addFriend(Long userId, Long friendId, Address mineToFriendAddresses, Address friendToMeAddress) {
         //先设置用户的好友信息
         Friend myNewFriend = new Friend();
 
@@ -201,7 +202,7 @@ public class FriendServiceImpl implements FriendService {
         myNewFriend.setName(friend.getNickname());
         myNewFriend.setSex(friend.getSex());
         myNewFriend.setEmail(friend.getEmail());
-        myNewFriend.setAddresses(friendToMeAddress);
+        myNewFriend.setAddresses(Collections.singletonList(friendToMeAddress));
         myNewFriend.setOwningId(userId);
         friendMapper.insert(myNewFriend);
 
@@ -219,7 +220,7 @@ public class FriendServiceImpl implements FriendService {
         BecomeFriendOfTheOtherParty.setName(myInfoOfUser.getNickname());
         BecomeFriendOfTheOtherParty.setSex(myInfoOfUser.getSex());
         BecomeFriendOfTheOtherParty.setEmail(myInfoOfUser.getEmail());
-        BecomeFriendOfTheOtherParty.setAddresses(mineToFriendAddresses);
+        BecomeFriendOfTheOtherParty.setAddresses(Collections.singletonList(mineToFriendAddresses));
         BecomeFriendOfTheOtherParty.setOwningId(friendId);
 
         friendMapper.insert(BecomeFriendOfTheOtherParty);
