@@ -34,8 +34,12 @@ public class PaperServiceImpl implements PaperService {
     @Override
     public List<PaperShopVO> list() {
         User user = userMapper.selectById(UserContext.getUserId());
-        Map<Long, Long> map = user.getPapers().stream().collect(Collectors.groupingBy(PaperVO::getId, Collectors.counting()));
 
+        if (user == null) {
+            return paperMapper.selectList(null).stream().map(paper -> BeanUtil.copyProperties(paper, PaperShopVO.class)).toList();
+        }
+
+        Map<Long, Long> map = user.getPapers().stream().collect(Collectors.groupingBy(PaperVO::getId, Collectors.counting()));
         List<PaperShopVO> paperShopVOS = paperMapper.selectList(null).stream().map(paper -> {
             PaperShopVO paperShopVO = BeanUtil.copyProperties(paper, PaperShopVO.class);
             paperShopVO.setOwn(map.getOrDefault(paper.getId(), 0L) > 0L);
