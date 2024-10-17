@@ -31,7 +31,15 @@ public class FriendRequest extends BaseEntity {
     @Schema(description = "请求状态")
     private int status;
 
-    /** 地址 */
+
+    @Schema(description = "请求文本")
+    @TableField(value = "content")
+    private String content;
+
+
+    /**
+     * 地址
+     */
     @Schema(description = "地址")
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Address giveAddress;

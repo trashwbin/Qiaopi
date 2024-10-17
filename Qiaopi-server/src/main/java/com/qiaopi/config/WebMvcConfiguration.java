@@ -62,6 +62,7 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
                 .addPathPatterns("/card/**")
                 .addPathPatterns("/font/**")
                 .addPathPatterns("/paper/**")
+                .addPathPatterns("/question/**")
 //                .excludePathPatterns("/font/list")
                 .excludePathPatterns("/user/login")
                 .excludePathPatterns("/user/getCode")
