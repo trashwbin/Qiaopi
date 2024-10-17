@@ -93,6 +93,12 @@ public class LetterController {
         return AjaxResult.success(message("letter.get.my.receive.not.read.success"),letterService.getMyNotReadLetter());
     }
 
+    @PutMapping("/readLetter/{letterId}")
+    @Operation(summary = "标记为已读")
+    public AjaxResult readLetter(@PathVariable Long letterId) {
+        letterService.readLetter(letterId);
+        return AjaxResult.success(message("letter.read.success"));
+    }
 
 
 }

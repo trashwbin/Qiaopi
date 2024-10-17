@@ -13,6 +13,8 @@ import com.qiaopi.entity.FontColor;
 import com.qiaopi.entity.Letter;
 import com.qiaopi.entity.Paper;
 import com.qiaopi.entity.User;
+import com.qiaopi.exception.letter.LetterException;
+import com.qiaopi.exception.user.UserNotExistsException;
 import com.qiaopi.mapper.*;
 import com.qiaopi.service.LetterService;
 import com.qiaopi.utils.PositionUtil;
@@ -888,7 +890,10 @@ public class LetterServiceImpl implements LetterService {
     }
     @Override
     public LetterVO sendLetterPre(LetterSendDTO letterSendDTO){
-
+        User user = userMapper.selectById(UserContext.getUserId());
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
         Letter letter = BeanUtil.copyProperties(letterSendDTO, Letter.class);
         letter.setSenderUserId(UserContext.getUserId());
         //将收件人邮箱转换为小写，保证数据库都是小写
@@ -915,7 +920,7 @@ public class LetterServiceImpl implements LetterService {
         letter.setStatus(LetterStatus.TRANSIT);
         letter.setReadStatus(LetterStatus.NOT_READ);
         letter.setDeliveryProgress(0L);
-
+        letter.setSenderEmail(user.getEmail());
         letterMapper.insert(letter);
 
         return BeanUtil.copyProperties(letter, LetterVO.class);
@@ -947,16 +952,36 @@ public class LetterServiceImpl implements LetterService {
     }
 
     @Override
-    public List<LetterVO> getMyNotReadLetter() {
+    public LetterVO getMyNotReadLetter() {
         //获取这人的全部收到的信
         List<LetterVO> myReceiveLetter = getMyReceiveLetter();
         if (myReceiveLetter.isEmpty()) {
-            return Collections.emptyList();
+            return null;
+        }
+        //返回第一封信,如果已读,后面的也不弹窗
+        LetterVO letterVO = myReceiveLetter.get(0);
+        if (letterVO.getReadStatus()==LetterStatus.READ) {
+            return null;
         }
         //筛选未读的信
-        return myReceiveLetter.stream()
-            .filter(letter -> letter.getReadStatus() == LetterStatus.NOT_READ)
-            .collect(Collectors.toList());
+        return letterVO;
+    }
+
+    @Override
+    public void readLetter(Long letterId) {
+        Letter letter = letterMapper.selectById(letterId);
+        if (letter == null) {
+            throw new LetterException(message("letter.not.exists"));
+        }
+        if (letter.getReadStatus()==LetterStatus.READ) {
+//            throw new LetterException(message("letter.already.read"));
+            return;
+        }
+        if (!UserContext.getUserId().equals(letter.getRecipientUserId())) {
+            throw new LetterException(message("letter.not.yours"));
+        }
+        letter.setReadStatus(LetterStatus.READ);
+        letterMapper.updateById(letter);
     }
 
     //通过开始时间和结束时间计算进度
