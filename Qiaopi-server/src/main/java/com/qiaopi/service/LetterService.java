@@ -190,7 +190,9 @@ public interface LetterService {
 
     List<LetterVO> getMyReceiveLetter();
 
-    List<LetterVO> getMyNotReadLetter();
+    LetterVO getMyNotReadLetter();
+
+    void readLetter(Long letterId);
 }
 
 

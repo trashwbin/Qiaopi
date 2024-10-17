@@ -1,5 +1,6 @@
 package com.qiaopi.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.BeFriendDTO;
@@ -13,7 +14,7 @@ import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.service.BottleService;
 import com.qiaopi.service.FriendService;
 import com.qiaopi.utils.MessageUtils;
-import com.qiaopi.vo.BottleVo;
+import com.qiaopi.vo.FriendRequestVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +22,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -101,7 +102,7 @@ public class FriendServiceImpl implements FriendService {
 
 
     @Override
-    public List<FriendRequest> ProcessingFriendRequests() {
+    public List<FriendRequestVO> ProcessingFriendRequests() {
         Long receiverId = null;
         try {
             //获取当前线程的用户id 此当前用户的id也为被请求人id
@@ -113,7 +114,18 @@ public class FriendServiceImpl implements FriendService {
         QueryWrapper<FriendRequest> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("receiver_id", receiverId).eq("status", 0); // 查询待处理的请求
 
-        return friendRequestMapper.selectList(queryWrapper);
+        List<FriendRequestVO> friendRequestVOS = BeanUtil.copyToList(friendRequestMapper.selectList(queryWrapper), FriendRequestVO.class);
+        friendRequestVOS.stream().collect(Collectors.groupingBy(FriendRequestVO::getSenderId));
+        userMapper.selectBatchIds(friendRequestVOS.stream().map(FriendRequestVO::getSenderId).collect(Collectors.toList()))
+                .forEach(user -> {
+                    friendRequestVOS.stream().filter(friendRequestVO -> friendRequestVO.getSenderId().equals(user.getId()))
+                            .forEach(friendRequestVO -> {
+                                friendRequestVO.setSenderName(user.getNickname());
+                                friendRequestVO.setSenderAvatar(user.getAvatar());
+                            });
+                });
+
+        return friendRequestVOS;
     }
 
     @Override
@@ -142,7 +154,7 @@ public class FriendServiceImpl implements FriendService {
             //根据用户id找到对应的请求
             friendRequest = friendRequestMapper.selectById(requestId);
         } catch (Exception e) {
-            throw new FriendException(MessageUtils.message("friedn.friendRequestFinded.failed"));
+            throw new FriendException(MessageUtils.message("friend.friendRequestFind.failed"));
         }
 
 
@@ -156,8 +168,10 @@ public class FriendServiceImpl implements FriendService {
             //您没有权限处理此好友申请
             throw new FriendException(MessageUtils.message("friend.friendRequest.no.permission"));
         }
-
-
+        Bottle bottle = bottleMapper.selectById(friendRequest.getBottleId());
+        if (bottle == null) {
+            throw new FriendException(MessageUtils.message("friend.bottle.not.exists"));
+        }
         if (isAccepted) {
             // 更新好友申请状态为已接受
             friendRequest.setStatus(1); // 1表示已接受
@@ -165,7 +179,7 @@ public class FriendServiceImpl implements FriendService {
 
             try {
                 // 添加双方的好友关系
-                Address mineToFriendAddresses = beFriendDTO.getAddresses();//请求人的地址
+                Address mineToFriendAddresses = bottle.getSenderAddress();//请求人的地址
                 Address friendToMeAddress = friendRequest.getGiveAddress();
 
                 addFriend(friendRequest.getReceiverId(), friendRequest.getSenderId(), mineToFriendAddresses,friendToMeAddress);
@@ -175,15 +189,13 @@ public class FriendServiceImpl implements FriendService {
 
             friendRequestMapper.updateById(friendRequest);
 
-            String replyAccept = MessageUtils.message("friend.application.accepted");
-            return replyAccept;
+            return MessageUtils.message("friend.application.accepted");
         } else {
             // 更新好友申请状态为已拒绝
             friendRequest.setStatus(2); // 2表示已拒绝
             friendRequest.setUpdateTime(LocalDateTime.now());
             friendRequestMapper.updateById(friendRequest);
-            String replyRefuse = MessageUtils.message("friend.application.refused");
-            return replyRefuse;
+            return MessageUtils.message("friend.application.refused");
         }
 
     }

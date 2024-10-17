@@ -413,6 +413,8 @@ public class BottleServiceImpl implements BottleService {
             friendRequest.setReceiverId(targetUserId);
             friendRequest.setStatus(0); // 0表示待处理
             friendRequest.setGiveAddress(friendSendDTO.getGiveAddresss());
+            friendRequest.setContent(friendSendDTO.getContext());
+            friendRequest.setBottleId(bottle.getId());
             friendRequestMapper.insert(friendRequest);
         } catch (Exception e) {
             throw new FriendException(MessageUtils.message("friend.create.Request.failed"));

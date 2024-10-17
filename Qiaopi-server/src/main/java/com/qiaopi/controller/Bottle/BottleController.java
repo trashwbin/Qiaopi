@@ -12,6 +12,7 @@ import com.qiaopi.service.BottleService;
 import com.qiaopi.service.FriendService;
 import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.vo.BottleVo;
+import com.qiaopi.vo.FriendRequestVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -66,7 +67,7 @@ public class BottleController {
     @Operation(summary = "获取好友申请列表")
     public AjaxResult ProcessingFriendRequests() {
         log.info("处理好友申请");
-        List<FriendRequest> friendRequests = friendService.ProcessingFriendRequests();
+        List<FriendRequestVO> friendRequests = friendService.ProcessingFriendRequests();
         if (friendRequests.isEmpty()) {
             return AjaxResult.success(MessageUtils.message("friend.friendRequest.empty"));
         } else {

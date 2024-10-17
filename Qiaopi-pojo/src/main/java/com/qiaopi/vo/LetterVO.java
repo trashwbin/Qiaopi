@@ -34,6 +34,11 @@ public class LetterVO {
     private String recipientName;
 
     /**
+     * 寄信人的邮箱
+     */
+    private String senderEmail;
+
+    /**
      * 信的链接
      */
     private String letterLink;
