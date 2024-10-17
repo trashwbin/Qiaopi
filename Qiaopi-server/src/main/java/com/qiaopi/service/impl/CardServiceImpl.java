@@ -143,6 +143,13 @@ public class CardServiceImpl implements CardService {
     public List<FunctionCardShopVO> list() {
 
         User user = userMapper.selectById(UserContext.getUserId());
+        if (user == null) {
+            return cardMapper.selectList(null).stream().map(functionCard -> {
+                FunctionCardShopVO functionCardShopVO = BeanUtil.copyProperties(functionCard, FunctionCardShopVO.class);
+                functionCardShopVO.setNumber(0);
+                return functionCardShopVO;
+            }).collect(Collectors.toList());
+        }
         Map<Long, Integer> userFunctionCardList = user.getFunctionCards().stream().collect(Collectors.groupingBy(FunctionCardVO::getId,Collectors.summingInt(FunctionCardVO::getNumber)));
         List<FunctionCardShopVO> functionCardShopVOS = cardMapper.selectList(null).stream().map(functionCard -> {
             FunctionCardShopVO functionCardShopVO = BeanUtil.copyProperties(functionCard, FunctionCardShopVO.class);
