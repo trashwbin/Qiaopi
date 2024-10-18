@@ -204,7 +204,7 @@ public class UserServiceImpl implements UserService {
         //设置默认纸张
         user.setPapers(Collections.singletonList(BeanUtil.copyProperties(paperMapper.selectById(1), PaperVO.class)));
         //设置默认功能卡
-        FunctionCard functionCard = cardMapper.selectById(1L);
+        FunctionCard functionCard = cardMapper.selectById(0L);
         FunctionCardVO functionCardVO = copyProperties(functionCard, FunctionCardVO.class);
         functionCardVO.setNumber(1);
         user.setFunctionCards(Collections.singletonList(functionCardVO));
@@ -213,7 +213,7 @@ public class UserServiceImpl implements UserService {
         //设置默认地址
         user.setAddresses(Collections.emptyList());
         //发送邮件
-        Letter letter = letterMapper.selectById(0);
+        Letter letter = letterMapper.selectById(1);
         letter.setRecipientEmail(email);
         letterService.sendLetterToEmail(Collections.singletonList(letter));
         //设置默认余额
