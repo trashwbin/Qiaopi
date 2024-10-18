@@ -116,6 +116,9 @@ public class FriendServiceImpl implements FriendService {
 
         List<FriendRequestVO> friendRequestVOS = BeanUtil.copyToList(friendRequestMapper.selectList(queryWrapper), FriendRequestVO.class);
         friendRequestVOS.stream().collect(Collectors.groupingBy(FriendRequestVO::getSenderId));
+        if (friendRequestVOS.isEmpty()) {
+            return Collections.emptyList();
+        }
         userMapper.selectBatchIds(friendRequestVOS.stream().map(FriendRequestVO::getSenderId).collect(Collectors.toList()))
                 .forEach(user -> {
                     friendRequestVOS.stream().filter(friendRequestVO -> friendRequestVO.getSenderId().equals(user.getId()))
