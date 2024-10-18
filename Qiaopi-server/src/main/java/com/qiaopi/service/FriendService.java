@@ -1,8 +1,7 @@
 package com.qiaopi.service;
 
 import com.qiaopi.dto.BeFriendDTO;
-import com.qiaopi.entity.FriendRequest;
-import com.qiaopi.vo.BottleVo;
+import com.qiaopi.vo.FriendRequestVO;
 
 import java.util.List;
 
@@ -17,9 +16,10 @@ public interface FriendService {
 */
     /**
      * 处理好友申请
+     *
      * @return
      */
-    List<FriendRequest> ProcessingFriendRequests();
+    List<FriendRequestVO> ProcessingFriendRequests();
 
 
     /**
