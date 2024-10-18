@@ -802,6 +802,7 @@ public class LetterServiceImpl implements LetterService {
     @Override
     public List<LetterVO> getMyReceiveLetter() {
         User user = userMapper.selectById(UserContext.getUserId());
+        Letter hello = letterMapper.selectById(1);
         //查询收信人为当前用户的信件
         List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getRecipientEmail, user.getEmail()).eq(Letter::getStatus, LetterStatus.DELIVERED).orderByDesc(Letter::getExpectedDeliveryTime));
         letters.forEach(letter -> {
@@ -809,6 +810,7 @@ public class LetterServiceImpl implements LetterService {
         });
         //更新letter的收信人id
         letterMapper.updateById(letters);
+        letters.add(hello);
         return BeanUtil.copyToList(letters, LetterVO.class);
     }
 
