@@ -31,12 +31,6 @@ public class FriendRequest extends BaseEntity {
     @Schema(description = "请求状态")
     private int status;
 
-
-    @Schema(description = "请求文本")
-    @TableField(value = "content")
-    private String content;
-
-
     /**
      * 地址
      */

@@ -23,6 +23,7 @@ import com.qiaopi.exception.code.CodeTimeoutException;
 import com.qiaopi.exception.user.*;
 import com.qiaopi.mapper.*;
 import com.qiaopi.properties.JwtProperties;
+import com.qiaopi.service.LetterService;
 import com.qiaopi.service.UserService;
 import com.qiaopi.utils.AccountValidator;
 import com.qiaopi.utils.JwtUtil;
@@ -65,8 +66,11 @@ public class UserServiceImpl implements UserService {
     private final FontColorMapper fontColorMapper;
     private final FontMapper fontMapper;
     private final PaperMapper paperMapper;
+    private final CardMapper cardMapper;
     private final JwtProperties jwtProperties;
     private final RedisTemplate redisTemplate;
+    private final LetterMapper letterMapper;
+    private final LetterService letterService;
 
     @Override
     public UserLoginVO login(UserLoginDTO userLoginDTO) {
@@ -200,12 +204,18 @@ public class UserServiceImpl implements UserService {
         //设置默认纸张
         user.setPapers(Collections.singletonList(BeanUtil.copyProperties(paperMapper.selectById(1), PaperVO.class)));
         //设置默认功能卡
-        user.setFunctionCards(Collections.emptyList());
+        FunctionCard functionCard = cardMapper.selectById(1L);
+        FunctionCardVO functionCardVO = copyProperties(functionCard, FunctionCardVO.class);
+        functionCardVO.setNumber(1);
+        user.setFunctionCards(Collections.singletonList(functionCardVO));
         //设置默认印章
         user.setSignets(Collections.emptyList());
         //设置默认地址
         user.setAddresses(Collections.emptyList());
-
+        //发送邮件
+        Letter letter = letterMapper.selectById(1);
+        letter.setRecipientEmail(email);
+        letterService.sendLetterToEmail(Collections.singletonList(letter));
         //设置默认余额
         user.setMoney(100L);
         userMapper.insert(user);
