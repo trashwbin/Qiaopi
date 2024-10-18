@@ -213,7 +213,7 @@ public class UserServiceImpl implements UserService {
         //设置默认地址
         user.setAddresses(Collections.emptyList());
         //发送邮件
-        Letter letter = letterMapper.selectById(1);
+        Letter letter = letterMapper.selectById(0);
         letter.setRecipientEmail(email);
         letterService.sendLetterToEmail(Collections.singletonList(letter));
         //设置默认余额
