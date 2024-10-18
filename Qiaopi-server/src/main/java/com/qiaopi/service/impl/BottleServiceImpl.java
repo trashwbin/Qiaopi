@@ -370,6 +370,7 @@ public class BottleServiceImpl implements BottleService {
     public List<Bottle> getNonEmptyIdRecords() {
 
          // 查询条件：id 不为空
+        //0 表示捡了
         return bottleMapper.selectList(new LambdaQueryWrapper<Bottle>().eq(Bottle::getIsPicked, 1).notIn(Bottle::getUserId,UserContext.getUserId()).notIn(Bottle::getUpdateUser,UserContext.getUserId()));
     }
 
