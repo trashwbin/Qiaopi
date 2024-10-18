@@ -23,7 +23,7 @@ import static com.qiaopi.utils.MessageUtils.message;
 public class PaperController {
 
     private final PaperService paperService;
-    @PutMapping("/List")
+    @PutMapping("/list")
     @Operation(summary = "获取纸张商城列表")
     public AjaxResult list() {
         log.info("获取纸张商城列表");

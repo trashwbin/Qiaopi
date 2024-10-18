@@ -1,26 +1,24 @@
-package com.qiaopi.entity;
+package com.qiaopi.vo;
 
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.qiaopi.BaseEntity;
+import com.qiaopi.entity.Address;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
-@EqualsAndHashCode(callSuper = true)
 @Schema(description = "好友")
 @AllArgsConstructor
 @Data
 @NoArgsConstructor
 @TableName(autoResultMap = true)//自动映射
-public class FriendRequest extends BaseEntity {
-
+public class FriendRequestVO {
+    private Long id;
 
     @Schema(description = "请求人id")
     private Long senderId;
@@ -31,15 +29,7 @@ public class FriendRequest extends BaseEntity {
     @Schema(description = "请求状态")
     private int status;
 
-
-    @Schema(description = "请求文本")
-    @TableField(value = "content")
-    private String content;
-
-
-    /**
-     * 地址
-     */
+    /** 地址 */
     @Schema(description = "地址")
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Address giveAddress;
@@ -47,6 +37,12 @@ public class FriendRequest extends BaseEntity {
     @Schema(description = "请求内容")
     private String content;
 
-    @Schema(description = "漂流瓶id")
-    private Long bottleId;
+    @Schema(description = "请求人姓名")
+    private String senderName;
+
+    @Schema(description = "请求人头像")
+    private String senderAvatar;
+
+    @Schema(description = "请求发送时间")
+    private String createTime;
 }

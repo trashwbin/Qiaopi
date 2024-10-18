@@ -88,4 +88,9 @@ public class Letter extends BaseEntity {
      * 阅读状态(0:未读,1:已读)
      */
     private int readStatus;
+
+    /**
+     * 寄信人的邮箱
+     */
+    private String senderEmail;
 }

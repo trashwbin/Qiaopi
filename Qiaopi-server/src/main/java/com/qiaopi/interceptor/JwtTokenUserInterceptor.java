@@ -16,6 +16,8 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 import static com.qiaopi.constant.HttpStatus.UNAUTHORIZED;
 import static com.qiaopi.utils.MessageUtils.message;
@@ -33,6 +35,19 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
     @Autowired
     private JwtProperties jwtProperties;
 
+    // 白名单集合
+    private final Set<String> whiteList = new HashSet<>();
+
+    @Autowired
+    public JwtTokenUserInterceptor(JwtProperties jwtProperties) {
+        this.jwtProperties = jwtProperties;
+        // 初始化白名单
+        whiteList.add("/card/list");
+        whiteList.add("/font/list");
+        whiteList.add("/font/listColor");
+        whiteList.add("/paper/list");
+    }
+
     /**
      * 校验jwt
      *
@@ -42,10 +57,28 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
      * @return
      * @throws Exception
      */
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler){
         //判断当前拦截到的是Controller的方法还是其他资源
         if (!(handler instanceof HandlerMethod)) {
             //当前拦截到的不是动态方法，直接放行
+            return true;
+        }
+
+        // 检查请求路径是否在白名单中
+        String requestURI = request.getRequestURI();
+        if (whiteList.contains(requestURI)) {
+            // 如果在白名单中，尝试获取用户ID，如果获取不到也不影响放行
+            String token = request.getHeader(jwtProperties.getUserTokenName());
+            if (token != null) {
+                try {
+                    Jws<Claims> claims = JwtUtil.parseJWT(token, jwtProperties.getUserSecretKey());
+                    Long userId = Long.valueOf(claims.getPayload().get(JwtClaimsConstant.USER_ID).toString());
+                    log.info("当前用户的id：{}", userId);
+                    UserContext.setUserId(userId);
+                } catch (Exception ex) {
+                    log.warn("解析JWT失败，但请求路径在白名单中，放行请求", ex);
+                }
+            }
             return true;
         }
 

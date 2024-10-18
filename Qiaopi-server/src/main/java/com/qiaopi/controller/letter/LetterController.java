@@ -4,29 +4,17 @@ package com.qiaopi.controller.letter;
 import com.qiaopi.dto.LetterGenDTO;
 import com.qiaopi.entity.Letter;
 import com.qiaopi.dto.LetterSendDTO;
-import com.qiaopi.mapper.FontColorMapper;
-import com.qiaopi.mapper.FontMapper;
-import com.qiaopi.mapper.PaperMapper;
 import com.qiaopi.result.AjaxResult;
 import com.qiaopi.service.LetterService;
-import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.vo.LetterVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.dromara.x.file.storage.core.FileInfo;
-import org.dromara.x.file.storage.core.FileStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import javax.imageio.ImageIO;
-import java.awt.*;
+
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -93,6 +81,12 @@ public class LetterController {
         return AjaxResult.success(message("letter.get.my.receive.not.read.success"),letterService.getMyNotReadLetter());
     }
 
+    @PutMapping("/readLetter/{letterId}")
+    @Operation(summary = "标记为已读")
+    public AjaxResult readLetter(@PathVariable Long letterId) {
+        letterService.readLetter(letterId);
+        return AjaxResult.success(message("letter.read.success"));
+    }
 
 
 }

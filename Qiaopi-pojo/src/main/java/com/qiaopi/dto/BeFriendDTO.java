@@ -26,12 +26,4 @@ public class BeFriendDTO {
     @Schema(description = "是否同意，1为同意，2为拒绝")
     private Long isAccepted;
 
-    /**
-     * 好友地址
-     */
-    @Schema(description = "好友地址")
-    private Address addresses;
-
-
-
 }
