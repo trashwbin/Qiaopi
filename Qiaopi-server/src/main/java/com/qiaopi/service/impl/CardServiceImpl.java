@@ -103,18 +103,25 @@ public class CardServiceImpl implements CardService {
 
         // 5. 更新信件信息
         if (functionCard.getCardType() == 1) {
-            LocalDateTime now = LocalDateTime.now();
             LocalDateTime expectedDeliveryTime = letter.getExpectedDeliveryTime();
+
             //加速卡
-            long millis = Duration.between(now, expectedDeliveryTime).toMillis();
             double speed = Double.parseDouble(functionCard.getSpeedRate());
             // 调整剩余时间
-            long adjustedMillis = (long) (millis / speed);
 
             // 将调整后的时间差转换为纳秒
-            long adjustedNanos = Duration.ofMillis(adjustedMillis).toNanos();
 
-            letter.setExpectedDeliveryTime(now.plusNanos(adjustedNanos));
+            // 计算从开始到当前的实际用时
+            LocalDateTime currentTime = LocalDateTime.now();
+
+            // 计算从当前到原预计送达时间的剩余时间（以分钟为单位）
+            long remaining = Duration.between(currentTime, expectedDeliveryTime).toMinutes();
+
+            // 根据加速卡的速度调整剩余时间
+            long newRemaining = (long) Math.ceil(remaining / speed);
+
+            // 新的预计送达时间为当前时间加上新的剩余时间
+            letter.setExpectedDeliveryTime( currentTime.plusMinutes(newRemaining));
         }
 
         if (functionCard.getCardType() == 2) {
@@ -135,6 +142,8 @@ public class CardServiceImpl implements CardService {
             }
         }
         //6 更新信件状态
+        long progress = LetterServiceImpl.getProgress(letter.getCreateTime(), letter.getExpectedDeliveryTime());
+        letter.setDeliveryProgress(progress);
         letterMapper.updateById(letter);
         return BeanUtil.copyProperties(letter, LetterVO.class);
     }
