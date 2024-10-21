@@ -26,17 +26,6 @@ public class QuestionSubmitVO {
     //4.用户选择的答案是否正确
     //3.用户选择的答案
     //6.解析
-/*
-
-    */
-/**
-     * 题目答案以及用户做题情况对象
-     *//*
-
-    @Schema(description = "题目答案以及用户做题情况对象")
-    private QuestionAnswerVO questionAnswerVO;
-
-*/
 
     /**
      * 题目答案以及用户做题情况对象
@@ -55,10 +44,16 @@ public class QuestionSubmitVO {
      */
     private List<Questions> questions;
 
+    /**
+     *用户答对的题目数
+     */
+    private Integer correctAnswersNumber;
 
-    public QuestionSubmitVO(List<QuestionAnswerVO> questionAnswerVOs, Integer pigMoney) {
+
+    public QuestionSubmitVO(List<QuestionAnswerVO> questionAnswerVOs, Integer pigMoney,Integer correctAnswersNumber) {
         this.questionAnswerVOs = questionAnswerVOs;
         this.pigMoney = pigMoney;
+        this.correctAnswersNumber = correctAnswersNumber;
     }
 
 }
