@@ -120,3 +120,8 @@ dromara:
         bucket-name: qiaopi
         domain: http://110.41.58.26:9000/qiaopi/ # 访问域名，注意“/”结尾，例如：http://minio.abc.com/abc/
         base-path: qiaopi-images/ # 基础路径
+
+
+aes:
+  secret:
+    key: 12345678901234567890123456789012

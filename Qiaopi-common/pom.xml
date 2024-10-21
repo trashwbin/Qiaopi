@@ -74,6 +74,12 @@
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.qiaopi</groupId>
+            <artifactId>Qiaopi-pojo</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
 
         <!-- https://mvnrepository.com/artifact/jakarta.servlet/jakarta.servlet-api -->
 <!--        <dependency>-->
