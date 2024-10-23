@@ -66,7 +66,7 @@ public class QuestionController {
 
     @GetMapping("/allAnswerToFront")
     @Operation(summary = "将全部内容给前端")
-    public AjaxResult allAnswerToFront(@RequestBody int setId) {
+    public AjaxResult allAnswerToFront(@RequestParam int setId) {
         log.info(("将全部内容给前端"));
         String encryptedData = questionService.allAnswerToFront(setId);
         return AjaxResult.success(MessageUtils.message("question.give.detail.suceess"),encryptedData);
@@ -75,7 +75,7 @@ public class QuestionController {
 
     @GetMapping("/decode")
     @Operation(summary = "解码")
-    public AjaxResult decode(@RequestBody String answer) {
+    public AjaxResult decode(@RequestParam String answer) {
         log.info(("解码"));
         List<Questions> decode = questionService.decode(answer);
         return AjaxResult.success(MessageUtils.message("question.decode.success"),decode);

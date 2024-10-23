@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 public class LetterGenDTO {
 
 
+
     /**
      * 寄件人的姓名
      */
@@ -50,5 +51,7 @@ public class LetterGenDTO {
      */
     @Schema(description = "字体颜色ID")
     private Long fontColorId;
+
+
 
 }

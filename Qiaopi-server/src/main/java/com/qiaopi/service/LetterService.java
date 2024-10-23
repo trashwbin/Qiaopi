@@ -4,6 +4,7 @@ import com.qiaopi.dto.LetterGenDTO;
 import com.qiaopi.entity.Letter;
 import com.qiaopi.dto.LetterSendDTO;
 import com.qiaopi.vo.LetterVO;
+import org.springframework.http.ResponseEntity;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -110,7 +111,9 @@ public interface LetterService {
 //     * @param letterGenDTO
 //     * @return
 //     */
-    String generateImage(LetterGenDTO letterGenDTO);
+    //String generateImage(LetterGenDTO letterGenDTO);
+
+    String generateImage(LetterGenDTO letterGenDTO, Long currnetUserId);
 //
 //
 //    /**
