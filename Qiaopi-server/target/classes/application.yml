@@ -8,7 +8,7 @@ spring:
       max-request-size: 20MB # 单次请求的最大限制大小
 #  模式切换
   profiles:
-    active: staging
+    active: dev
   main:
     allow-circular-references: true
   messages:
@@ -121,7 +121,7 @@ dromara:
         domain: http://110.41.58.26:9000/qiaopi/ # 访问域名，注意“/”结尾，例如：http://minio.abc.com/abc/
         base-path: qiaopi-images/ # 基础路径
 
-
+# AES加密
 aes:
   secret:
     key: 12345678901234567890123456789012

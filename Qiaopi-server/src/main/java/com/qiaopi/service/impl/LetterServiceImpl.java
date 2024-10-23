@@ -23,6 +23,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -68,6 +72,9 @@ public class LetterServiceImpl implements LetterService {
     private final UserMapper userMapper;
 
     private final JavaMailSender javaMailSender;
+
+    private final RedisTemplate redisTemplate;
+
     @Value("${spring.mail.username}")
     private String sender;
     @Value("${spring.mail.nickname}")
@@ -142,7 +149,7 @@ public class LetterServiceImpl implements LetterService {
             log.error("背景图片未找到");
         }
         // 加载自定义字体
-// 从缓存中获取字体
+        // 从缓存中获取字体
         Font customFont = fontCache.get(font);
         if (customFont == null) {
             try {
@@ -168,13 +175,6 @@ public class LetterServiceImpl implements LetterService {
         g2d.setFont(customFont); // 设置字体
         g2d.setColor(Color.decode(color)); // 设置字体颜色
 
-        // 获取字体度量信息
-//        FontMetrics fontMetrics = g2d.getFontMetrics();
-
-        // 计算文本宽度和高度
-//        int textWidth = fontMetrics.stringWidth(text);
-//        int textHeight = fontMetrics.getHeight();
-
         return g2d;
     }
 
@@ -198,7 +198,7 @@ public class LetterServiceImpl implements LetterService {
         return rotatedImage;
     }
     @Override
-    public String generateImage(LetterGenDTO letterGenDTO) {
+    public String generateImage(LetterGenDTO letterGenDTO,Long currnetUserId) {
 //        log.warn(String.valueOf(LocalDateTime.now()));
         // 设置图片的宽和高（根据实际需求可以动态调整）
         int width = 1000; // 图片宽度
@@ -207,47 +207,48 @@ public class LetterServiceImpl implements LetterService {
         com.qiaopi.entity.Font font = fontMapper.selectById(letterGenDTO.getFontId());
         Paper paper = paperMapper.selectById(letterGenDTO.getPaperId());
 
+        //开始绘制
         BufferedImage bufferedImage = createAndDrawImage(width, height, letterGenDTO, fontColor, font, paper);
-        // 创建一个 BufferedImage 对象
-//        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-//        Graphics2D g2d = bufferedImage.createGraphics(); // 获取Graphics2D对象，用于绘制图像
 
-        //调用数值使得文本与信纸对齐(初始化g2d)
-//        Graphics2D start = start(g2d, width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath());
-//        Main(start, letterGenDTO.getLetterContent(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()));
-//        Main(start,letterGenDTO.getSenderName(),Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()));
-//        Main(start,letterGenDTO.getRecipientName(),Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()));
+        //Long userId = UserContext.getUserId();
 
-//        bufferedImage = rotateImage(bufferedImage, 90);
-        String url = null;
-//        log.warn(String.valueOf(LocalDateTime.now()));
+
 
         try {
             // 将图片写入字节流
             ByteArrayOutputStream baos = new ByteArrayOutputStream(); // 创建字节数组输出流
             ImageIO.write(bufferedImage, "png", baos); // 将BufferedImage写入字节数组输出流
             byte[] imageBytes = baos.toByteArray(); // 获取字节数组
-//            log.warn(String.valueOf(LocalDateTime.now()));
 
-            // 生成一个随机的文件名
+            // 将字节数组转换为Base64编码的字符串
+            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+
+            // 生成 Redis 中存储的 key
+            String redisKey = "image:" + currnetUserId; // 假设有用户 ID 或其他标识符
+
+            // 将 Base64 字符串存入 Redis
+            redisTemplate.opsForValue().set(redisKey, base64Image);
+
+
+          /*  // 生成一个随机的文件名
             String fileName =  UUID.randomUUID()+ ".png";
             //将照片存储到服务器
             FileInfo fileInfo = fileStorageService.of(imageBytes).setSaveFilename(fileName).setPath("letter/").upload();
             url = fileInfo.getUrl();
-//            log.warn(String.valueOf(LocalDateTime.now()));
+            */
 
-        /*
-        // 设置响应头并返回图片
-        HttpHeaders headers = new HttpHeaders(); // 创建HttpHeaders对象
-        headers.setContentType(MediaType.IMAGE_PNG); // 设置响应内容类型为PNG图片
-        headers.setContentLength(imageBytes.length); // 设置响应内容长度
-        //return ResponseEntity.ok().headers(headers).body(imageBytes); // 返回包含图片字节数组的响应实体
-        */
+           /* // 设置响应头并返回图片
+            HttpHeaders headers = new HttpHeaders(); // 创建HttpHeaders对象
+            headers.setContentType(MediaType.IMAGE_PNG); // 设置响应内容类型为PNG图片
+            headers.setContentLength(imageBytes.length); // 设置响应内容长度
+            //return ResponseEntity.ok().headers(headers).body(imageBytes); // 返回包含图片字节数组的响应实体
+*/
+            return base64Image;
+
         } catch (IOException e) {
             log.error("生成图片失败", e);
         }
-
-        return url;
+        return null;
     }
 
     public BufferedImage createAndDrawImage(int width, int height, LetterGenDTO letterGenDTO, FontColor fontColor, com.qiaopi.entity.Font font, Paper paper) {
@@ -269,10 +270,10 @@ public class LetterServiceImpl implements LetterService {
     public void drawAll(Graphics2D g2d, LetterGenDTO letterGenDTO, FontColor fontColor, com.qiaopi.entity.Font font, Paper paper, int width, int height) {
         ExecutorService executor = Executors.newFixedThreadPool(3);
 
-        // 初始化 g2d
+        // 初始化 g2d  进行字体颜色，种类，背景图片等的绘制
         Graphics2D startG2D = start(g2d, width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath());
 
-        // 提交任务
+        // 提交任务 使用多线程进行（分别对内容，发送者名称，收件者名称进行旋转，转换成古代书法规则）
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) startG2D.create();
             Main(clonedG2D, letterGenDTO.getLetterContent(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()));
@@ -291,6 +292,7 @@ public class LetterServiceImpl implements LetterService {
 
         // 关闭线程池
         executor.shutdown();
+
         try {
             // 等待所有任务完成
             if (!executor.awaitTermination(1, TimeUnit.MINUTES)) {
