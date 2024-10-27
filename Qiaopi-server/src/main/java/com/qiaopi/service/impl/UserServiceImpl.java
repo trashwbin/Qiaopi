@@ -500,7 +500,6 @@ public class UserServiceImpl implements UserService {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>(5);
 
         map.put("uuid", verify);
-        //map.put("code", code);
         map.put("img", Base64.encode(os.toByteArray()));
         return map;
     }

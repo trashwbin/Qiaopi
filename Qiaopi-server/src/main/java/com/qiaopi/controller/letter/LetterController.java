@@ -9,9 +9,11 @@ import com.qiaopi.service.LetterService;
 import com.qiaopi.vo.LetterVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.websocket.server.ServerEndpoint;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.*;
 
 import java.awt.image.BufferedImage;
@@ -36,8 +38,8 @@ public class LetterController {
     @Operation(summary = "生成侨批")
     public AjaxResult generateImage(@RequestBody LetterGenDTO letterGenDTO) {
         log.info("生成侨批：{}", letterGenDTO);
-        String url = letterService.generateImage(letterGenDTO);
-        return AjaxResult.success(message("letter.generateImage.success"),url);
+        //String url = letterService.generateImage(letterGenDTO);
+        return AjaxResult.success(message("letter.generateImage.success"));
     }
 
     @GetMapping()
@@ -87,6 +89,8 @@ public class LetterController {
         letterService.readLetter(letterId);
         return AjaxResult.success(message("letter.read.success"));
     }
+
+
 
 
 }
