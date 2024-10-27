@@ -11,12 +11,14 @@ import com.qiaopi.mapper.QuestionsMapper;
 import com.qiaopi.mapper.QuestionUserStatusMapper;
 import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.service.QuestionService;
+import com.qiaopi.utils.AESUtil;
 import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.vo.GenQuestionVO;
 import com.qiaopi.vo.QuestionAnswerVO;
 import com.qiaopi.vo.QuestionSubmitVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.InvocationTargetException;
@@ -29,6 +31,8 @@ import java.util.*;
 public class QuestionServiceImpl implements QuestionService {
 
 
+    @Value("${aes.secret.key}")
+    private String secretKey;
 
     private final QuestionUserStatusMapper questionUserStatusMapper;
     private final QuestionsMapper questionsMapper;
@@ -285,16 +289,17 @@ public class QuestionServiceImpl implements QuestionService {
 
         // 如果全部答对，开启下一个篇章
         if (record == 10) {
-            return handleCompleteAnswers(currentId, questionAnswerVOList, pigMoney);
+            return handleCompleteAnswers(currentId, questionAnswerVOList, pigMoney,record);
         }
 
-        QuestionSubmitVO questionSubmitVO = new QuestionSubmitVO(questionAnswerVOList, pigMoney);
+        QuestionSubmitVO questionSubmitVO = new QuestionSubmitVO(questionAnswerVOList, pigMoney,record);
 
         return questionSubmitVO;
         //return new QuestionSubmitVO(questionAnswerVOList, pigMoney);
     }
 
-    private QuestionSubmitVO handleCompleteAnswers(Long currentId, List<QuestionAnswerVO> questionAnswerVOList, int pigMoney) {
+
+    private QuestionSubmitVO handleCompleteAnswers(Long currentId, List<QuestionAnswerVO> questionAnswerVOList, int pigMoney,Integer record) {
         QuestionAnswerVO firstQuestionAnswer = questionAnswerVOList.get(0);
         Long questionId = firstQuestionAnswer.getQuestionId(); // 根据题目 ID 查询对应的表 ID
         Questions questions = questionsMapper.selectById(questionId); // 根据表 ID 获取到题目
@@ -308,7 +313,7 @@ public class QuestionServiceImpl implements QuestionService {
         List<Questions> needToGiveUserQuestionList = questionsMapper.selectList(queryWrapper);
 
         // 封装到返回对象中
-        QuestionSubmitVO questionSubmitVO = new QuestionSubmitVO(questionAnswerVOList, pigMoney, needToGiveUserQuestionList);
+        QuestionSubmitVO questionSubmitVO = new QuestionSubmitVO(questionAnswerVOList, pigMoney, needToGiveUserQuestionList,record);
 
         // 更新用户问题的状态
         updateUserQuestionStatus(currentId, setId);
@@ -363,4 +368,49 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
 
+
+
+
+    @Override
+    public String allAnswerToFront(int setId) {
+        // 创建 QueryWrapper 实例
+        QueryWrapper<Questions> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("set_id", setId);
+        List<Questions> questionsList = questionsMapper.selectList(queryWrapper);
+
+
+        AESUtil aesUtil = new AESUtil();
+        //String secretKey = "1234567890123456";  // 16 字符的密钥
+
+        try {
+            //编码
+            String encryptedData = aesUtil.encryptQuestions(questionsList, secretKey);
+            log.info("加密后的数据：{}", encryptedData);
+            return encryptedData;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public List<Questions> decode(String answer) {
+        AESUtil aesUtil = new AESUtil();
+        //String secretKey = "1234567890123456";  // 16 字符的密钥
+
+        try {
+            //编码
+            List<Questions> questions = aesUtil.decryptQuestions(answer, secretKey);
+            log.info("解密后的数据：{}", questions);
+            return questions;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+
 }
+
+
+
+

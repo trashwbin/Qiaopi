@@ -2,6 +2,7 @@ package com.qiaopi.controller.Question;
 
 
 import com.qiaopi.dto.QuestionSubmitDTO;
+import com.qiaopi.entity.Questions;
 import com.qiaopi.result.AjaxResult;
 import com.qiaopi.service.QuestionService;
 import com.qiaopi.utils.MessageUtils;
@@ -60,10 +61,25 @@ public class QuestionController {
         log.info(("用户提交答案"));
         QuestionSubmitVO questionSubmitVO = questionService.submitAnswers(questionSubmitDTOs);
         return AjaxResult.success(MessageUtils.message("question.judge.success"),questionSubmitVO);
-
     }
 
 
+    @GetMapping("/allAnswerToFront")
+    @Operation(summary = "将全部内容给前端")
+    public AjaxResult allAnswerToFront(@RequestParam int setId) {
+        log.info(("将全部内容给前端"));
+        String encryptedData = questionService.allAnswerToFront(setId);
+        return AjaxResult.success(MessageUtils.message("question.give.detail.suceess"),encryptedData);
+    }
+
+
+    @GetMapping("/decode")
+    @Operation(summary = "解码")
+    public AjaxResult decode(@RequestParam String answer) {
+        log.info(("解码"));
+        List<Questions> decode = questionService.decode(answer);
+        return AjaxResult.success(MessageUtils.message("question.decode.success"),decode);
+    }
 
 
 }
