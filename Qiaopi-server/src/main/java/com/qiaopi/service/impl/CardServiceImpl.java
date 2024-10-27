@@ -17,6 +17,7 @@ import com.qiaopi.mapper.LetterMapper;
 import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.service.CardService;
 import com.qiaopi.service.LetterService;
+import com.qiaopi.utils.ProgressUtils;
 import com.qiaopi.vo.FunctionCardShopVO;
 import com.qiaopi.vo.FunctionCardVO;
 import com.qiaopi.vo.LetterVO;
@@ -100,51 +101,37 @@ public class CardServiceImpl implements CardService {
         // 4. 更新用户信息
         user.setFunctionCards(userFunctionCards);
         userMapper.updateById(user);
-
+        boolean isDelivery = false;
         // 5. 更新信件信息
         if (functionCard.getCardType() == 1) {
-            LocalDateTime expectedDeliveryTime = letter.getExpectedDeliveryTime();
-
             //加速卡
-            double speed = Double.parseDouble(functionCard.getSpeedRate());
-            // 调整剩余时间
-
-            // 将调整后的时间差转换为纳秒
-
-            // 计算从开始到当前的实际用时
-            LocalDateTime currentTime = LocalDateTime.now();
-
-            // 计算从当前到原预计送达时间的剩余时间（以分钟为单位）
-            long remaining = Duration.between(currentTime, expectedDeliveryTime).toMinutes();
-
-            // 根据加速卡的速度调整剩余时间
-            long newRemaining = (long) Math.ceil(remaining / speed);
-
-            // 新的预计送达时间为当前时间加上新的剩余时间
-            letter.setExpectedDeliveryTime( currentTime.plusMinutes(newRemaining));
+            letter.setSpeedRate(functionCard.getSpeedRate());
+            ProgressUtils.getProgress(letter);
         }
 
         if (functionCard.getCardType() == 2) {
-            // 减时卡
-            long millis = Duration.between(LocalDateTime.now(), letter.getExpectedDeliveryTime()).toMillis();
-            long reduceMin = Long.parseLong(functionCard.getReduceTime()) * 60 * 1000; // 将分钟转换为毫秒
-            long adjustedMillis = millis - reduceMin;
 
-            // 调整剩余时间
-            if (adjustedMillis <= 0 || functionCard.getId() == 0) {
-                letter.setExpectedDeliveryTime(LocalDateTime.now());
-                letterMapper.updateById(letter);
-                // 发送信件
-                letterService.sendLetterToEmail(Collections.singletonList(letter));
-                return BeanUtil.copyProperties(letter, LetterVO.class);
-            } else {
-                letter.setExpectedDeliveryTime(LocalDateTime.now().plus(adjustedMillis, ChronoUnit.MILLIS));
+            // 减时卡
+            if (functionCard.getId() == 0){
+                isDelivery = true;
+                letter.setReduceTime("-1");
+            }else {
+                letter.setReduceTime(letter.getReduceTime()+functionCard.getReduceTime());
+                ProgressUtils.getProgress(letter);
             }
+
+
+        }
+        if (letter.getDeliveryProgress() >= 10000) {
+            isDelivery = true;
+        }
+        letterMapper.updateById(letter);
+        // 调整剩余时间
+        if (isDelivery) {
+            // 发送信件
+            letterService.sendLetterToEmail(Collections.singletonList(letter));
         }
         //6 更新信件状态
-        long progress = LetterServiceImpl.getProgress(letter.getCreateTime(), letter.getExpectedDeliveryTime());
-        letter.setDeliveryProgress(progress);
-        letterMapper.updateById(letter);
         return BeanUtil.copyProperties(letter, LetterVO.class);
     }
 

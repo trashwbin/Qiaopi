@@ -15,6 +15,7 @@ import com.qiaopi.exception.user.UserNotExistsException;
 import com.qiaopi.mapper.*;
 import com.qiaopi.service.LetterService;
 import com.qiaopi.utils.PositionUtil;
+import com.qiaopi.utils.ProgressUtils;
 import com.qiaopi.vo.LetterVO;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -49,6 +50,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.qiaopi.utils.MessageUtils.message;
 
@@ -211,8 +213,6 @@ public class LetterServiceImpl implements LetterService {
         BufferedImage bufferedImage = createAndDrawImage(width, height, letterGenDTO, fontColor, font, paper);
 
         //Long userId = UserContext.getUserId();
-
-
 
         try {
             // 将图片写入字节流
@@ -746,7 +746,7 @@ public class LetterServiceImpl implements LetterService {
             }
             letter.setStatus(LetterStatus.DELIVERED);
             letter.setDeliveryProgress(10000L);
-            letter.setExpectedDeliveryTime(LocalDateTime.now());
+            letter.setDeliveryTime(LocalDateTime.now());
             letter.setUpdateUser(-1L);
             letterMapper.updateById(letter);
         }
@@ -779,7 +779,7 @@ public class LetterServiceImpl implements LetterService {
         //发送时间
         LocalDateTime deliveryTime = now.plusSeconds(timeMin);
         letter.setExpectedDeliveryTime(deliveryTime);
-
+        letter.setDeliveryTime(deliveryTime);
         letter.setStatus(LetterStatus.TRANSIT);
         letter.setReadStatus(LetterStatus.NOT_READ);
         letter.setDeliveryProgress(0L);
@@ -792,10 +792,7 @@ public class LetterServiceImpl implements LetterService {
     public List<LetterVO> getMySendLetter() {
         List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getSenderUserId, UserContext.getUserId()).orderByDesc(Letter::getCreateTime));
         //每次要查的时候再更新这个数据，减少更新次数
-        letters.forEach(letter -> {
-            long progress = getProgress(letter.getCreateTime(), letter.getExpectedDeliveryTime());
-            letter.setDeliveryProgress(progress);
-        });
+        letters.replaceAll(ProgressUtils::getProgress);
         //更新进度
         letterMapper.updateById(letters);
 
@@ -849,15 +846,7 @@ public class LetterServiceImpl implements LetterService {
         letterMapper.updateById(letter);
     }
 
-    //通过开始时间和结束时间计算进度
-    public static long getProgress(LocalDateTime startTime, LocalDateTime endTime) {
-        long progress = 0;
-        long total = Duration.between(startTime, endTime).toMillis();
-        long current = Duration.between(startTime, LocalDateTime.now()).toMillis();
-        progress = current * 10000 / total;
-        //防止进度超过10000
-        return progress<0||progress>10000 ? 10000 : progress;
-    }
+
 }
 
 
