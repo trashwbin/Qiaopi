@@ -12,7 +12,7 @@
 ALTER TABLE letter
     ADD COLUMN piggy_money BIGINT DEFAULT 0 COMMENT '携带猪仔钱',
     ADD COLUMN letter_type INT DEFAULT 1 COMMENT '信件类型(1:竖版字体信件,2:横版信件)',
-    ADD COLUMN speed_rate VARCHAR(255) DEFAULT '0' COMMENT '加速倍率',
+    ADD COLUMN speed_rate VARCHAR(255) DEFAULT '1' COMMENT '加速倍率',
     ADD COLUMN reduce_time VARCHAR(255) DEFAULT '0' COMMENT '减少的时间(单位:分钟)',
     ADD COLUMN delivery_time DATETIME COMMENT '送达时间';
 ```
