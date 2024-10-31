@@ -12,7 +12,7 @@ public class Address {
     @Schema(description = "地址id")
     private Long id;
     @Schema(description = "国家id")
-    private Long CountryId;
+    private Long  countryId;
     @Schema(description = "详细地址")
     private String formattedAddress;
     @Schema(description = "经度")

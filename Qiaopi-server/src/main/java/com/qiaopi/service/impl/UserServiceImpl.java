@@ -71,6 +71,7 @@ public class UserServiceImpl implements UserService {
     private final RedisTemplate redisTemplate;
     private final LetterMapper letterMapper;
     private final LetterService letterService;
+    private final CountryMapper countryMapper;
 
     @Override
     public UserLoginVO login(UserLoginDTO userLoginDTO) {
@@ -579,6 +580,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<Avatar> getAvatarList() {
         return avatarMapper.selectList(null);
+    }
+
+    @Override
+    public List<Country> getCountries() {
+        return countryMapper.selectList(null);
     }
 
     //生成随机用户名，数字和字母组成,

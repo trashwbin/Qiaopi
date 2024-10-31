@@ -6,6 +6,7 @@ import com.qiaopi.dto.UserResetPasswordDTO;
 import com.qiaopi.dto.UserUpdateDTO;
 import com.qiaopi.entity.Address;
 import com.qiaopi.entity.Avatar;
+import com.qiaopi.entity.Country;
 import com.qiaopi.vo.FriendVO;
 import com.qiaopi.vo.FunctionCardVO;
 import com.qiaopi.vo.UserLoginVO;
@@ -49,4 +50,6 @@ public interface UserService {
     List<FunctionCardVO> getMyFunctionCard(Long userId);
 
     List<Avatar> getAvatarList();
+
+    List<Country> getCountries();
 }
