@@ -211,7 +211,12 @@ public class UserController {
         return success(message("user.get.function.card.success"),userService.getMyFunctionCard(UserContext.getUserId()));
     }
 
-
+    @GetMapping("/getCountries")
+    @Operation(summary = "获取国家列表")
+    public AjaxResult getCountries(){
+        log.info("获取国家列表");
+        return success(message("user.get.countries.success"),userService.getCountries());
+    }
 }
 
 

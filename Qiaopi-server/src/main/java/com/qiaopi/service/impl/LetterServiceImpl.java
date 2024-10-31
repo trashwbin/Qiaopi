@@ -21,6 +21,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.coobird.thumbnailator.Thumbnails;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.springframework.beans.factory.annotation.Value;
@@ -199,25 +200,44 @@ public class LetterServiceImpl implements LetterService {
 
         return rotatedImage;
     }
+
+    private static final ConcurrentHashMap<Long, FontColor> fontColorCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Long, com.qiaopi.entity.Font> userFontCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Long, Paper> paperCache = new ConcurrentHashMap<>();
+
     @Override
     public String generateImage(LetterGenDTO letterGenDTO,Long currnetUserId) {
 //        log.warn(String.valueOf(LocalDateTime.now()));
         // 设置图片的宽和高（根据实际需求可以动态调整）
         int width = 1000; // 图片宽度
         int height = 1500; // 图片高度
-        FontColor fontColor = fontColorMapper.selectById(letterGenDTO.getFontColorId());
-        com.qiaopi.entity.Font font = fontMapper.selectById(letterGenDTO.getFontId());
-        Paper paper = paperMapper.selectById(letterGenDTO.getPaperId());
-
+        FontColor fontColor = fontColorCache.get(letterGenDTO.getFontColorId());
+        if (fontColor == null) {
+            fontColor=fontColorMapper.selectById(letterGenDTO.getFontColorId());
+            fontColorCache.put(letterGenDTO.getFontColorId(),fontColor);
+        }
+        com.qiaopi.entity.Font font = userFontCache.get(letterGenDTO.getFontId());
+        if (font == null) {
+            font=fontMapper.selectById(letterGenDTO.getFontId());
+            userFontCache.put(letterGenDTO.getFontId(),font);
+        }
+        Paper paper = paperCache.get(letterGenDTO.getPaperId());
+        if (paper == null) {
+           paper= paperMapper.selectById(letterGenDTO.getPaperId());
+            paperCache.put(letterGenDTO.getPaperId(),paper);
+        }
         //开始绘制
         BufferedImage bufferedImage = createAndDrawImage(width, height, letterGenDTO, fontColor, font, paper);
-
-        //Long userId = UserContext.getUserId();
-
         try {
             // 将图片写入字节流
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(); // 创建字节数组输出流
-            ImageIO.write(bufferedImage, "png", baos); // 将BufferedImage写入字节数组输出流
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(2048*2048); // 创建字节数组输出流
+//            ImageIO.write(bufferedImage, "png", baos); // 将BufferedImage写入字节数组输出流
+            Thumbnails.of(bufferedImage)
+                    .outputFormat("jpg") // 使用 JPEG 格式
+                    .outputQuality(0.8) // 设置压缩质量，0.8 表示 80% 的质量
+                    .size(bufferedImage.getWidth(), bufferedImage.getHeight())
+                    .toOutputStream(baos);
+
             byte[] imageBytes = baos.toByteArray(); // 获取字节数组
 
             // 将字节数组转换为Base64编码的字符串
@@ -228,6 +248,7 @@ public class LetterServiceImpl implements LetterService {
 
             // 将 Base64 字符串存入 Redis
             redisTemplate.opsForValue().set(redisKey, base64Image);
+
 
 
           /*  // 生成一个随机的文件名

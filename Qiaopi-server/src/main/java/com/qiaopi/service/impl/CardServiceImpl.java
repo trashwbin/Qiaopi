@@ -116,7 +116,7 @@ public class CardServiceImpl implements CardService {
                 isDelivery = true;
                 letter.setReduceTime("-1");
             }else {
-                letter.setReduceTime(letter.getReduceTime()+functionCard.getReduceTime());
+                letter.setReduceTime(String.valueOf(Integer.parseInt(letter.getReduceTime())+Integer.parseInt(functionCard.getReduceTime())));
                 ProgressUtils.getProgress(letter);
             }
 
