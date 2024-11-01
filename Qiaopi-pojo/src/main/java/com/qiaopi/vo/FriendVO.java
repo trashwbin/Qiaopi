@@ -25,8 +25,13 @@ public class FriendVO {
     private String sex;
     @Schema(description = "好友邮箱(必需项)")
     private String email;
+    @Schema(description = "请求人头像")
+    private String avatar;
     /** 地址 */
     @TableField(typeHandler = JacksonTypeHandler.class)
     @Schema(description = "地址")
     private List<Address> addresses;
+
+    @Schema(description = "备注")
+    private String remark;
 }

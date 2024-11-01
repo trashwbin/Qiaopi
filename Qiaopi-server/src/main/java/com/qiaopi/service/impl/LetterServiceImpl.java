@@ -805,6 +805,7 @@ public class LetterServiceImpl implements LetterService {
         letter.setReadStatus(LetterStatus.NOT_READ);
         letter.setDeliveryProgress(0L);
         letter.setSenderEmail(user.getEmail());
+        letter.setSpeedRate("1");
         letterMapper.insert(letter);
 
         return BeanUtil.copyProperties(letter, LetterVO.class);

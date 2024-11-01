@@ -52,4 +52,14 @@ public interface UserService {
     List<Avatar> getAvatarList();
 
     List<Country> getCountries();
+
+    void setUserDefaultAddress(Long addressId);
+
+    void deleteUserAddress(Long addressId);
+
+    void setFriendDefaultAddress(Long friendId, Long addressId);
+
+    void deleteFriendAddress(Long friendId, Long addressId);
+
+    void updateFriendRemark(Long friendId, String remark);
 }
