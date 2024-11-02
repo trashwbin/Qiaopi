@@ -47,4 +47,7 @@ public class Paper {
 
     @Schema(description = "纸张价格")
     private int price;
+
+    @Schema(description = "纸张适配字数")
+    private int fitNumber;
 }
