@@ -6,11 +6,9 @@ import com.qiaopi.constant.LetterStatus;
 import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.LetterGenDTO;
 import com.qiaopi.dto.LetterSendDTO;
-import com.qiaopi.entity.FontColor;
-import com.qiaopi.entity.Letter;
-import com.qiaopi.entity.Paper;
-import com.qiaopi.entity.User;
+import com.qiaopi.entity.*;
 import com.qiaopi.exception.letter.LetterException;
+import com.qiaopi.exception.user.UserException;
 import com.qiaopi.exception.user.UserNotExistsException;
 import com.qiaopi.mapper.*;
 import com.qiaopi.service.LetterService;
@@ -18,6 +16,7 @@ import com.qiaopi.utils.PositionUtil;
 import com.qiaopi.utils.ProgressUtils;
 import com.qiaopi.vo.LetterVO;
 import jakarta.mail.MessagingException;
+import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,13 +25,11 @@ import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 import javax.imageio.ImageIO;
@@ -43,15 +40,10 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import java.util.concurrent.*;
 
 import static com.qiaopi.utils.MessageUtils.message;
 
@@ -60,23 +52,16 @@ import static com.qiaopi.utils.MessageUtils.message;
 @Slf4j
 @RequiredArgsConstructor //自动注入
 public class LetterServiceImpl implements LetterService {
-
-
     private final FontColorMapper fontColorMapper;
-
     private final FontMapper fontMapper;
-
     private final PaperMapper paperMapper;
-
     private final FileStorageService fileStorageService;
-
     private final LetterMapper letterMapper;
-
     private final UserMapper userMapper;
-
     private final JavaMailSender javaMailSender;
-
+    private final CountryMapper countryMapper;
     private final RedisTemplate redisTemplate;
+    private final FriendMapper friendMapper;
 
     @Value("${spring.mail.username}")
     private String sender;
@@ -86,6 +71,7 @@ public class LetterServiceImpl implements LetterService {
     private final Map<String, BufferedImage> bgImageCache = new HashMap<>();
     // 缓存字体
     private final Map<String, Font> fontCache = new HashMap<>();
+
     public void Main(Graphics2D g2d, String text, int x, int y) {
         int charsPerLine = 15;
         int currentX = x;
@@ -126,7 +112,7 @@ public class LetterServiceImpl implements LetterService {
         }
     }
 
-    public Graphics2D start(Graphics2D g2d,  int width, int height, String color, String font, String stationery){
+    public Graphics2D start(Graphics2D g2d, int width, int height, String color, String font, String stationery) {
 
         // 从缓存中获取背景图片
         BufferedImage bgImage = bgImageCache.get(stationery);
@@ -148,7 +134,7 @@ public class LetterServiceImpl implements LetterService {
         // 背景图适配绘制
         if (bgImage != null) {
             g2d.drawImage(bgImage, 0, 0, width, height, null);
-        }else {
+        } else {
             log.error("背景图片未找到");
         }
         // 加载自定义字体
@@ -206,31 +192,31 @@ public class LetterServiceImpl implements LetterService {
     private static final ConcurrentHashMap<Long, Paper> paperCache = new ConcurrentHashMap<>();
 
     @Override
-    public String generateImage(LetterGenDTO letterGenDTO,Long currnetUserId) {
+    public String generateImage(LetterGenDTO letterGenDTO, Long currnetUserId) {
 //        log.warn(String.valueOf(LocalDateTime.now()));
         // 设置图片的宽和高（根据实际需求可以动态调整）
         int width = 1000; // 图片宽度
         int height = 1500; // 图片高度
         FontColor fontColor = fontColorCache.get(letterGenDTO.getFontColorId());
         if (fontColor == null) {
-            fontColor=fontColorMapper.selectById(letterGenDTO.getFontColorId());
-            fontColorCache.put(letterGenDTO.getFontColorId(),fontColor);
+            fontColor = fontColorMapper.selectById(letterGenDTO.getFontColorId());
+            fontColorCache.put(letterGenDTO.getFontColorId(), fontColor);
         }
         com.qiaopi.entity.Font font = userFontCache.get(letterGenDTO.getFontId());
         if (font == null) {
-            font=fontMapper.selectById(letterGenDTO.getFontId());
-            userFontCache.put(letterGenDTO.getFontId(),font);
+            font = fontMapper.selectById(letterGenDTO.getFontId());
+            userFontCache.put(letterGenDTO.getFontId(), font);
         }
         Paper paper = paperCache.get(letterGenDTO.getPaperId());
         if (paper == null) {
-           paper= paperMapper.selectById(letterGenDTO.getPaperId());
-            paperCache.put(letterGenDTO.getPaperId(),paper);
+            paper = paperMapper.selectById(letterGenDTO.getPaperId());
+            paperCache.put(letterGenDTO.getPaperId(), paper);
         }
         //开始绘制
         BufferedImage bufferedImage = createAndDrawImage(width, height, letterGenDTO, fontColor, font, paper);
         try {
             // 将图片写入字节流
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(2048*2048); // 创建字节数组输出流
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(2048 * 2048); // 创建字节数组输出流
 //            ImageIO.write(bufferedImage, "png", baos); // 将BufferedImage写入字节数组输出流
             Thumbnails.of(bufferedImage)
                     .outputFormat("jpg") // 使用 JPEG 格式
@@ -247,7 +233,7 @@ public class LetterServiceImpl implements LetterService {
             String redisKey = "image:" + currnetUserId; // 假设有用户 ID 或其他标识符
 
             // 将 Base64 字符串存入 Redis
-            redisTemplate.opsForValue().set(redisKey, base64Image);
+            redisTemplate.opsForValue().set(redisKey,base64Image,12, TimeUnit.HOURS);
 
 
 
@@ -258,12 +244,6 @@ public class LetterServiceImpl implements LetterService {
             url = fileInfo.getUrl();
             */
 
-           /* // 设置响应头并返回图片
-            HttpHeaders headers = new HttpHeaders(); // 创建HttpHeaders对象
-            headers.setContentType(MediaType.IMAGE_PNG); // 设置响应内容类型为PNG图片
-            headers.setContentLength(imageBytes.length); // 设置响应内容长度
-            //return ResponseEntity.ok().headers(headers).body(imageBytes); // 返回包含图片字节数组的响应实体
-*/
             return base64Image;
 
         } catch (IOException e) {
@@ -288,6 +268,7 @@ public class LetterServiceImpl implements LetterService {
 
         return bufferedImage;
     }
+
     public void drawAll(Graphics2D g2d, LetterGenDTO letterGenDTO, FontColor fontColor, com.qiaopi.entity.Font font, Paper paper, int width, int height) {
         ExecutorService executor = Executors.newFixedThreadPool(3);
 
@@ -326,7 +307,8 @@ public class LetterServiceImpl implements LetterService {
     }
 
     // Cover
-    public String coverGenerieren(LetterSendDTO letterSendDTO) {
+    private ExecutorService subExecutorService = Executors.newFixedThreadPool(3);
+    public String coverGenerieren(LetterSendDTO letterSendDTO,Long userId) {
         // 设置图片的宽和高（根据实际需求可以动态调整）
         int width = 1000; // 图片宽度
         int height = 550; // 图片高度
@@ -334,47 +316,70 @@ public class LetterServiceImpl implements LetterService {
         // 创建一个 BufferedImage 对象
         BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = bufferedImage.createGraphics(); // 获取Graphics2D对象，用于绘制图像
-        String tempMailingAddress = letterSendDTO.getSenderAddress().getFormattedAddress();// 寄件人地址
+
+        // TODO 如何正确截取地址和用户名字
+        String tempMailingAddress = letterSendDTO.getSenderAddress().getFormattedAddress(); // 寄件人地址
         String mailingAddress = tempMailingAddress.substring(3, 6);
 
-        String tempInsideAddress = letterSendDTO.getRecipientAddress().getFormattedAddress();// 收件人地址
+        String tempInsideAddress = letterSendDTO.getRecipientAddress().getFormattedAddress(); // 收件人地址
         String insideAddress = tempInsideAddress.substring(0, 6);
 
-        String sender = letterSendDTO.getSenderName();// 寄件人姓名
-        String Recipient = letterSendDTO.getRecipientName();// 收件人姓名
+        String sender = letterSendDTO.getSenderName(); // 寄件人姓名
+        String recipient = letterSendDTO.getRecipientName(); // 收件人姓名
 
+        // 收信地址
+        drawCoverMain(g2d, insideAddress, width, height, 156, 185);
 
-        //x 增下减上 y调整左右位置，增左减右
-        //收信地址  insideAddress 四川省宁都市广安区
-        drawCoverMain(g2d,insideAddress,width,height,156,185);
-        //收信人  Recipient 姜峰勇
+        // 创建 Graphics2D 对象用于绘制子内容
         Graphics2D fontG2d = drawCoverSubordinate(g2d);
-        coverSubordinate(fontG2d, Recipient,155,25);
-        coverSubordinate(fontG2d,sender,750,405);
-        coverSubordinate(fontG2d,mailingAddress,440,405);
-        //寄信人  sender 郭灿衡
-        //寄信地址 mailingAddress 云南省衡原市宝兴县 insideAddress
+        // 创建并行任务
+        CompletableFuture<Void> recipientFuture = CompletableFuture.runAsync(() -> {
+                    Graphics2D clonedG2D = (Graphics2D) fontG2d.create();
+                    coverSubordinate(clonedG2D, recipient, 155, 25);
+                    clonedG2D.dispose();
+                }, subExecutorService);
+        CompletableFuture<Void> senderFuture = CompletableFuture.runAsync(() -> {
+                    Graphics2D clonedG2D = (Graphics2D) fontG2d.create();
+                    coverSubordinate(clonedG2D, sender, 750, 405);
+                    clonedG2D.dispose();
+                }, subExecutorService);
+        CompletableFuture<Void> mailingAddressFuture = CompletableFuture.runAsync(() -> {
+                    Graphics2D clonedG2D = (Graphics2D) fontG2d.create();
+                    coverSubordinate(clonedG2D, mailingAddress, 440, 405);
+                    clonedG2D.dispose();
+                }, subExecutorService);
+
+        // 等待所有任务完成
+        CompletableFuture.allOf(recipientFuture, senderFuture, mailingAddressFuture).join();
+
+        // 释放 Graphics2D 资源
         g2d.dispose();
         bufferedImage = rotateImage2(bufferedImage, 90);
+
         String url = null;
         byte[] imageBytes = null; // 获取字节数组
 
-
+        // 耗时1秒
         try {
             // 将图片写入字节流
             ByteArrayOutputStream baos = new ByteArrayOutputStream(); // 创建字节数组输出流
-            ImageIO.write(bufferedImage, "png", baos); // 将BufferedImage写入字节数组输出流
+            Thumbnails.of(bufferedImage)
+                    .outputFormat("png") // 使用 JPEG 格式
+                    .outputQuality(0.8) // 设置压缩质量，0.8 表示 80% 的质量
+                    .size(bufferedImage.getWidth(), bufferedImage.getHeight())
+                    .toOutputStream(baos);
             imageBytes = baos.toByteArray();
 
-            //生成一个随机的文件名
-            String fileName = UUID.randomUUID()+ ".png";
-            //将照片存储到服务器
+            // 生成一个随机的文件名
+            String fileName = "user-" + userId + "-" + UUID.randomUUID() + ".png";
+            // 将照片存储到服务器
             FileInfo fileInfo = fileStorageService.of(imageBytes).setSaveFilename(fileName).setPath("cover/").upload();
             url = fileInfo.getUrl();
 
         } catch (IOException e) {
-            log.error("生成封面照片失败",e);
+            log.error("生成封面照片失败", e);
         }
+        // 这里实在没办法了,原图片有透明部分,转换成jpg会变成黑色,只能用png
         return url;
     }
     public void coverMain(Graphics2D g2d, String text, int x, int y) {
@@ -416,10 +421,12 @@ public class LetterServiceImpl implements LetterService {
             }
         }
     }
+
     // 使用 ConcurrentHashMap 作为线程安全的缓存
     private static final Map<String, BufferedImage> resourcesCache = new ConcurrentHashMap<>();
     private static final Map<String, Font> coverFontCache = new ConcurrentHashMap<>();
-    public void drawCoverMain(Graphics2D g2d, String text, int width, int height, int x, int y){
+
+    public void drawCoverMain(Graphics2D g2d, String text, int width, int height, int x, int y) {
         // 加载书信图片
         String imagePath = "images/Cover/Cover.png";
         // 检查缓存中是否存在该图像
@@ -445,7 +452,7 @@ public class LetterServiceImpl implements LetterService {
         // 调整字体文件路径以匹配类路径
         String fontPath = "fonts/CoverFont/1.TTF";
         // 检查缓存中是否存在该图像
-        Font customFont = coverFontCache.get(fontPath+"160");
+        Font customFont = coverFontCache.get(fontPath + "160");
         if (customFont == null) {
             try {
 
@@ -475,33 +482,34 @@ public class LetterServiceImpl implements LetterService {
 
         coverMain(g2d, text, x, y);
     }
-  public Graphics2D drawCoverSubordinate(Graphics2D g2d){
 
-      // 调整字体文件路径以匹配类路径
-      String fontPath = "fonts/CoverFont/1.TTF";
-      // 检查缓存中是否存在该图像
-      Font customFont = coverFontCache.get(fontPath+"110");
-      if (customFont == null) {
-          try {
+    public Graphics2D drawCoverSubordinate(Graphics2D g2d) {
 
-              // 使用类加载器获取字体文件输入流
-              InputStream fontStream = getClass().getClassLoader().getResourceAsStream(fontPath);
-              if (fontStream != null) {
-                  // 加载字体文件
-                  customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont((float) 110);
-              } else {
-                  log.error("字体文件未找到: " + fontPath);
-              }
+        // 调整字体文件路径以匹配类路径
+        String fontPath = "fonts/CoverFont/1.TTF";
+        // 检查缓存中是否存在该图像
+        Font customFont = coverFontCache.get(fontPath + "110");
+        if (customFont == null) {
+            try {
 
-              // 获取本地图形环境并注册字体
-              GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-              ge.registerFont(customFont);
+                // 使用类加载器获取字体文件输入流
+                InputStream fontStream = getClass().getClassLoader().getResourceAsStream(fontPath);
+                if (fontStream != null) {
+                    // 加载字体文件
+                    customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont((float) 110);
+                } else {
+                    log.error("字体文件未找到: " + fontPath);
+                }
 
-          } catch (FontFormatException | IOException e) {
-              // 如果字体加载失败，使用默认字体
-              customFont = new Font("宋体", Font.PLAIN, 100); // 使用支持中文的默认字体，例如宋体
-          }
-      }
+                // 获取本地图形环境并注册字体
+                GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+                ge.registerFont(customFont);
+
+            } catch (FontFormatException | IOException e) {
+                // 如果字体加载失败，使用默认字体
+                customFont = new Font("宋体", Font.PLAIN, 100); // 使用支持中文的默认字体，例如宋体
+            }
+        }
 
         g2d.setFont(customFont); // 设置字体
         g2d.setColor(Color.decode("#030303")); // 设置字体颜色*/
@@ -509,6 +517,7 @@ public class LetterServiceImpl implements LetterService {
         g2d.dispose(); // 释放Graphics2D对象*/
         return g2d;
     }
+
     public BufferedImage rotateImage2(BufferedImage originalImage, int degrees) {
         int width = originalImage.getWidth();
         int height = originalImage.getHeight();
@@ -535,6 +544,7 @@ public class LetterServiceImpl implements LetterService {
 
         return rotatedImage;
     }
+
     public void coverSubordinate(Graphics2D g2d, String text, int x, int y) {
         int charsPerLine = 15;
         int currentX = x;
@@ -698,7 +708,7 @@ public class LetterServiceImpl implements LetterService {
                         "        background-position: center;\n" +
                         "        display: block;\n" +
                         "        margin: 0 auto;\n" +
-                        "        background-image: url('"+letter.getCoverLink()+"');\n" +
+                        "        background-image: url('" + letter.getCoverLink() + "');\n" +
                         "        width: 12.5em;\n" +
                         "        /* 200px */\n" +
                         "        height: 21.0625em;\n" +
@@ -734,7 +744,7 @@ public class LetterServiceImpl implements LetterService {
                         "          <span style=\"color:#A52328; display:inline-block; line-height: 2.75em;\">侨缘信使</span>\n" +
                         "        </p>\n" +
                         "      </div>\n" +
-                        "      <p class=\"message\">"+letter.getRecipientName()+",您的好友给您发了一封侨批喔,<a href=\"http://110.41.58.26\">快来看看吧</a></p>\n" +
+                        "      <p class=\"message\">" + letter.getRecipientName() + ",您的好友给您发了一封侨批喔,<a href=\"http://110.41.58.26\">快来看看吧</a></p>\n" +
                         "      <div id=\"body\">\n" +
                         "\n" +
                         "        <p>&nbsp;</p>\n" +
@@ -759,11 +769,14 @@ public class LetterServiceImpl implements LetterService {
                 // 发送邮件
                 javaMailSender.send(message);
             } catch (MessagingException e) {
-                log.error(message("letter.sent.failed"),letter); ;
+                log.error(message("letter.sent.failed"), letter);
+                ;
             } catch (MailException e) {
-                log.error(message("letter.sent.failed.by.email"),letter); ;
-            } catch (Exception e){
-                log.error(message("unknown.error"),letter); ;
+                log.error(message("letter.sent.failed.by.email"), letter);
+                ;
+            } catch (Exception e) {
+                log.error(message("unknown.error"), letter);
+                ;
             }
             letter.setStatus(LetterStatus.DELIVERED);
             letter.setDeliveryProgress(10000L);
@@ -772,33 +785,124 @@ public class LetterServiceImpl implements LetterService {
             letterMapper.updateById(letter);
         }
     }
+
+    // 主线程池
+    private ExecutorService mainExecutorService = Executors.newFixedThreadPool(3);
+
     @Override
-    public LetterVO sendLetterPre(LetterSendDTO letterSendDTO){
-        User user = userMapper.selectById(UserContext.getUserId());
+    @Transactional
+    public LetterVO sendLetterPre(LetterSendDTO letterSendDTO) {
+        System.out.println(LocalDateTime.now());
+        Long userId = UserContext.getUserId();
+        User user = userMapper.selectById(userId);
         if (user == null) {
             throw new UserNotExistsException();
         }
+
         Letter letter = BeanUtil.copyProperties(letterSendDTO, Letter.class);
-        letter.setSenderUserId(UserContext.getUserId());
-        //将收件人邮箱转换为小写，保证数据库都是小写
-        letter.setRecipientEmail(letterSendDTO.getRecipientEmail().toLowerCase());
-        //或许保留原格式也是一种选择
-        //letter.setLetterContent(letterSendDTO.getLetterContent().trim());
-        String coverLink = coverGenerieren(letterSendDTO);
+
+        // 检验地址是否有效
+        if(letter.getRecipientAddress().getCountryId()!=(long)1){
+            Country country = countryMapper.selectById(letter.getRecipientAddress().getCountryId());
+            if(country==null){
+                throw new UserException(message("user.address.country.not.exists"));
+            }
+            letter.getRecipientAddress().setLatitude(country.getCapitalLatitude());
+            letter.getRecipientAddress().setLongitude(country.getCapitalLongitude());
+        }
+        if(letter.getSenderAddress().getCountryId()!=(long)1){
+            Country country = countryMapper.selectById(letter.getSenderAddress().getCountryId());
+            if(country==null){
+                throw new UserException(message("user.address.country.not.exists"));
+            }
+            letter.getSenderAddress().setLatitude(country.getCapitalLatitude());
+            letter.getSenderAddress().setLongitude(country.getCapitalLongitude());
+        }
+
+        // 检验猪仔钱是否足够
+        if (user.getMoney() >= letterSendDTO.getPiggyMoney()) {
+            if (letterSendDTO.getPiggyMoney()< 0) {
+                throw new UserException(message("user.money.not.match"));
+            }
+            user.setMoney(user.getMoney() - letterSendDTO.getPiggyMoney());
+            // 顺带做个地址处理你再更新
+            List<Address> addresses = user.getAddresses();
+            Address senderAddress = letter.getSenderAddress();
+
+            boolean isInAddresses = false;
+            if (addresses == null) {
+                addresses = new ArrayList<>();
+                senderAddress.setIsDefault(String.valueOf(true));
+            }else {
+                for (Address address : addresses) {
+                    if (address.getFormattedAddress().equals(senderAddress.getFormattedAddress())||address.getId().equals(senderAddress.getId())) {
+                        isInAddresses = true;
+                        senderAddress.setId(address.getId());
+                        break;
+                    }
+                }
+            }
+            if (!isInAddresses) {
+                senderAddress.setId(addresses.size() + 1L);
+                addresses.add(senderAddress);
+                letter.setSenderAddress(senderAddress);
+            }
+            user.setAddresses(addresses);
+            userMapper.updateById(user);
+        } else {
+            throw new UserException(message("user.money.not.enough"));
+        }
+
+
+        // 创建任务
+        CompletableFuture<String> coverFuture = CompletableFuture.supplyAsync(() -> {
+            return coverGenerieren(letterSendDTO,userId);
+        }, mainExecutorService);
+
+        CompletableFuture<String> letterLinkFuture = CompletableFuture.supplyAsync(() -> {
+            String fileName = "user-" + userId + "-" + UUID.randomUUID() + ".jpg";
+            String redisKey = "image:" + userId;
+            String base64Image = (String) redisTemplate.opsForValue().get(redisKey);
+            byte[] imageBytes = Base64.getDecoder().decode(base64Image);
+            assert imageBytes != null;
+            FileInfo fileInfo = fileStorageService.of(imageBytes).setSaveFilename(fileName).setPath("letter/").upload();
+            return fileInfo.getUrl();
+        }, mainExecutorService);
+
+        CompletableFuture<LocalDateTime> deliveryTimeFuture = CompletableFuture.supplyAsync(() -> {
+
+            double distance = PositionUtil.getDistance(
+                    letter.getSenderAddress().getLongitude(),
+                    letter.getSenderAddress().getLatitude(),
+                    letter.getRecipientAddress().getLongitude(),
+                    letter.getRecipientAddress().getLatitude()
+            );
+            distance = Math.max(distance, 200000); // 200公里转换为米
+            double time = distance / 40000;
+            long timeMin = (long) (time * 60 * 60);
+            LocalDateTime now = LocalDateTime.now();
+            return now.plusSeconds(timeMin);
+        }, mainExecutorService);
+        String coverLink = null;
+        String letterLink = null;
+        LocalDateTime deliveryTime = null;
+        System.out.println(LocalDateTime.now());
+
+        try {
+            // 等待所有任务完成
+            coverLink = coverFuture.get();
+            letterLink = letterLinkFuture.get();
+            deliveryTime = deliveryTimeFuture.get();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw  new LetterException(message("letter.send.failed"));
+        }
+
+        System.out.println(LocalDateTime.now());
+
+        // 设置信件属性
         letter.setCoverLink(coverLink);
-
-        double distance = PositionUtil.getDistance(letterSendDTO.getSenderAddress().getLongitude(), letterSendDTO.getSenderAddress().getLatitude(), letterSendDTO.getRecipientAddress().getLongitude(), letterSendDTO.getRecipientAddress().getLatitude());
-
-        // 确保距离至少为200公里
-        distance = Math.max(distance, 200000); // 200公里转换为米
-        //距离换算时间,速度为每小时40公里
-        double time = distance / 40000;
-        //时间换算为秒
-        long timeMin = (long) (time * 60 * 60);
-        //当前时间
-        LocalDateTime now = LocalDateTime.now();
-        //发送时间
-        LocalDateTime deliveryTime = now.plusSeconds(timeMin);
+        letter.setLetterLink(letterLink);
         letter.setExpectedDeliveryTime(deliveryTime);
         letter.setDeliveryTime(deliveryTime);
         letter.setStatus(LetterStatus.TRANSIT);
@@ -806,7 +910,15 @@ public class LetterServiceImpl implements LetterService {
         letter.setDeliveryProgress(0L);
         letter.setSenderEmail(user.getEmail());
         letter.setSpeedRate("1");
+        letter.setSenderUserId(userId);
+        letter.setLetterContent(letterSendDTO.getLetterContent().trim());
+        letter.setRecipientEmail(letterSendDTO.getRecipientEmail().toLowerCase());
+        letter.setPiggyMoney(letterSendDTO.getPiggyMoney());
+
         letterMapper.insert(letter);
+
+        //检查是否是好友
+        Friend friend = friendMapper.selectOne(new LambdaQueryWrapper<Friend>().eq(Friend::getUserId, letter.getRecipientUserId()).eq(Friend::getOwningId, UserContext.getUserId()));
 
         return BeanUtil.copyProperties(letter, LetterVO.class);
     }
@@ -820,6 +932,7 @@ public class LetterServiceImpl implements LetterService {
 
         return BeanUtil.copyToList(letters, LetterVO.class);
     }
+
     @Override
     public List<LetterVO> getMyReceiveLetter() {
         User user = userMapper.selectById(UserContext.getUserId());
@@ -844,7 +957,7 @@ public class LetterServiceImpl implements LetterService {
         }
         //返回第一封信,如果已读,后面的也不弹窗
         LetterVO letterVO = myReceiveLetter.get(0);
-        if (letterVO.getReadStatus()==LetterStatus.READ) {
+        if (letterVO.getReadStatus() == LetterStatus.READ) {
             return null;
         }
         //筛选未读的信
@@ -857,7 +970,7 @@ public class LetterServiceImpl implements LetterService {
         if (letter == null) {
             throw new LetterException(message("letter.not.exists"));
         }
-        if (letter.getReadStatus()==LetterStatus.READ) {
+        if (letter.getReadStatus() == LetterStatus.READ) {
 //            throw new LetterException(message("letter.already.read"));
             return;
         }
