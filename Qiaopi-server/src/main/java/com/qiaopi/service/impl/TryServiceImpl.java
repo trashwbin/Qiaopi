@@ -22,10 +22,8 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -73,10 +71,8 @@ public class TryServiceImpl implements TryService {
             bufferedImage = createAndDrawImage2(letterGenDTO);
         } else {
             log.info("文本仅包含汉字或符号，进行处理。");
-             bufferedImage = createAndDrawImage(letterGenDTO);
+            bufferedImage = createAndDrawImage(letterGenDTO);
         }
-
-
 
 
         //存储
@@ -121,6 +117,7 @@ public class TryServiceImpl implements TryService {
 
     /**
      * 绘制出现非中文的信纸
+     *
      * @param letterGenDTO
      * @return
      */
@@ -134,10 +131,10 @@ public class TryServiceImpl implements TryService {
 
         //绘制书信样式
         //初始化 g2d  进行字体颜色，种类，背景图片等的绘制
-        Graphics2D G2D = drawWritingStyle2( bufferedImage,letterGenDTO);
+        Graphics2D G2D = drawWritingStyle2(bufferedImage, letterGenDTO);
 
         //绘制字体样式
-        drawFontStyle2(G2D,letterGenDTO);
+        drawFontStyle2(G2D, letterGenDTO);
 
         return bufferedImage;
 
@@ -154,18 +151,18 @@ public class TryServiceImpl implements TryService {
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
             //drawFontStyleDetail2(clonedG2D, letterGenDTO.getLetterContent(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()),paper.getFitNumber());
-            drawFontStyleDetail2(clonedG2D, letterGenDTO.getLetterContent(), 40, 70,paper.getFitNumber());//TODO需要修改
+            drawFontStyleDetail2(clonedG2D, letterGenDTO.getLetterContent(), 40, 70, paper.getFitNumber());//TODO需要修改
             clonedG2D.dispose();
         });
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
-            drawFontStyleDetail2(clonedG2D, letterGenDTO.getSenderName(), 350, 580,paper.getFitNumber());
+            drawFontStyleDetail2(clonedG2D, letterGenDTO.getSenderName(), 350, 580, paper.getFitNumber());
             //drawFontStyleDetail2(clonedG2D, letterGenDTO.getSenderName(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()),paper.getFitNumber());
             clonedG2D.dispose();
         });
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
-            drawFontStyleDetail2(clonedG2D, letterGenDTO.getRecipientName(),30, 50,paper.getFitNumber());
+            drawFontStyleDetail2(clonedG2D, letterGenDTO.getRecipientName(), 30, 50, paper.getFitNumber());
             //drawFontStyleDetail2(clonedG2D, letterGenDTO.getRecipientName(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()),paper.getFitNumber());
             clonedG2D.dispose();
         });
@@ -182,9 +179,11 @@ public class TryServiceImpl implements TryService {
             Thread.currentThread().interrupt();
         }
     }
+
     private void drawFontStyleDetail2(Graphics2D g2d, String text, int x, int y, int fitNumber) {
-        // 每行字符数
-        int charsPerLine = 17;
+
+     /*   int maxWidth = 380;
+
         // 初始化 x 和 y 坐标
         int currentX = x;
         int currentY = y;
@@ -194,49 +193,151 @@ public class TryServiceImpl implements TryService {
 
         FontMetrics fontMetrics = g2d.getFontMetrics();
         int limitNumber = 0;
+        int currentLineWidth = 0; // 当前行的宽度
 
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
+
+            // 计算当前字符的宽度
+            int charWidth = fontMetrics.charWidth(c);
+
+            // 检查是否需要换行
+            if (currentLineWidth + charWidth + spacing > maxWidth) {
+                currentX = x; // 重置 x 坐标
+                currentY += fontMetrics.getHeight(); // 更新 y 坐标换行
+                currentLineWidth = 0; // 重置当前行的宽度
+            }
 
             // 根据字符类型调整偏移量
             int adjustedX = currentX;
             int adjustedY = currentY;
 
             // 如果是英文字母或数字，进行特殊偏移
-
             if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
-                //adjustedY += fontMetrics.getAscent() / 2; // 适当调整垂直偏移
                 adjustedX += letterLeftMargin; // 添加左边距
                 // 绘制字符
                 g2d.drawString(String.valueOf(c), adjustedX, adjustedY);
-
                 // 更新 x 坐标，加入字符间距
-                currentX += fontMetrics.charWidth(c) + 12;
-
-            }else {
+                currentX += charWidth + 12;
+            } else {
                 // 绘制字符
                 g2d.drawString(String.valueOf(c), adjustedX, adjustedY);
-
                 // 更新 x 坐标，加入字符间距
-                currentX += fontMetrics.charWidth(c) + spacing;
-
+                currentX += charWidth + spacing;
             }
 
-
-            // 检查是否需要换行
-            if ((i + 1) % charsPerLine == 0 && i < text.length() - 1) {
-                currentX = x; // 重置 x 坐标
-                currentY += fontMetrics.getHeight(); // 更新 y 坐标换行
-            }
+            // 更新当前行的宽度
+            currentLineWidth += charWidth + spacing;
 
             // 检查字符绘制限制
             limitNumber++;
             if (limitNumber == fitNumber) {
                 break;
             }
+        }*/
+        // 文本换行和绘制
+        FontMetrics fontMetrics = g2d.getFontMetrics();
+        int lineHeight = fontMetrics.getHeight();
+        List<String> wrappedLines = wrapText(text, fontMetrics, 380 );
+
+        int currentY = y;
+        for (String line : wrappedLines) {
+            g2d.drawString(line, x, currentY + fontMetrics.getAscent());
+            currentY += lineHeight;
         }
     }
+    private static List<String> wrapText(String text, FontMetrics fontMetrics, int maxWidth) {
+       /* List<String> wrappedLines = new ArrayList<>();
+        StringBuilder currentLine = new StringBuilder();
 
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            String testLine = currentLine.toString() + c;
+            int testWidth = fontMetrics.stringWidth(testLine);
+
+            if (testWidth > maxWidth) {
+                if (currentLine.length() > 0) {
+                    wrappedLines.add(currentLine.toString());
+                    currentLine = new StringBuilder(String.valueOf(c));
+                } else {
+                    wrappedLines.addAll(wrapLongWord(String.valueOf(c), fontMetrics, maxWidth));
+                }
+            } else {
+                currentLine.append(c);
+            }
+        }
+
+        if (currentLine.length() > 0) {
+            wrappedLines.add(currentLine.toString());
+        }
+
+        return wrappedLines;*/
+        List<String> wrappedLines = new ArrayList<>();
+
+        // 按回车符拆分为多行
+        String[] lines = text.split("\n");
+
+        // 对每行分别进行换行处理
+        for (String line : lines) {
+            List<String> wrappedSubLines = wrapSingleLine(line, fontMetrics, maxWidth);
+            wrappedLines.addAll(wrappedSubLines); // 添加换行后的行
+        }
+
+        return wrappedLines;
+    }
+    private static List<String> wrapSingleLine(String line, FontMetrics fontMetrics, int maxWidth) {
+        List<String> wrappedLines = new ArrayList<>();
+        String[] words = line.split(" ");
+        StringBuilder currentLine = new StringBuilder();
+
+        for (String word : words) {
+            String testLine = currentLine.length() > 0 ? currentLine + " " + word : word;
+            int testWidth = fontMetrics.stringWidth(testLine);
+
+            if (testWidth > maxWidth) {
+                if (currentLine.length() > 0) {
+                    wrappedLines.add(currentLine.toString());
+                    currentLine = new StringBuilder(word);
+                } else {
+                    wrappedLines.addAll(wrapLongWord(word, fontMetrics, maxWidth));
+                }
+            } else {
+                if (currentLine.length() > 0) {
+                    currentLine.append(" ").append(word);
+                } else {
+                    currentLine.append(word);
+                }
+            }
+        }
+
+        if (currentLine.length() > 0) {
+            wrappedLines.add(currentLine.toString());
+        }
+
+        return wrappedLines;
+    }
+    private static List<String> wrapLongWord(String word, FontMetrics fontMetrics, int maxWidth) {
+        List<String> parts = new ArrayList<>();
+        while (fontMetrics.stringWidth(word) > maxWidth) {
+            int breakPoint = findBreakPoint(word, fontMetrics, maxWidth);
+            if (breakPoint == -1) {
+                break;
+            }
+            parts.add(word.substring(0, breakPoint));
+            word = word.substring(breakPoint);
+        }
+        parts.add(word);
+        return parts;
+    }
+
+    private static int findBreakPoint(String word, FontMetrics fontMetrics, int maxWidth) {
+        for (int i = 1; i < word.length(); i++) {
+            if (fontMetrics.stringWidth(word.substring(0, i)) > maxWidth) {
+                return i - 1;
+            }
+        }
+        return -1;
+    }
 
 
     private Graphics2D drawWritingStyle2(BufferedImage bufferedImage, LetterGenDTO letterGenDTO) {
@@ -271,7 +372,7 @@ public class TryServiceImpl implements TryService {
         // 背景图适配绘制
         if (bgImage != null) {
             g2d.drawImage(bgImage, 0, 0, width, height, null);
-        }else {
+        } else {
             log.error("背景图片未找到");
         }
         // 加载自定义字体
@@ -310,6 +411,7 @@ public class TryServiceImpl implements TryService {
 
     /**
      * 此方法用户绘制信件，包括信件和字体的样式
+     *
      * @param letterGenDTO
      * @return
      */
@@ -325,10 +427,10 @@ public class TryServiceImpl implements TryService {
 
         //绘制书信样式
         //初始化 g2d  进行字体颜色，种类，背景图片等的绘制
-        Graphics2D G2D = drawWritingStyle( bufferedImage,letterGenDTO);
+        Graphics2D G2D = drawWritingStyle(bufferedImage, letterGenDTO);
 
         //旋转字体
-        drawFontStyle(G2D,letterGenDTO);
+        drawFontStyle(G2D, letterGenDTO);
 
         //旋转文本
         bufferedImage = drawRotateImage(bufferedImage, 90);
@@ -338,6 +440,7 @@ public class TryServiceImpl implements TryService {
 
     /**
      * 旋转文本角度
+     *
      * @param image
      * @param angle
      * @return
@@ -364,10 +467,11 @@ public class TryServiceImpl implements TryService {
 
     /**
      * 绘制书信内文本旋转
+     *
      * @param g2D
      * @param letterGenDTO
      */
-    private void drawFontStyle(Graphics2D g2D,LetterGenDTO letterGenDTO) {
+    private void drawFontStyle(Graphics2D g2D, LetterGenDTO letterGenDTO) {
 
         //获取纸张信息，包括偏移量X，Y，适配字数
         Paper paper = paperMapper.selectById(letterGenDTO.getPaperId());
@@ -392,12 +496,12 @@ public class TryServiceImpl implements TryService {
         });
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
-           drawSenderFontStyleDetail(clonedG2D, letterGenDTO.getSenderName(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()),paper.getFitNumber());
+            drawSenderFontStyleDetail(clonedG2D, letterGenDTO.getSenderName(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()), paper.getFitNumber());
             clonedG2D.dispose();
         });
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
-            drawFontStyleDetail(clonedG2D, letterGenDTO.getRecipientName(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()),paper.getFitNumber());
+            drawFontStyleDetail(clonedG2D, letterGenDTO.getRecipientName(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()), paper.getFitNumber());
             clonedG2D.dispose();
         });
 
@@ -415,7 +519,7 @@ public class TryServiceImpl implements TryService {
 
     }
 
-    private void drawSenderFontStyleDetail(Graphics2D g2d, String text, int x, int y,int fitNumber) {
+    private void drawSenderFontStyleDetail(Graphics2D g2d, String text, int x, int y, int fitNumber) {
 
         // 每行字符数，设置为15
         int charsPerLine = 15;
@@ -462,7 +566,7 @@ public class TryServiceImpl implements TryService {
                 g2d.drawString(String.valueOf(c), currentX, adjustedY);
                 // 增加字符间距
                 currentX += fontMetrics.charWidth(c) + spacing;
-            }else {
+            } else {
                 //g2d.drawString(String.valueOf(c), currentX, currentY);
                 g2d.drawString(String.valueOf(c), currentX, adjustedY);
                 // 更新 x 坐标以便绘制下一个字符
@@ -486,19 +590,18 @@ public class TryServiceImpl implements TryService {
         }
 
 
-
-
     }
 
     /**
      * 绘制书信内文本旋转细节
+     *
      * @param g2d
      * @param text
      * @param x
      * @param y
      * @param fitNumber
      */
-    public void drawFontStyleDetail(Graphics2D g2d, String text, int x, int y,int fitNumber) {
+    public void drawFontStyleDetail(Graphics2D g2d, String text, int x, int y, int fitNumber) {
 
         // 每行字符数，设置为15
         int charsPerLine = 15;
@@ -545,7 +648,7 @@ public class TryServiceImpl implements TryService {
                 g2d.drawString(String.valueOf(c), currentX, adjustedY);
                 // 增加字符间距
                 currentX += fontMetrics.charWidth(c) + spacing;
-            }else {
+            } else {
                 //g2d.drawString(String.valueOf(c), currentX, currentY);
                 g2d.drawString(String.valueOf(c), currentX, adjustedY);
                 // 更新 x 坐标以便绘制下一个字符
@@ -573,12 +676,13 @@ public class TryServiceImpl implements TryService {
 
     /**
      * 绘制字体颜色等样式
+     *
      * @param bufferedImage
      * @param letterGenDTO
      * @return
      */
-    public Graphics2D drawWritingStyle( BufferedImage bufferedImage,LetterGenDTO letterGenDTO){
-       Graphics2D g2d = bufferedImage.createGraphics(); // 获取Graphics2D对象，用于绘制图像
+    public Graphics2D drawWritingStyle(BufferedImage bufferedImage, LetterGenDTO letterGenDTO) {
+        Graphics2D g2d = bufferedImage.createGraphics(); // 获取Graphics2D对象，用于绘制图像
         int width = bufferedImage.getWidth();
         int height = bufferedImage.getHeight();
 
@@ -608,7 +712,7 @@ public class TryServiceImpl implements TryService {
         // 背景图适配绘制
         if (bgImage != null) {
             g2d.drawImage(bgImage, 0, 0, width, height, null);
-        }else {
+        } else {
             log.error("背景图片未找到");
         }
         // 加载自定义字体
@@ -641,4 +745,8 @@ public class TryServiceImpl implements TryService {
         return g2d;
     }
 
-    }
+
+}
+
+
+
