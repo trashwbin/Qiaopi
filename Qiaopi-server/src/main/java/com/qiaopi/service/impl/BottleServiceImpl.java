@@ -161,10 +161,9 @@ public class BottleServiceImpl implements BottleService {
      * @param x
      * @param y
      */
-    public void drawMain(Graphics2D g2d,  int width, int height, String text,  int x, int y) {
-        // 加载书信图片
+    public void drawMain(Graphics2D g2d, int width, int height, String text, int x, int y) {
+        // 加载背景图片
         BufferedImage bgImage = null;
-//                ImageIO.read(new File("Qiaopi-server\\src\\main\\resources\\images\\Cover\\Cover.png"));
         try {
             InputStream inputStream = getClass().getClassLoader().getResourceAsStream("images/Bottle/米黄色花.jpg");
             if (inputStream == null) {
@@ -176,63 +175,97 @@ public class BottleServiceImpl implements BottleService {
             log.error("加载背景图片时发生错误: " + e.getMessage());
         }
 
-        //背景图适配绘制
+        // 背景图适配绘制
         g2d.drawImage(bgImage, 0, 0, width, height, null);
 
-
         // 加载自定义字体
-        Font customFont = null; // 定义字体对象
+        Font customFont = null;
         try {
-            // 调整字体文件路径以匹配类路径
-            String fontPath = "fonts/MainContent/不二情书字体.TTF";
-
-            // 使用类加载器获取字体文件输入流
-            InputStream fontStream = getClass().getClassLoader().getResourceAsStream(fontPath);
-
+            InputStream fontStream = getClass().getClassLoader().getResourceAsStream("fonts/MainContent/不二情书字体.TTF");
             if (fontStream != null) {
-                // 加载字体文件
-                customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont((float) 50);
+                customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont(50f);
             } else {
-                log.error("字体文件未找到: " + fontPath);
+                log.error("字体文件未找到: fonts/MainContent/不二情书字体.TTF");
             }
-
-            // 获取本地图形环境并注册字体
             GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
             ge.registerFont(customFont);
-
         } catch (FontFormatException | IOException e) {
-            // 如果字体加载失败，使用默认字体
-            customFont = new Font("宋体", Font.PLAIN, 50); // 使用支持中文的默认字体，例如宋体
+            customFont = new Font("宋体", Font.PLAIN, 50);
             log.error("加载字体文件时发生错误: " + e.getMessage());
         }
 
-
         // 设置字体及颜色
-        g2d.setFont(customFont); // 设置字体
+        g2d.setFont(customFont);
+        g2d.setColor(Color.decode("#030303"));
 
-        String color = "#030303";
-        g2d.setColor(Color.decode(color)); // 设置字体颜色
-
-        // 获取字体度量信息
+        // 文本换行和绘制
         FontMetrics fontMetrics = g2d.getFontMetrics();
-
-        // 每行字符数
-        int charsPerLine = 17;
-
-        // 计算每行的高度
         int lineHeight = fontMetrics.getHeight();
+        List<String> wrappedLines = wrapText(text, fontMetrics, width );
 
-        // 分割文本
-        String[] lines = splitTextIntoLines(text, charsPerLine);
-
-        // 绘制文本
         int currentY = y;
-        for (String line : lines) {
-            int textWidth = fontMetrics.stringWidth(line);
+        for (String line : wrappedLines) {
             g2d.drawString(line, x, currentY + fontMetrics.getAscent());
             currentY += lineHeight;
         }
     }
+
+    private static List<String> wrapText(String text, FontMetrics fontMetrics, int maxWidth) {
+        List<String> wrappedLines = new ArrayList<>();
+        String[] words = text.split(" ");
+        StringBuilder currentLine = new StringBuilder();
+
+        for (String word : words) {
+            String testLine = currentLine.length() > 0 ? currentLine + " " + word : word;
+            int testWidth = fontMetrics.stringWidth(testLine);
+
+            if (testWidth > maxWidth) {
+                if (currentLine.length() > 0) {
+                    wrappedLines.add(currentLine.toString());
+                    currentLine = new StringBuilder(word);
+                } else {
+                    wrappedLines.addAll(wrapLongWord(word, fontMetrics, maxWidth));
+                }
+            } else {
+                if (currentLine.length() > 0) {
+                    currentLine.append(" ").append(word);
+                } else {
+                    currentLine.append(word);
+                }
+            }
+        }
+
+        if (currentLine.length() > 0) {
+            wrappedLines.add(currentLine.toString());
+        }
+
+        return wrappedLines;
+    }
+
+    private static List<String> wrapLongWord(String word, FontMetrics fontMetrics, int maxWidth) {
+        List<String> parts = new ArrayList<>();
+        while (fontMetrics.stringWidth(word) > maxWidth) {
+            int breakPoint = findBreakPoint(word, fontMetrics, maxWidth);
+            if (breakPoint == -1) {
+                break;
+            }
+            parts.add(word.substring(0, breakPoint));
+            word = word.substring(breakPoint);
+        }
+        parts.add(word);
+        return parts;
+    }
+
+    private static int findBreakPoint(String word, FontMetrics fontMetrics, int maxWidth) {
+        for (int i = 1; i < word.length(); i++) {
+            if (fontMetrics.stringWidth(word.substring(0, i)) > maxWidth) {
+                return i - 1;
+            }
+        }
+        return -1;
+    }
+
+
 
     /**
      * 字体换行方法
