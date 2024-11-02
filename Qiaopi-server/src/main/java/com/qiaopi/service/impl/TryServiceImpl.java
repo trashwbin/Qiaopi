@@ -1,7 +1,7 @@
 package com.qiaopi.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.qiaopi.constant.LetterStatus;
+import com.qiaopi.constant.LetterConstants;
 import com.qiaopi.dto.LetterGenDTO;
 import com.qiaopi.entity.FontPaper;
 import com.qiaopi.entity.Paper;
@@ -12,6 +12,7 @@ import com.qiaopi.mapper.PaperMapper;
 import com.qiaopi.service.TryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -40,8 +42,6 @@ public class TryServiceImpl implements TryService {
 
     private final PaperMapper paperMapper;
 
-    private final FontPaperMapper paperFontMapper;
-
     private final RedisTemplate redisTemplate;
 
 
@@ -53,6 +53,7 @@ public class TryServiceImpl implements TryService {
 
     // 缓存背景图片
     private final Map<String, BufferedImage> bgImageCache = new HashMap<>();
+    private final FontPaperMapper fontPaperMapper;
 
     @Override
     public String generateImage(LetterGenDTO letterGenDTO, Long currentUserId) {
@@ -66,7 +67,7 @@ public class TryServiceImpl implements TryService {
 
         BufferedImage bufferedImage;
         // 根据布尔值的结果做出相应操作
-        if (!containsOnlyChineseOrSymbols) {
+        if (!containsOnlyChineseOrSymbols || letterGenDTO.getLetterType()==LetterConstants.VERTICAL_FONT_LETTER) {
             log.info("文本中包含字母或数字，进行处理。");
             bufferedImage = createAndDrawImage2(letterGenDTO);
         } else {
@@ -78,8 +79,14 @@ public class TryServiceImpl implements TryService {
         //存储
         try {
             // 将图片写入字节流
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(); // 创建字节数组输出流
-            ImageIO.write(bufferedImage, "png", baos); // 将BufferedImage写入字节数组输出流
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(2048 * 2048); // 创建字节数组输出流
+//            ImageIO.write(bufferedImage, "png", baos); // 将BufferedImage写入字节数组输出流
+            Thumbnails.of(bufferedImage)
+                    .outputFormat("jpg") // 使用 JPEG 格式
+//                    .outputQuality(0.8) // 设置压缩质量，0.8 表示 80% 的质量
+                    .size(bufferedImage.getWidth(), bufferedImage.getHeight())
+                    .toOutputStream(baos);
+
             byte[] imageBytes = baos.toByteArray(); // 获取字节数组
 
             // 将字节数组转换为Base64编码的字符串
@@ -89,24 +96,9 @@ public class TryServiceImpl implements TryService {
             String redisKey = "image:" + currentUserId; // 假设有用户 ID 或其他标识符
 
             // 将 Base64 字符串存入 Redis
-            redisTemplate.opsForValue().set(redisKey, base64Image);
+            redisTemplate.opsForValue().set(redisKey,base64Image,12, TimeUnit.HOURS);
 
-
-          /*  // 生成一个随机的文件名
-            String fileName =  UUID.randomUUID()+ ".png";
-            //将照片存储到服务器
-            FileInfo fileInfo = fileStorageService.of(imageBytes).setSaveFilename(fileName).setPath("letter/").upload();
-            url = fileInfo.getUrl();
-            */
-
-           /* // 设置响应头并返回图片
-            HttpHeaders headers = new HttpHeaders(); // 创建HttpHeaders对象
-            headers.setContentType(MediaType.IMAGE_PNG); // 设置响应内容类型为PNG图片
-            headers.setContentLength(imageBytes.length); // 设置响应内容长度
-            //return ResponseEntity.ok().headers(headers).body(imageBytes); // 返回包含图片字节数组的响应实体
-*/
             return base64Image;
-
         } catch (IOException e) {
             log.error("生成图片失败", e);
         }
@@ -123,8 +115,8 @@ public class TryServiceImpl implements TryService {
      */
     private BufferedImage createAndDrawImage2(LetterGenDTO letterGenDTO) {
         //设置照片的宽和高
-        int width = LetterStatus.NOT_ONLY_CHINESES_WIDTH;//照片宽度
-        int height = LetterStatus.NOT_ONLY_CHINESES_HEIGHT;//照片宽度
+        int width = LetterConstants.NOT_ONLY_CHINESES_WIDTH;//照片宽度
+        int height = LetterConstants.NOT_ONLY_CHINESES_HEIGHT;//照片宽度
 
         // 创建一个 BufferedImage 对象
         BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -139,30 +131,45 @@ public class TryServiceImpl implements TryService {
         return bufferedImage;
 
     }
+    // 数据库数据缓存
+    private static final ConcurrentHashMap<Long, String> fontColorCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Long, String> userFontCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Long, String> paperCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Long> limitCache = new ConcurrentHashMap<>();
 
     private void drawFontStyle2(Graphics2D g2D, LetterGenDTO letterGenDTO) {
 
         //获取纸张信息，包括偏移量X，Y，适配字数
         Paper paper = paperMapper.selectById(letterGenDTO.getPaperId());
-        //TODO 新建一个库用于存放字体和信纸适配的字数 上同
+        // 获取限制字数并缓存
+        Long limit = limitCache.get(letterGenDTO.getPaperId() +"-"+ letterGenDTO.getFontId());
+        if (limit == null) {
+            limit = fontPaperMapper.selectOne(
+                    new QueryWrapper<FontPaper>()
+                            .eq("paper_id", letterGenDTO.getPaperId())
+                            .eq("font_id", letterGenDTO.getFontId())
+            ).getFitNumber();
+            limitCache.put(letterGenDTO.getPaperId() +"-"+ letterGenDTO.getFontId(), limit);
+        }
 
         ExecutorService executor = Executors.newFixedThreadPool(3);
         // 提交任务 使用多线程进行（分别对内容，发送者名称，收件者名称进行旋转，转换成古代书法规则）
+        Long finalLimit = limit;// limit不能是被lambda表达式修改的变量
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
             //drawFontStyleDetail2(clonedG2D, letterGenDTO.getLetterContent(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()),paper.getFitNumber());
-            drawFontStyleDetail2(clonedG2D, letterGenDTO.getLetterContent(), 40, 70, paper.getFitNumber());//TODO需要修改
+            drawFontStyleDetail2(clonedG2D, letterGenDTO.getLetterContent(), 40, 70, finalLimit);//TODO需要修改,因为名字不用这个限制
             clonedG2D.dispose();
         });
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
-            drawFontStyleDetail2(clonedG2D, letterGenDTO.getSenderName(), 350, 580, paper.getFitNumber());
+            drawFontStyleDetail2(clonedG2D, letterGenDTO.getSenderName(), 350, 580, finalLimit);
             //drawFontStyleDetail2(clonedG2D, letterGenDTO.getSenderName(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()),paper.getFitNumber());
             clonedG2D.dispose();
         });
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
-            drawFontStyleDetail2(clonedG2D, letterGenDTO.getRecipientName(), 30, 50, paper.getFitNumber());
+            drawFontStyleDetail2(clonedG2D, letterGenDTO.getRecipientName(), 30, 50,finalLimit);
             //drawFontStyleDetail2(clonedG2D, letterGenDTO.getRecipientName(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()),paper.getFitNumber());
             clonedG2D.dispose();
         });
@@ -180,7 +187,7 @@ public class TryServiceImpl implements TryService {
         }
     }
 
-    private void drawFontStyleDetail2(Graphics2D g2d, String text, int x, int y, int fitNumber) {
+    private void drawFontStyleDetail2(Graphics2D g2d, String text, int x, int y, Long fitNumber) {
 
      /*   int maxWidth = 380;
 
@@ -347,11 +354,21 @@ public class TryServiceImpl implements TryService {
 
         //获取用户选定的字体颜色，字体样式，纸张
         //获取字体颜色，字体 纸张
-        String fontColor = (fontColorMapper.selectById(letterGenDTO.getFontColorId())).getHexCode();
-
-        String font = (fontMapper.selectById(letterGenDTO.getFontId())).getFilePath();
-
-        String paper = "照片1.png";//TODO 这里需要去修改 查库获取
+        String fontColor = fontColorCache.get(letterGenDTO.getFontColorId());
+        if (fontColor == null) {
+            fontColor = fontColorMapper.selectById(letterGenDTO.getFontColorId()).getHexCode();
+            fontColorCache.put(letterGenDTO.getFontColorId(), fontColor);
+        }
+        String font = font = userFontCache.get(letterGenDTO.getFontId());
+        if (font == null) {
+            font = fontMapper.selectById(letterGenDTO.getFontId()).getFilePath();
+            userFontCache.put(letterGenDTO.getFontId(), font);
+        }
+        String paper = paperCache.get(letterGenDTO.getPaperId());
+        if (paper == null) {
+            paper = paperMapper.selectById(letterGenDTO.getPaperId()).getFilePath();
+            paperCache.put(letterGenDTO.getPaperId(), paper);
+        }
 
         // 从缓存中获取背景图片
         BufferedImage bgImage = bgImageCache.get(paper);
@@ -418,8 +435,8 @@ public class TryServiceImpl implements TryService {
     private BufferedImage createAndDrawImage(LetterGenDTO letterGenDTO) {
 
         //设置照片的宽和高
-        int width = LetterStatus.ONLY_CHINESES_HEIGHT;//照片宽度
-        int height = LetterStatus.ONLY_CHINESES_WIDTH;//照片宽度
+        int width = LetterConstants.ONLY_CHINESES_HEIGHT;//照片宽度
+        int height = LetterConstants.ONLY_CHINESES_WIDTH;//照片宽度
 
         // 创建一个 BufferedImage 对象
         BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -474,11 +491,10 @@ public class TryServiceImpl implements TryService {
     private void drawFontStyle(Graphics2D g2D, LetterGenDTO letterGenDTO) {
 
         //获取纸张信息，包括偏移量X，Y，适配字数
-        Paper paper = paperMapper.selectById(letterGenDTO.getPaperId());
-
         //获取适配字数
+        // TODO: 记得做缓存,参考drawFontStyle2,诶这里为啥默认15?
         Long fitNumber = Optional.ofNullable(
-                paperFontMapper.selectOne(
+                fontPaperMapper.selectOne(
                         new QueryWrapper<FontPaper>()
                                 .eq("paper_id", letterGenDTO.getPaperId())
                                 .eq("font_id", letterGenDTO.getFontId())
@@ -487,7 +503,7 @@ public class TryServiceImpl implements TryService {
 
         ExecutorService executor = Executors.newFixedThreadPool(3);
         // 提交任务 使用多线程进行（分别对内容，发送者名称，收件者名称进行旋转，转换成古代书法规则）
-
+        Paper paper = paperMapper.selectById(letterGenDTO.getPaperId());
 
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
@@ -496,12 +512,12 @@ public class TryServiceImpl implements TryService {
         });
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
-            drawSenderFontStyleDetail(clonedG2D, letterGenDTO.getSenderName(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()), paper.getFitNumber());
+            drawSenderFontStyleDetail(clonedG2D, letterGenDTO.getSenderName(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()), Math.toIntExact(fitNumber));
             clonedG2D.dispose();
         });
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
-            drawFontStyleDetail(clonedG2D, letterGenDTO.getRecipientName(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()), paper.getFitNumber());
+            drawFontStyleDetail(clonedG2D, letterGenDTO.getRecipientName(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()), Math.toIntExact(fitNumber));
             clonedG2D.dispose();
         });
 
@@ -673,7 +689,6 @@ public class TryServiceImpl implements TryService {
 
     }
 
-
     /**
      * 绘制字体颜色等样式
      *
@@ -688,10 +703,23 @@ public class TryServiceImpl implements TryService {
 
         //获取用户选定的字体颜色，字体样式，纸张
         //获取字体颜色，字体 纸张
-        //TODO 这里查询了一次数据库
-        String fontColor = (fontColorMapper.selectById(letterGenDTO.getFontColorId())).getHexCode();
-        String font = (fontMapper.selectById(letterGenDTO.getFontId())).getFilePath();
-        String paper = (paperMapper.selectById(letterGenDTO.getPaperId())).getFilePath();
+        //TODO 这里做了缓存
+
+        String fontColor = fontColorCache.get(letterGenDTO.getFontColorId());
+        if (fontColor == null) {
+            fontColor = fontColorMapper.selectById(letterGenDTO.getFontColorId()).getHexCode();
+            fontColorCache.put(letterGenDTO.getFontColorId(), fontColor);
+        }
+        String font = font = userFontCache.get(letterGenDTO.getFontId());
+        if (font == null) {
+            font = fontMapper.selectById(letterGenDTO.getFontId()).getFilePath();
+            userFontCache.put(letterGenDTO.getFontId(), font);
+        }
+        String paper = paperCache.get(letterGenDTO.getPaperId());
+        if (paper == null) {
+            paper = paperMapper.selectById(letterGenDTO.getPaperId()).getFilePath();
+            paperCache.put(letterGenDTO.getPaperId(), paper);
+        }
 
         // 从缓存中获取背景图片
         BufferedImage bgImage = bgImageCache.get(paper);

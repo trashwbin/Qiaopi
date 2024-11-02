@@ -3,22 +3,19 @@ package com.qiaopi.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qiaopi.constant.FriendConstants;
-import com.qiaopi.constant.LetterStatus;
+import com.qiaopi.constant.LetterConstants;
 import com.qiaopi.context.UserContext;
-import com.qiaopi.dto.LetterGenDTO;
 import com.qiaopi.dto.LetterSendDTO;
 import com.qiaopi.entity.*;
 import com.qiaopi.exception.letter.LetterException;
 import com.qiaopi.exception.user.UserException;
 import com.qiaopi.exception.user.UserNotExistsException;
 import com.qiaopi.mapper.*;
-import com.qiaopi.service.FriendService;
 import com.qiaopi.service.LetterService;
 import com.qiaopi.utils.PositionUtil;
 import com.qiaopi.utils.ProgressUtils;
 import com.qiaopi.vo.LetterVO;
 import jakarta.mail.MessagingException;
-import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +47,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+
 import static com.qiaopi.utils.MessageUtils.message;
 
 
@@ -73,394 +70,6 @@ public class LetterServiceImpl implements LetterService {
     private String sender;
     @Value("${spring.mail.nickname}")
     private String nickname;
-    // 缓存背景图片
-    private final Map<String, BufferedImage> bgImageCache = new HashMap<>();
-    // 缓存字体
-    private final Map<String, Font> fontCache = new HashMap<>();
-
-    public void Main(Graphics2D g2d, String text, int x, int y) {
-        int charsPerLine = 15;
-        int currentX = x;
-        int currentY = y;
-
-        FontMetrics fontMetrics = g2d.getFontMetrics();
-
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-
-            // 创建一个新的 AffineTransform
-            AffineTransform affineTransform = new AffineTransform();
-
-            // 平移变换到当前字符的中心
-            affineTransform.translate(currentX + fontMetrics.charWidth(c) / 2, currentY + fontMetrics.getHeight() / 2);
-
-            // 逆时针旋转90度
-            affineTransform.rotate(-Math.PI / 2, 0, 0);
-
-            // 反向平移回到原点
-            affineTransform.translate(-(currentX + fontMetrics.charWidth(c) / 2), -(currentY + fontMetrics.getHeight() / 2));
-
-            // 应用变换并绘制字符
-            g2d.setTransform(affineTransform);
-            g2d.drawString(String.valueOf(c), currentX, currentY);
-
-            // 更新 x 坐标以便绘制下一个字符
-            currentX += fontMetrics.charWidth(c);
-
-            // 检查是否需要换行
-            if ((i + 1) % charsPerLine == 0 && i < text.length() - 1) {
-                // 重置 x 坐标
-                currentX = x;
-
-                // 更新 y 坐标
-                currentY += fontMetrics.getHeight();
-            }
-        }
-    }
-
-    public Graphics2D start(Graphics2D g2d, int width, int height, String color, String font, String stationery) {
-
-        // 从缓存中获取背景图片
-        BufferedImage bgImage = bgImageCache.get(stationery);
-        if (bgImage == null) {
-            try {
-                InputStream inputStream = getClass().getClassLoader().getResourceAsStream("images/Stationery/" + stationery);
-                if (inputStream == null) {
-                    log.error("无法找到指定的图像文件: images/Stationery/{}", stationery);
-                } else {
-                    bgImage = ImageIO.read(inputStream);
-                    bgImageCache.put(stationery, bgImage); // 缓存背景图片
-                }
-            } catch (IOException e) {
-                log.error("加载背景图片时发生错误: {}", e.getMessage());
-            }
-        }
-
-
-        // 背景图适配绘制
-        if (bgImage != null) {
-            g2d.drawImage(bgImage, 0, 0, width, height, null);
-        } else {
-            log.error("背景图片未找到");
-        }
-        // 加载自定义字体
-        // 从缓存中获取字体
-        Font customFont = fontCache.get(font);
-        if (customFont == null) {
-            try {
-                String fontPath = "fonts/MainContent/" + font;
-                InputStream fontStream = getClass().getClassLoader().getResourceAsStream(fontPath);
-                if (fontStream != null) {
-                    customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont((float) 50);
-                    fontCache.put(font, customFont); // 缓存字体
-                } else {
-                    log.error("字体文件未找到: {}", fontPath);
-                }
-
-                // 获取本地图形环境并注册字体
-                GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-                ge.registerFont(customFont);
-            } catch (FontFormatException | IOException e) {
-                // 如果字体加载失败，使用默认字体
-                customFont = new Font("宋体", Font.PLAIN, 50); // 使用支持中文的默认字体，例如宋体
-                log.error("加载字体文件时发生错误: {}", e.getMessage());
-            }
-        }
-        // 设置字体及颜色
-        g2d.setFont(customFont); // 设置字体
-        g2d.setColor(Color.decode(color)); // 设置字体颜色
-
-        return g2d;
-    }
-
-    public BufferedImage rotateImage(BufferedImage image, int angle) {
-        double radians = Math.toRadians(angle);
-        double sin = Math.abs(Math.sin(radians));
-        double cos = Math.abs(Math.cos(radians));
-
-        int w = image.getWidth();
-        int h = image.getHeight();
-        int newW = (int) Math.round(w * cos + h * sin);
-        int newH = (int) Math.round(h * cos + w * sin);
-
-        BufferedImage rotatedImage = new BufferedImage(newW, newH, image.getType());
-        Graphics2D g2d = rotatedImage.createGraphics();
-        g2d.translate((newW - w) / 2, (newH - h) / 2);
-        g2d.rotate(radians, w / 2, h / 2);
-        g2d.drawRenderedImage(image, null);
-        g2d.dispose();
-
-        return rotatedImage;
-    }
-
-    private static final ConcurrentHashMap<Long, FontColor> fontColorCache = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<Long, com.qiaopi.entity.Font> userFontCache = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<Long, Paper> paperCache = new ConcurrentHashMap<>();
-
-    @Override
-    public String generateImage(LetterGenDTO letterGenDTO, Long currnetUserId) {
-//        log.warn(String.valueOf(LocalDateTime.now()));
-        // 设置图片的宽和高（根据实际需求可以动态调整）
-        int width = 1000; // 图片宽度
-        int height = 1500; // 图片高度
-        FontColor fontColor = fontColorCache.get(letterGenDTO.getFontColorId());
-        if (fontColor == null) {
-            fontColor = fontColorMapper.selectById(letterGenDTO.getFontColorId());
-            fontColorCache.put(letterGenDTO.getFontColorId(), fontColor);
-        }
-        com.qiaopi.entity.Font font = userFontCache.get(letterGenDTO.getFontId());
-        if (font == null) {
-            font = fontMapper.selectById(letterGenDTO.getFontId());
-            userFontCache.put(letterGenDTO.getFontId(), font);
-        }
-        Paper paper = paperCache.get(letterGenDTO.getPaperId());
-        if (paper == null) {
-            paper = paperMapper.selectById(letterGenDTO.getPaperId());
-            paperCache.put(letterGenDTO.getPaperId(), paper);
-        }
-        //开始绘制
-        BufferedImage bufferedImage = createAndDrawImage(width, height, letterGenDTO, fontColor, font, paper);
-        try {
-            // 将图片写入字节流
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(2048 * 2048); // 创建字节数组输出流
-//            ImageIO.write(bufferedImage, "png", baos); // 将BufferedImage写入字节数组输出流
-            Thumbnails.of(bufferedImage)
-                    .outputFormat("jpg") // 使用 JPEG 格式
-                    .outputQuality(0.8) // 设置压缩质量，0.8 表示 80% 的质量
-                    .size(bufferedImage.getWidth(), bufferedImage.getHeight())
-                    .toOutputStream(baos);
-
-            byte[] imageBytes = baos.toByteArray(); // 获取字节数组
-
-            // 将字节数组转换为Base64编码的字符串
-            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-
-            // 生成 Redis 中存储的 key
-            String redisKey = "image:" + currnetUserId; // 假设有用户 ID 或其他标识符
-
-            // 将 Base64 字符串存入 Redis
-            redisTemplate.opsForValue().set(redisKey,base64Image,12, TimeUnit.HOURS);
-
-
-
-          /*  // 生成一个随机的文件名
-            String fileName =  UUID.randomUUID()+ ".png";
-            //将照片存储到服务器
-            FileInfo fileInfo = fileStorageService.of(imageBytes).setSaveFilename(fileName).setPath("letter/").upload();
-            url = fileInfo.getUrl();
-            */
-
-            return base64Image;
-
-        } catch (IOException e) {
-            log.error("生成图片失败", e);
-        }
-        return null;
-    }
-
-    public BufferedImage createAndDrawImage(int width, int height, LetterGenDTO letterGenDTO, FontColor fontColor, com.qiaopi.entity.Font font, Paper paper) {
-        // 创建一个 BufferedImage 对象
-        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2d = bufferedImage.createGraphics(); // 获取Graphics2D对象，用于绘制图像
-
-        // 调用 drawAll 方法进行绘制
-        drawAll(g2d, letterGenDTO, fontColor, font, paper, width, height);
-
-        // 释放 Graphics2D 资源
-        g2d.dispose();
-
-        // 旋转图像
-        bufferedImage = rotateImage(bufferedImage, 90);
-
-        return bufferedImage;
-    }
-
-    public void drawAll(Graphics2D g2d, LetterGenDTO letterGenDTO, FontColor fontColor, com.qiaopi.entity.Font font, Paper paper, int width, int height) {
-
-        // 初始化 g2d  进行字体颜色，种类，背景图片等的绘制
-        Graphics2D startG2D = start(g2d, width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath());
-
-        ExecutorService executor = Executors.newFixedThreadPool(3);
-        // 提交任务 使用多线程进行（分别对内容，发送者名称，收件者名称进行旋转，转换成古代书法规则）
-        //TODO 标记
-        executor.submit(() -> {
-            Graphics2D clonedG2D = (Graphics2D) startG2D.create();
-            Main(clonedG2D, letterGenDTO.getLetterContent(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()),paper.getFitNumber());
-            clonedG2D.dispose();
-        });
-        executor.submit(() -> {
-            Graphics2D clonedG2D = (Graphics2D) startG2D.create();
-            Main(clonedG2D, letterGenDTO.getSenderName(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()),paper.getFitNumber());
-            clonedG2D.dispose();
-        });
-        executor.submit(() -> {
-            Graphics2D clonedG2D = (Graphics2D) startG2D.create();
-            Main(clonedG2D, letterGenDTO.getRecipientName(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()),paper.getFitNumber());
-            clonedG2D.dispose();
-        });
-
-        // 关闭线程池
-        executor.shutdown();
-
-        try {
-            // 等待所有任务完成
-            if (!executor.awaitTermination(1, TimeUnit.MINUTES)) {
-                executor.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            executor.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    public Graphics2D start(Graphics2D g2d,  int width, int height, String color, String font, String stationery){
-
-        // 从缓存中获取背景图片
-        BufferedImage bgImage = bgImageCache.get(stationery);
-        if (bgImage == null) {
-            try {
-                InputStream inputStream = getClass().getClassLoader().getResourceAsStream("images/Stationery/" + stationery);
-                if (inputStream == null) {
-                    log.error("无法找到指定的图像文件: images/Stationery/{}", stationery);
-                } else {
-                    bgImage = ImageIO.read(inputStream);
-                    bgImageCache.put(stationery, bgImage); // 缓存背景图片
-                }
-            } catch (IOException e) {
-                log.error("加载背景图片时发生错误: {}", e.getMessage());
-            }
-        }
-
-
-        // 背景图适配绘制
-        if (bgImage != null) {
-            g2d.drawImage(bgImage, 0, 0, width, height, null);
-        }else {
-            log.error("背景图片未找到");
-        }
-        // 加载自定义字体
-        // 从缓存中获取字体
-        Font customFont = fontCache.get(font);
-        if (customFont == null) {
-            try {
-                String fontPath = "fonts/MainContent/" + font;
-                InputStream fontStream = getClass().getClassLoader().getResourceAsStream(fontPath);
-                if (fontStream != null) {
-                    customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont((float) 50);
-                    fontCache.put(font, customFont); // 缓存字体
-                } else {
-                    log.error("字体文件未找到: {}", fontPath);
-                }
-
-                // 获取本地图形环境并注册字体
-                GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-                ge.registerFont(customFont);
-            } catch (FontFormatException | IOException e) {
-                // 如果字体加载失败，使用默认字体
-                customFont = new Font("宋体", Font.PLAIN, 50); // 使用支持中文的默认字体，例如宋体
-                log.error("加载字体文件时发生错误: {}", e.getMessage());
-            }
-        }
-        // 设置字体及颜色
-        g2d.setFont(customFont); // 设置字体
-        g2d.setColor(Color.decode(color)); // 设置字体颜色
-
-        return g2d;
-    }
-
-    public void Main(Graphics2D g2d, String text, int x, int y,int fitNumber) {
-
-        // 每行字符数，设置为15
-        int charsPerLine = 15;
-        // 当前绘制字符的 x 坐标，初始化为传入的 x 参数
-        int currentX = x;
-        // 当前绘制字符的 y 坐标，初始化为传入的 y 参数
-        int currentY = y;
-
-        int spacing = 30; // 设置字符间距
-        double letterLeftMargin = 0; // Adjust this to control the left margin for letters
-
-
-        FontMetrics fontMetrics = g2d.getFontMetrics();
-        int LimitNumber = 0;
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-
-            // 创建一个新的 AffineTransform
-            AffineTransform affineTransform = new AffineTransform();
-
-            // 平移变换到当前字符的中心
-            affineTransform.translate(currentX + fontMetrics.charWidth(c) / 2, currentY + fontMetrics.getHeight() / 2);
-
-            // 逆时针旋转90度
-            affineTransform.rotate(-Math.PI / 2, 0, 0);
-
-            // 反向平移回到原点
-            affineTransform.translate(-(currentX + fontMetrics.charWidth(c) / 2), -(currentY + fontMetrics.getHeight() / 2));
-
-            // 应用变换并绘制字符
-            g2d.setTransform(affineTransform);
-
-            // 根据字符类型调整 y 偏移量
-            // Adjust y and x offsets based on character type
-            int adjustedY = currentY;
-            int adjustedX = currentX;
-
-            if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
-
-                //adjustedY += fontMetrics.charWidth(c) -0.5; // 基于字符宽度调整 y 偏移量
-                adjustedY += fontMetrics.getAscent() / 2; // Fine-tune y offset for letters and digits
-                adjustedX += letterLeftMargin; // Add left margin
-
-                g2d.drawString(String.valueOf(c), currentX, adjustedY);
-                // 增加字符间距
-                currentX += fontMetrics.charWidth(c) + spacing;
-            }else {
-                //g2d.drawString(String.valueOf(c), currentX, currentY);
-                g2d.drawString(String.valueOf(c), currentX, adjustedY);
-                // 更新 x 坐标以便绘制下一个字符
-                currentX += fontMetrics.charWidth(c);
-
-            }
-
-
-            // 检查是否需要换行
-            if ((i + 1) % charsPerLine == 0 && i < text.length() - 1) {
-                // 重置 x 坐标
-                currentX = x;
-
-                // 更新 y 坐标
-                currentY += fontMetrics.getHeight();
-            }
-            LimitNumber++;
-            if (LimitNumber == fitNumber) {
-                break;
-            }
-
-        }
-
-    }
-
-    public BufferedImage rotateImage(BufferedImage image, int angle) {
-        double radians = Math.toRadians(angle);
-        double sin = Math.abs(Math.sin(radians));
-        double cos = Math.abs(Math.cos(radians));
-
-        int w = image.getWidth();
-        int h = image.getHeight();
-        int newW = (int) Math.round(w * cos + h * sin);
-        int newH = (int) Math.round(h * cos + w * sin);
-
-        BufferedImage rotatedImage = new BufferedImage(newW, newH, image.getType());
-        Graphics2D g2d = rotatedImage.createGraphics();
-        g2d.translate((newW - w) / 2, (newH - h) / 2);
-        g2d.rotate(radians, w / 2, h / 2);
-        g2d.drawRenderedImage(image, null);
-        g2d.dispose();
-
-        return rotatedImage;
-    }
-
 
     // Cover
     private ExecutorService subExecutorService = Executors.newFixedThreadPool(3);
@@ -673,6 +282,7 @@ public class LetterServiceImpl implements LetterService {
         return g2d;
     }
 
+    // 封面的旋转函数!很重要的
     public BufferedImage rotateImage2(BufferedImage originalImage, int degrees) {
         int width = originalImage.getWidth();
         int height = originalImage.getHeight();
@@ -933,7 +543,7 @@ public class LetterServiceImpl implements LetterService {
                 log.error(message("unknown.error"), letter);
                 ;
             }
-            letter.setStatus(LetterStatus.DELIVERED);
+            letter.setStatus(LetterConstants.DELIVERED);
             letter.setDeliveryProgress(10000L);
             letter.setDeliveryTime(LocalDateTime.now());
             letter.setUpdateUser(-1L);
@@ -1088,8 +698,8 @@ public class LetterServiceImpl implements LetterService {
         letter.setLetterLink(letterLink);
         letter.setExpectedDeliveryTime(deliveryTime);
         letter.setDeliveryTime(deliveryTime);
-        letter.setStatus(LetterStatus.TRANSIT);
-        letter.setReadStatus(LetterStatus.NOT_READ);
+        letter.setStatus(LetterConstants.TRANSIT);
+        letter.setReadStatus(LetterConstants.NOT_READ);
         letter.setDeliveryProgress(0L);
         letter.setSenderEmail(user.getEmail());
         letter.setSpeedRate("1");
@@ -1119,7 +729,7 @@ public class LetterServiceImpl implements LetterService {
         User user = userMapper.selectById(UserContext.getUserId());
         Letter hello = letterMapper.selectById(1);
         //查询收信人为当前用户的信件
-        List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getRecipientEmail, user.getEmail()).eq(Letter::getStatus, LetterStatus.DELIVERED).orderByDesc(Letter::getExpectedDeliveryTime));
+        List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getRecipientEmail, user.getEmail()).eq(Letter::getStatus, LetterConstants.DELIVERED).orderByDesc(Letter::getExpectedDeliveryTime));
         letters.forEach(letter -> {
             letter.setRecipientUserId(UserContext.getUserId());
         });
@@ -1138,7 +748,7 @@ public class LetterServiceImpl implements LetterService {
         }
         //返回第一封信,如果已读,后面的也不弹窗
         LetterVO letterVO = myReceiveLetter.get(0);
-        if (letterVO.getReadStatus() == LetterStatus.READ) {
+        if (letterVO.getReadStatus() == LetterConstants.READ) {
             return null;
         }
         //筛选未读的信
@@ -1151,7 +761,7 @@ public class LetterServiceImpl implements LetterService {
         if (letter == null) {
             throw new LetterException(message("letter.not.exists"));
         }
-        if (letter.getReadStatus() == LetterStatus.READ) {
+        if (letter.getReadStatus() == LetterConstants.READ) {
 //            throw new LetterException(message("letter.already.read"));
             return;
         }
@@ -1169,7 +779,7 @@ public class LetterServiceImpl implements LetterService {
             friendRequest.setCreateTime(letter.getDeliveryTime());
             friendRequestMapper.insert(friendRequest);
         }
-        letter.setReadStatus(LetterStatus.READ);
+        letter.setReadStatus(LetterConstants.READ);
         letterMapper.updateById(letter);
     }
 

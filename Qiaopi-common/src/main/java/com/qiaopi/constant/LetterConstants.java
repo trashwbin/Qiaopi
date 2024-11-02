@@ -1,6 +1,6 @@
 package com.qiaopi.constant;
 
-public class LetterStatus {
+public class LetterConstants {
     // 信件状态
     //未发送
     public final static int NOT_SENT = 0;
@@ -29,4 +29,9 @@ public class LetterStatus {
     //不只有中文的信的高度
     public final static int NOT_ONLY_CHINESES_HEIGHT = 650;
 
+    //信件类型
+    //竖版字体信件
+    public final static int VERTICAL_FONT_LETTER = 2;
+    //横版信件
+    public final static int HORIZONTAL_LETTER = 1;
 }
