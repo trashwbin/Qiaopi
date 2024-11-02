@@ -2,6 +2,7 @@ package com.qiaopi.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.qiaopi.constant.FriendConstants;
 import com.qiaopi.constant.LetterStatus;
 import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.LetterGenDTO;
@@ -11,6 +12,7 @@ import com.qiaopi.exception.letter.LetterException;
 import com.qiaopi.exception.user.UserException;
 import com.qiaopi.exception.user.UserNotExistsException;
 import com.qiaopi.mapper.*;
+import com.qiaopi.service.FriendService;
 import com.qiaopi.service.LetterService;
 import com.qiaopi.utils.PositionUtil;
 import com.qiaopi.utils.ProgressUtils;
@@ -62,7 +64,7 @@ public class LetterServiceImpl implements LetterService {
     private final CountryMapper countryMapper;
     private final RedisTemplate redisTemplate;
     private final FriendMapper friendMapper;
-
+    private final FriendRequestMapper friendRequestMapper;
     @Value("${spring.mail.username}")
     private String sender;
     @Value("${spring.mail.nickname}")
@@ -853,7 +855,35 @@ public class LetterServiceImpl implements LetterService {
             throw new UserException(message("user.money.not.enough"));
         }
 
+        //检查是否是好友
+        Friend friend = friendMapper.selectOne(new LambdaQueryWrapper<Friend>().eq(Friend::getUserId, letter.getRecipientUserId()).eq(Friend::getOwningId, UserContext.getUserId()));
+        if (friend == null) {
+            letter.setRemark("new friend");
+        }else{
+            // 顺带做个地址处理你再更新
+            List<Address> addresses = friend.getAddresses();
+            Address friendAddress = letter.getRecipientAddress();
 
+            boolean isInAddresses = false;
+            if (addresses == null) {
+                addresses = new ArrayList<>();
+                friendAddress.setIsDefault(String.valueOf(true));
+            }else {
+                for (Address address : addresses) {
+                    if (address.getFormattedAddress().equals(friendAddress.getFormattedAddress())||address.getId().equals(friendAddress.getId())) {
+                        isInAddresses = true;
+                        friendAddress.setId(address.getId());
+                        break;
+                    }
+                }
+            }
+            if (!isInAddresses) {
+                friendAddress.setId(addresses.size() + 1L);
+                addresses.add(friendAddress);
+                letter.setRecipientAddress(friendAddress);
+            }
+            friendMapper.updateById(friend);
+        }
         // 创建任务
         CompletableFuture<String> coverFuture = CompletableFuture.supplyAsync(() -> {
             return coverGenerieren(letterSendDTO,userId);
@@ -917,8 +947,6 @@ public class LetterServiceImpl implements LetterService {
 
         letterMapper.insert(letter);
 
-        //检查是否是好友
-        Friend friend = friendMapper.selectOne(new LambdaQueryWrapper<Friend>().eq(Friend::getUserId, letter.getRecipientUserId()).eq(Friend::getOwningId, UserContext.getUserId()));
 
         return BeanUtil.copyProperties(letter, LetterVO.class);
     }
@@ -976,6 +1004,17 @@ public class LetterServiceImpl implements LetterService {
         }
         if (!UserContext.getUserId().equals(letter.getRecipientUserId())) {
             throw new LetterException(message("letter.not.yours"));
+        }
+        if (letter.getRemark().contains("new friend")) {
+            FriendRequest friendRequest = FriendRequest.builder()
+                    .receiverId(UserContext.getUserId())
+                    .senderId(letter.getSenderUserId())
+                    .status(FriendConstants.PENDING)
+                    .giveAddress(letter.getSenderAddress())
+                    .content(letter.getRecipientName() + "!我给你写了一封侨批哦,快来加我为好友吧!")
+                    .build();
+            friendRequest.setCreateTime(letter.getDeliveryTime());
+            friendRequestMapper.insert(friendRequest);
         }
         letter.setReadStatus(LetterStatus.READ);
         letterMapper.updateById(letter);
