@@ -211,7 +211,51 @@ public class UserController {
         return success(message("user.get.function.card.success"),userService.getMyFunctionCard(UserContext.getUserId()));
     }
 
+    @GetMapping("/getCountries")
+    @Operation(summary = "获取国家列表")
+    public AjaxResult getCountries(){
+        log.info("获取国家列表");
+        return success(message("user.get.countries.success"),userService.getCountries());
+    }
+    @PutMapping("/setUserDefaultAddress")
+    @Operation(summary = "设置用户默认地址")
+    public AjaxResult setUserDefaultAddress(Long addressId){
+        log.info("设置用户默认地址：{}",addressId);
+        userService.setUserDefaultAddress(addressId);
+        return success(message("user.set.default.address.success"));
+    }
 
+    @DeleteMapping("/deleteUserAddress")
+    @Operation(summary = "删除用户地址")
+    public AjaxResult deleteUserAddress(Long addressId){
+        log.info("删除用户地址：{}",addressId);
+        userService.deleteUserAddress(addressId);
+        return success(message("user.delete.address.success"));
+    }
+
+    @PutMapping("/setFriendDefaultAddress")
+    @Operation(summary = "设置好友默认地址")
+    public AjaxResult setFriendDefaultAddress(@RequestParam("friendId") Long friendId,@RequestParam("addressId") Long addressId){
+        log.info("设置好友{}默认地址：{}",friendId,addressId);
+        userService.setFriendDefaultAddress(friendId,addressId);
+        return success(message("user.set.friend.default.address.success"));
+    }
+
+    @DeleteMapping("/deleteFriendAddress")
+    @Operation(summary = "删除好友地址")
+    public AjaxResult deleteFriendAddress(@RequestParam("friendId") Long friendId,@RequestParam("addressId") Long addressId){
+        log.info("删除好友{}地址：{}",friendId,addressId);
+        userService.deleteFriendAddress(friendId,addressId);
+        return success(message("user.delete.friend.address.success"));
+    }
+
+    @PutMapping("/updateFriendRemark")
+    @Operation(summary = "修改好友备注")
+    public AjaxResult updateFriendRemark(@RequestParam("friendId") Long friendId,@RequestParam("remark") String remark){
+        log.info("修改好友{}备注：{}",friendId,remark);
+        userService.updateFriendRemark(friendId,remark);
+        return success(message("user.update.friend.remark.success"));
+    }
 }
 
 

@@ -31,7 +31,7 @@ public class LetterTask {
      @Scheduled(cron = "0 * * * * ?")
     public void processLetterTask(){
          List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>()
-                 .le(Letter::getExpectedDeliveryTime, LocalDateTime.now())
+                 .le(Letter::getDeliveryTime, LocalDateTime.now())
                  .eq(Letter::getStatus, LetterStatus.TRANSIT));
          if (!letters.isEmpty()) {
              letterService.sendLetterToEmail(letters);

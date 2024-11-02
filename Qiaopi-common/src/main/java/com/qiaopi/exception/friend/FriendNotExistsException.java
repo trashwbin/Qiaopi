@@ -1,4 +1,6 @@
-package com.qiaopi.exception.user;
+package com.qiaopi.exception.friend;
+
+import com.qiaopi.exception.user.UserException;
 
 /**
  * 用户不存在异常类

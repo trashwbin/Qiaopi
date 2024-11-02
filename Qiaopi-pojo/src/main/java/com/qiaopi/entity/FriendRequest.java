@@ -6,18 +6,19 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.qiaopi.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "好友")
 @AllArgsConstructor
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
+@Builder
+@SuperBuilder
 @TableName(autoResultMap = true)//自动映射
 public class FriendRequest extends BaseEntity {
 
@@ -31,23 +32,15 @@ public class FriendRequest extends BaseEntity {
     @Schema(description = "请求状态")
     private int status;
 
-
-    @Schema(description = "请求文本")
-    @TableField(value = "content")
-    private String content;
-
-
     /**
      * 地址
      */
     @Schema(description = "地址")
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Address giveAddress;
-/*
 
     @Schema(description = "请求内容")
     private String content;
-*/
 
     @Schema(description = "漂流瓶id")
     private Long bottleId;

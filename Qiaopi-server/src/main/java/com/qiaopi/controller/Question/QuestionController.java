@@ -48,7 +48,7 @@ public class QuestionController {
 
     @PostMapping("/startAnswer")
     @Operation(summary = "用户开始答题")
-    public AjaxResult startAnswer(@RequestBody int setId) {
+    public AjaxResult startAnswer(@RequestParam int setId) {
         log.info(("用户开始答题"));
         GenQuestionVO genQuestionVO = questionService.startAnswer(setId);
         return AjaxResult.success(MessageUtils.message("question.giveUser.success"),genQuestionVO);
