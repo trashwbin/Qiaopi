@@ -16,14 +16,14 @@ import org.springframework.web.bind.annotation.*;
 import static com.qiaopi.utils.MessageUtils.message;
 
 @RestController
-@RequestMapping("/card")
+@RequestMapping("/paper")
 @Slf4j
 @Tag(name = "纸张相关接口")
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class PaperController {
 
     private final PaperService paperService;
-    @PutMapping("/list")
+    @GetMapping("/list")
     @Operation(summary = "获取纸张商城列表")
     public AjaxResult list() {
         log.info("获取纸张商城列表");
@@ -36,6 +36,13 @@ public class PaperController {
         log.info("用户{},购买纸张：{}", UserContext.getUserId(),paperId);
         paperService.buyPaper(paperId);
         return AjaxResult.success(message("paper.buyPaper.success"));
+    }
+
+    @GetMapping("/getFontPaperLimit")
+    @Operation(summary = "获取字体纸张限制")
+    public AjaxResult getFontPaperLimit() {
+        log.info("获取字体纸张限制");
+        return AjaxResult.success(message("paper.getFontPaperLimit.success"), paperService.getFontPaperLimit());
     }
 }
 

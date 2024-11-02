@@ -3,11 +3,13 @@ package com.qiaopi.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import com.qiaopi.context.UserContext;
 import com.qiaopi.entity.FontColor;
+import com.qiaopi.entity.FontPaper;
 import com.qiaopi.entity.Paper;
 import com.qiaopi.entity.User;
 import com.qiaopi.exception.font.FontException;
 import com.qiaopi.exception.paper.PaperException;
 import com.qiaopi.exception.user.UserNotExistsException;
+import com.qiaopi.mapper.FontPaperMapper;
 import com.qiaopi.mapper.PaperMapper;
 import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.service.FontService;
@@ -30,6 +32,7 @@ public class PaperServiceImpl implements PaperService {
 
     private final PaperMapper paperMapper;
     private final UserMapper userMapper;
+    private final FontPaperMapper fontPaperMapper;
 
     @Override
     public List<PaperShopVO> list() {
@@ -77,5 +80,10 @@ public class PaperServiceImpl implements PaperService {
         papers.add(paperVO);
         user.setPapers(papers);
         userMapper.updateById(user);
+    }
+
+    @Override
+    public List<FontPaper> getFontPaperLimit() {
+        return fontPaperMapper.selectList(null);
     }
 }

@@ -18,7 +18,6 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @Builder
-@SuperBuilder
 @TableName(autoResultMap = true)//自动映射
 public class FriendRequest extends BaseEntity {
 
