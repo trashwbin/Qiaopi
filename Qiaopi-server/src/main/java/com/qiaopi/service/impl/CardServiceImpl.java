@@ -1,7 +1,7 @@
 package com.qiaopi.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.qiaopi.constant.LetterStatus;
+import com.qiaopi.constant.LetterConstants;
 import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.FunctionCardUseDTO;
 import com.qiaopi.entity.FunctionCard;
@@ -26,9 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -60,7 +57,7 @@ public class CardServiceImpl implements CardService {
         Letter letter = letterMapper.selectById(functionCardUseDTO.getLetterId());
         if (letter == null) {
             throw new LetterException(message("letter.not.exists"));
-        } else if (letter.getStatus() == LetterStatus.DELIVERED) {
+        } else if (letter.getStatus() == LetterConstants.DELIVERED) {
             throw new LetterException(message("letter.is.delivered"));
         }
 
