@@ -47,6 +47,10 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import static com.qiaopi.utils.MessageUtils.message;
 
 
@@ -272,25 +276,26 @@ public class LetterServiceImpl implements LetterService {
     }
 
     public void drawAll(Graphics2D g2d, LetterGenDTO letterGenDTO, FontColor fontColor, com.qiaopi.entity.Font font, Paper paper, int width, int height) {
-        ExecutorService executor = Executors.newFixedThreadPool(3);
 
         // 初始化 g2d  进行字体颜色，种类，背景图片等的绘制
         Graphics2D startG2D = start(g2d, width, height, fontColor.getHexCode(), font.getFilePath(), paper.getFilePath());
 
+        ExecutorService executor = Executors.newFixedThreadPool(3);
         // 提交任务 使用多线程进行（分别对内容，发送者名称，收件者名称进行旋转，转换成古代书法规则）
+        //TODO 标记
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) startG2D.create();
-            Main(clonedG2D, letterGenDTO.getLetterContent(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()));
+            Main(clonedG2D, letterGenDTO.getLetterContent(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()),paper.getFitNumber());
             clonedG2D.dispose();
         });
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) startG2D.create();
-            Main(clonedG2D, letterGenDTO.getSenderName(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()));
+            Main(clonedG2D, letterGenDTO.getSenderName(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()),paper.getFitNumber());
             clonedG2D.dispose();
         });
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) startG2D.create();
-            Main(clonedG2D, letterGenDTO.getRecipientName(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()));
+            Main(clonedG2D, letterGenDTO.getRecipientName(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()),paper.getFitNumber());
             clonedG2D.dispose();
         });
 
@@ -307,6 +312,155 @@ public class LetterServiceImpl implements LetterService {
             Thread.currentThread().interrupt();
         }
     }
+
+    public Graphics2D start(Graphics2D g2d,  int width, int height, String color, String font, String stationery){
+
+        // 从缓存中获取背景图片
+        BufferedImage bgImage = bgImageCache.get(stationery);
+        if (bgImage == null) {
+            try {
+                InputStream inputStream = getClass().getClassLoader().getResourceAsStream("images/Stationery/" + stationery);
+                if (inputStream == null) {
+                    log.error("无法找到指定的图像文件: images/Stationery/{}", stationery);
+                } else {
+                    bgImage = ImageIO.read(inputStream);
+                    bgImageCache.put(stationery, bgImage); // 缓存背景图片
+                }
+            } catch (IOException e) {
+                log.error("加载背景图片时发生错误: {}", e.getMessage());
+            }
+        }
+
+
+        // 背景图适配绘制
+        if (bgImage != null) {
+            g2d.drawImage(bgImage, 0, 0, width, height, null);
+        }else {
+            log.error("背景图片未找到");
+        }
+        // 加载自定义字体
+        // 从缓存中获取字体
+        Font customFont = fontCache.get(font);
+        if (customFont == null) {
+            try {
+                String fontPath = "fonts/MainContent/" + font;
+                InputStream fontStream = getClass().getClassLoader().getResourceAsStream(fontPath);
+                if (fontStream != null) {
+                    customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont((float) 50);
+                    fontCache.put(font, customFont); // 缓存字体
+                } else {
+                    log.error("字体文件未找到: {}", fontPath);
+                }
+
+                // 获取本地图形环境并注册字体
+                GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+                ge.registerFont(customFont);
+            } catch (FontFormatException | IOException e) {
+                // 如果字体加载失败，使用默认字体
+                customFont = new Font("宋体", Font.PLAIN, 50); // 使用支持中文的默认字体，例如宋体
+                log.error("加载字体文件时发生错误: {}", e.getMessage());
+            }
+        }
+        // 设置字体及颜色
+        g2d.setFont(customFont); // 设置字体
+        g2d.setColor(Color.decode(color)); // 设置字体颜色
+
+        return g2d;
+    }
+
+    public void Main(Graphics2D g2d, String text, int x, int y,int fitNumber) {
+
+        // 每行字符数，设置为15
+        int charsPerLine = 15;
+        // 当前绘制字符的 x 坐标，初始化为传入的 x 参数
+        int currentX = x;
+        // 当前绘制字符的 y 坐标，初始化为传入的 y 参数
+        int currentY = y;
+
+        int spacing = 30; // 设置字符间距
+        double letterLeftMargin = 0; // Adjust this to control the left margin for letters
+
+
+        FontMetrics fontMetrics = g2d.getFontMetrics();
+        int LimitNumber = 0;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+
+            // 创建一个新的 AffineTransform
+            AffineTransform affineTransform = new AffineTransform();
+
+            // 平移变换到当前字符的中心
+            affineTransform.translate(currentX + fontMetrics.charWidth(c) / 2, currentY + fontMetrics.getHeight() / 2);
+
+            // 逆时针旋转90度
+            affineTransform.rotate(-Math.PI / 2, 0, 0);
+
+            // 反向平移回到原点
+            affineTransform.translate(-(currentX + fontMetrics.charWidth(c) / 2), -(currentY + fontMetrics.getHeight() / 2));
+
+            // 应用变换并绘制字符
+            g2d.setTransform(affineTransform);
+
+            // 根据字符类型调整 y 偏移量
+            // Adjust y and x offsets based on character type
+            int adjustedY = currentY;
+            int adjustedX = currentX;
+
+            if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+
+                //adjustedY += fontMetrics.charWidth(c) -0.5; // 基于字符宽度调整 y 偏移量
+                adjustedY += fontMetrics.getAscent() / 2; // Fine-tune y offset for letters and digits
+                adjustedX += letterLeftMargin; // Add left margin
+
+                g2d.drawString(String.valueOf(c), currentX, adjustedY);
+                // 增加字符间距
+                currentX += fontMetrics.charWidth(c) + spacing;
+            }else {
+                //g2d.drawString(String.valueOf(c), currentX, currentY);
+                g2d.drawString(String.valueOf(c), currentX, adjustedY);
+                // 更新 x 坐标以便绘制下一个字符
+                currentX += fontMetrics.charWidth(c);
+
+            }
+
+
+            // 检查是否需要换行
+            if ((i + 1) % charsPerLine == 0 && i < text.length() - 1) {
+                // 重置 x 坐标
+                currentX = x;
+
+                // 更新 y 坐标
+                currentY += fontMetrics.getHeight();
+            }
+            LimitNumber++;
+            if (LimitNumber == fitNumber) {
+                break;
+            }
+
+        }
+
+    }
+
+    public BufferedImage rotateImage(BufferedImage image, int angle) {
+        double radians = Math.toRadians(angle);
+        double sin = Math.abs(Math.sin(radians));
+        double cos = Math.abs(Math.cos(radians));
+
+        int w = image.getWidth();
+        int h = image.getHeight();
+        int newW = (int) Math.round(w * cos + h * sin);
+        int newH = (int) Math.round(h * cos + w * sin);
+
+        BufferedImage rotatedImage = new BufferedImage(newW, newH, image.getType());
+        Graphics2D g2d = rotatedImage.createGraphics();
+        g2d.translate((newW - w) / 2, (newH - h) / 2);
+        g2d.rotate(radians, w / 2, h / 2);
+        g2d.drawRenderedImage(image, null);
+        g2d.dispose();
+
+        return rotatedImage;
+    }
+
 
     // Cover
     private ExecutorService subExecutorService = Executors.newFixedThreadPool(3);
@@ -484,34 +638,33 @@ public class LetterServiceImpl implements LetterService {
 
         coverMain(g2d, text, x, y);
     }
+    public Graphics2D drawCoverSubordinate(Graphics2D g2d){
 
-    public Graphics2D drawCoverSubordinate(Graphics2D g2d) {
+      // 调整字体文件路径以匹配类路径
+      String fontPath = "fonts/CoverFont/1.TTF";
+      // 检查缓存中是否存在该图像
+      Font customFont = coverFontCache.get(fontPath+"110");
+      if (customFont == null) {
+          try {
 
-        // 调整字体文件路径以匹配类路径
-        String fontPath = "fonts/CoverFont/1.TTF";
-        // 检查缓存中是否存在该图像
-        Font customFont = coverFontCache.get(fontPath + "110");
-        if (customFont == null) {
-            try {
+              // 使用类加载器获取字体文件输入流
+              InputStream fontStream = getClass().getClassLoader().getResourceAsStream(fontPath);
+              if (fontStream != null) {
+                  // 加载字体文件
+                  customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont((float) 110);
+              } else {
+                  log.error("字体文件未找到: " + fontPath);
+              }
 
-                // 使用类加载器获取字体文件输入流
-                InputStream fontStream = getClass().getClassLoader().getResourceAsStream(fontPath);
-                if (fontStream != null) {
-                    // 加载字体文件
-                    customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont((float) 110);
-                } else {
-                    log.error("字体文件未找到: " + fontPath);
-                }
+              // 获取本地图形环境并注册字体
+              GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+              ge.registerFont(customFont);
 
-                // 获取本地图形环境并注册字体
-                GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-                ge.registerFont(customFont);
-
-            } catch (FontFormatException | IOException e) {
-                // 如果字体加载失败，使用默认字体
-                customFont = new Font("宋体", Font.PLAIN, 100); // 使用支持中文的默认字体，例如宋体
-            }
-        }
+          } catch (FontFormatException | IOException e) {
+              // 如果字体加载失败，使用默认字体
+              customFont = new Font("宋体", Font.PLAIN, 100); // 使用支持中文的默认字体，例如宋体
+          }
+      }
 
         g2d.setFont(customFont); // 设置字体
         g2d.setColor(Color.decode("#030303")); // 设置字体颜色*/

@@ -16,4 +16,17 @@ public class LetterStatus {
     public final static int NOT_READ = 0;
     //已读
     public final static int READ = 1;
+
+
+    //只有中文的信的高度
+    public final static int ONLY_CHINESES_HEIGHT = 1000;
+    //只有中文的信的宽度
+    public final static int ONLY_CHINESES_WIDTH = 1500;
+
+
+    //只有中文的信的宽度度
+    public final static int NOT_ONLY_CHINESES_WIDTH = 450;
+    //不只有中文的信的高度
+    public final static int NOT_ONLY_CHINESES_HEIGHT = 650;
+
 }
