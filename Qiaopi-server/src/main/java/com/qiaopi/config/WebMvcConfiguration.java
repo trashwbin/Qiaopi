@@ -70,7 +70,7 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
                 .excludePathPatterns("/user/sendCode")
                 .excludePathPatterns("/user/resetPasswordByEmail")
                 .excludePathPatterns("/user/sendResetPasswordCode")
-                .excludePathPatterns("/user/shop/status")
+                .excludePathPatterns("/user/getCountries")
                 ;
 
     }

@@ -43,7 +43,7 @@ public class LetterSocketHandler extends TextWebSocketHandler {
         if (userId != null) {
             userSessions.put(userId, session);
             sessions.add(session); // 添加到所有会话集合中
-            session.sendMessage(new TextMessage("欢迎连接 WebSocket 服务器！"));
+            session.sendMessage(new TextMessage("success")); // 发送消息给客户端
         } else {
             log.warn("无法获取用户 ID，无法存储会话。");
             session.close(); // 关闭会话
@@ -53,8 +53,7 @@ public class LetterSocketHandler extends TextWebSocketHandler {
     // 当有消息从客户端发送过来时调用
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        System.out.println("收到客户端消息: " + message.getPayload());
-
+//        log.info("收用户1到消息: {}", message.getPayload());
         // 从 session 的 attributes 中获取用户 ID
         Long currentUserId = (Long) session.getAttributes().get("userId");
 
@@ -74,7 +73,7 @@ public class LetterSocketHandler extends TextWebSocketHandler {
         if (currentUserId != null) {
             sendMessageToUser(currentUserId, base64Result);
         } else {
-            log.info("无法获取用户 ID，无法发送消息。");
+            log.error("无法获取用户 ID，无法发送消息。");
         }
     }
 
@@ -100,7 +99,7 @@ public class LetterSocketHandler extends TextWebSocketHandler {
                 log.error("发送消息失败: ", e);
             }
         } else {
-            log.info("用户会话已关闭或不存在: " + userId);
+            log.info("用户会话已关闭或不存在: {}", userId);
         }
     }
 

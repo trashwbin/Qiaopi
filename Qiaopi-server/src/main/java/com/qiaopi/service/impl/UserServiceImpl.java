@@ -20,9 +20,12 @@ import com.qiaopi.entity.*;
 import com.qiaopi.exception.base.BaseException;
 import com.qiaopi.exception.code.CodeErrorException;
 import com.qiaopi.exception.code.CodeTimeoutException;
+import com.qiaopi.exception.friend.FriendException;
+import com.qiaopi.exception.friend.FriendNotExistsException;
 import com.qiaopi.exception.user.*;
 import com.qiaopi.mapper.*;
 import com.qiaopi.properties.JwtProperties;
+import com.qiaopi.service.LetterService;
 import com.qiaopi.service.UserService;
 import com.qiaopi.utils.AccountValidator;
 import com.qiaopi.utils.JwtUtil;
@@ -47,6 +50,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import static cn.hutool.core.bean.BeanUtil.copyProperties;
 import static com.qiaopi.result.AjaxResult.error;
@@ -65,8 +69,12 @@ public class UserServiceImpl implements UserService {
     private final FontColorMapper fontColorMapper;
     private final FontMapper fontMapper;
     private final PaperMapper paperMapper;
+    private final CardMapper cardMapper;
     private final JwtProperties jwtProperties;
     private final RedisTemplate redisTemplate;
+    private final LetterMapper letterMapper;
+    private final LetterService letterService;
+    private final CountryMapper countryMapper;
 
     @Override
     public UserLoginVO login(UserLoginDTO userLoginDTO) {
@@ -200,12 +208,18 @@ public class UserServiceImpl implements UserService {
         //设置默认纸张
         user.setPapers(Collections.singletonList(BeanUtil.copyProperties(paperMapper.selectById(1), PaperVO.class)));
         //设置默认功能卡
-        user.setFunctionCards(Collections.emptyList());
+        FunctionCard functionCard = cardMapper.selectById(0L);
+        FunctionCardVO functionCardVO = copyProperties(functionCard, FunctionCardVO.class);
+        functionCardVO.setNumber(1);
+        user.setFunctionCards(Collections.singletonList(functionCardVO));
         //设置默认印章
         user.setSignets(Collections.emptyList());
         //设置默认地址
         user.setAddresses(Collections.emptyList());
-
+        //发送邮件
+        Letter letter = letterMapper.selectById(1);
+        letter.setRecipientEmail(email);
+        letterService.sendLetterToEmail(Collections.singletonList(letter));
         //设置默认余额
         user.setMoney(100L);
         userMapper.insert(user);
@@ -374,8 +388,18 @@ public class UserServiceImpl implements UserService {
         if (CollUtil.isEmpty(friendList)) {
             return Collections.emptyList();
         }
-
-        return BeanUtil.copyToList(friendList, FriendVO.class);
+        List<User> friends = userMapper.selectBatchIds(friendList.stream().map(Friend::getUserId).collect(Collectors.toList()));
+        for (int i = 0; i < friendList.size(); i++) {
+            friendList.get(i).setName(friends.get(i).getNickname());
+            friendList.get(i).setSex(friends.get(i).getSex());
+            friendList.get(i).setEmail(friends.get(i).getEmail());
+        }
+        List<FriendVO> friendVOS = BeanUtil.copyToList(friendList, FriendVO.class);
+        for (int i = 0; i < friendVOS.size(); i++) {
+            friendVOS.get(i).setAvatar(friends.get(i).getAvatar());
+        }
+        friendMapper.updateById(friendList);
+        return friendVOS;
     }
 
     @Override
@@ -569,6 +593,128 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<Avatar> getAvatarList() {
         return avatarMapper.selectList(null);
+    }
+
+    @Override
+    public List<Country> getCountries() {
+        return countryMapper.selectList(null);
+    }
+
+    @Override
+    public void setUserDefaultAddress(Long addressId) {
+        User user = userMapper.selectById(UserContext.getUserId());
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        List<Address> addresses = user.getAddresses();
+        // 检查 addressId 是否存在于 addresses 中
+        boolean addressIdExists = addresses.stream()
+                .anyMatch(address -> address.getId().equals(addressId));
+
+        if (!addressIdExists) {
+            // 处理 addressId 不存在的情况，例如抛出异常或返回错误信息
+            throw new UserException(message("user.address.not.exists"));
+        }
+        for (Address address : addresses) {
+            if (address.getId().equals(addressId)) {
+                address.setIsDefault(String.valueOf(true));
+            } else {
+                address.setIsDefault(String.valueOf(false));
+            }
+        }
+        user.setAddresses(addresses);
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public void deleteUserAddress(Long addressId) {
+        User user = userMapper.selectById(UserContext.getUserId());
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        List<Address> addresses = user.getAddresses();
+        // 将 addresses 转换为 Map，以便快速查找
+        Map<Long, Address> addressMap = addresses.stream()
+                .collect(Collectors.toMap(Address::getId, address -> address));
+
+        // 检查 addressId 是否存在于 addresses 中
+        if (!addressMap.containsKey(addressId)) {
+            // 处理 addressId 不存在的情况，例如抛出异常或返回错误信息
+            throw new UserException(message("user.address.not.exists"));
+        }
+
+        // 检查地址是否为默认地址
+        if ("true".equals(addressMap.get(addressId).getIsDefault())) {
+            // 处理默认地址禁止删除的情况，例如抛出异常或返回错误信息
+            throw new UserException(message("user.address.default.not.delete"));
+        }
+        addresses.removeIf(address -> address.getId().equals(addressId));
+        user.setAddresses(addresses);
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public void setFriendDefaultAddress(Long friendId, Long addressId) {
+        Friend friend = friendMapper.selectOne(new LambdaQueryWrapper<Friend>().eq(Friend::getId, friendId).eq(Friend::getOwningId, UserContext.getUserId()));
+        if (friend == null) {
+            throw new FriendNotExistsException();
+        }
+        List<Address> addresses = friend.getAddresses();
+        // 检查 addressId 是否存在于 addresses 中
+        boolean addressIdExists = addresses.stream()
+                .anyMatch(address -> address.getId().equals(addressId));
+
+        if (!addressIdExists) {
+            // 处理 addressId 不存在的情况，例如抛出异常或返回错误信息
+            throw new UserException(message("user.address.not.exists"));
+        }
+
+        for (Address address : addresses) {
+            if (address.getId().equals(addressId)) {
+                address.setIsDefault(String.valueOf(true));
+            } else {
+                address.setIsDefault(String.valueOf(false));
+            }
+        }
+        friend.setAddresses(addresses);
+        friendMapper.updateById(friend);
+    }
+
+    @Override
+    public void deleteFriendAddress(Long friendId, Long addressId) {
+        Friend friend = friendMapper.selectOne(new LambdaQueryWrapper<Friend>().eq(Friend::getId, friendId).eq(Friend::getOwningId, UserContext.getUserId()));
+        if (friend == null) {
+            throw new FriendNotExistsException();
+        }
+        List<Address> addresses = friend.getAddresses();
+        // 将 addresses 转换为 Map，以便快速查找
+        Map<Long, Address> addressMap = addresses.stream()
+                .collect(Collectors.toMap(Address::getId, address -> address));
+
+        // 检查 addressId 是否存在于 addresses 中
+        if (!addressMap.containsKey(addressId)) {
+            // 处理 addressId 不存在的情况，例如抛出异常或返回错误信息
+            throw new FriendException(message("friend.address.not.exists"));
+        }
+
+        // 检查地址是否为默认地址
+        if ("true".equals(addressMap.get(addressId).getIsDefault())) {
+            // 处理默认地址禁止删除的情况，例如抛出异常或返回错误信息
+            throw new FriendException(message("friend.address.default.not.delete"));
+        }
+        addresses.removeIf(address -> address.getId().equals(addressId));
+        friend.setAddresses(addresses);
+        friendMapper.updateById(friend);
+    }
+
+    @Override
+    public void updateFriendRemark(Long friendId, String remark) {
+        Friend friend = friendMapper.selectById(friendId);
+        if (friend == null) {
+            throw new FriendNotExistsException();
+        }
+        friend.setRemark(remark);
+        friendMapper.updateById(friend);
     }
 
     //生成随机用户名，数字和字母组成,

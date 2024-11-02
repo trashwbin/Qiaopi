@@ -63,7 +63,7 @@ public class LetterVO {
     /**
      * 预计送达时间
      */
-    private LocalDateTime expectedDeliveryTime;
+//    private LocalDateTime expectedDeliveryTime;
 
     /**
      * 信件状态(0:未发送 1:已发送,2:传递中,3:已送达)
@@ -83,4 +83,23 @@ public class LetterVO {
      * 创建时间
      */
     private LocalDateTime createTime;
+
+    /**
+     * 携带猪仔钱
+     */
+    private Long piggyMoney;
+
+    /**
+     * 加速倍率
+     */
+    private String speedRate;
+
+    /**
+     * 减少的时间(单位:分钟)
+     */
+    private String reduceTime;
+    /**
+     * 送达时间(用于定时任务送达)
+     */
+    private LocalDateTime deliveryTime;
 }

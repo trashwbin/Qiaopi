@@ -5,19 +5,18 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.qiaopi.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "好友")
 @AllArgsConstructor
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @TableName(autoResultMap = true)//自动映射
+@Builder
 public class Friend extends BaseEntity {
 
     @Schema(description = "好友id(非必需项)")

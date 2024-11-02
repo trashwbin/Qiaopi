@@ -63,14 +63,26 @@ public class LetterSendDTO {
     private Address recipientAddress;
 
     /**
-     * 信的链接
+     * 信的链接(已弃用)
      */
-    @Schema(description = "信的链接")
-    private String letterLink;
+//    @Schema(description = "信的链接")
+//    private String letterLink;
 
     /**
      * 印章ID(后期预留)
      */
     @Schema(description = "印章ID")
     private Long signetId;
+
+    /**
+     * 携带猪仔钱
+     */
+    @Schema(description = "携带猪仔钱")
+    private Long piggyMoney;
+
+    /**
+     * 信件类型(1:竖版字体信件,2:横版信件)
+     */
+    @Schema(description = "信件类型(1:竖版字体信件,2:横版信件)")
+    private int letterType;
 }
