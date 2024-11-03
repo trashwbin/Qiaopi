@@ -39,6 +39,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.List;
@@ -350,6 +351,41 @@ public class LetterServiceImpl implements LetterService {
         }
     }
 
+    public  String convertToHttpsAndRemovePort(String url) {
+        // 使用正则表达式匹配 HTTP 协议和端口号
+        String pattern = "^http://(.*?)(:\\d+)?(/.*)$";
+        String replacement = "https://$1$3";
+        // 替换匹配的部分
+        return url.replaceAll(pattern, replacement);
+    }
+
+    public static String convertImageUrlToBase64(String imageUrl) throws IOException {
+        // 从 URL 获取图片
+        URL url = new URL(imageUrl);
+        InputStream in = url.openStream();
+        BufferedImage bufferedImage = ImageIO.read(in);
+        in.close();
+
+        // 将图片转换为字节数组
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(bufferedImage, getFormatNameFromUrl(imageUrl), baos);
+        byte[] imageBytes = baos.toByteArray();
+        baos.close();
+
+        // 将字节数组转换为 Base64 编码的字符串
+        String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+
+        return base64Image;
+    }
+
+    private static String getFormatNameFromUrl(String imageUrl) {
+        // 从 URL 中提取图片格式（如 png, jpg 等）
+        int lastDotIndex = imageUrl.lastIndexOf('.');
+        if (lastDotIndex == -1) {
+            throw new IllegalArgumentException("Invalid image URL format");
+        }
+        return imageUrl.substring(lastDotIndex + 1).toLowerCase();
+    }
     @Override
     public void sendLetterToEmail(List<Letter> letters) {
         // 创建一个邮件
@@ -363,7 +399,16 @@ public class LetterServiceImpl implements LetterService {
 
                 // 设置发件人
                 helper.setFrom(nickname + '<' + sender + '>');
-
+                String coverLink = convertToHttpsAndRemovePort(letter.getCoverLink());
+                String imageUrl = letter.getCoverLink();
+                String base64Image = "";
+                try {
+                    base64Image = convertImageUrlToBase64(imageUrl);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    log.error("图片转换失败", e);
+                }
+                String coverBase64= "data:image/png;base64," + base64Image;
                 // 设置收件人
                 helper.setTo(letter.getRecipientEmail());
 
@@ -380,6 +425,7 @@ public class LetterServiceImpl implements LetterService {
                         "</head>\n" +
                         "\n" +
                         "<body>\n" +
+                        "\n" +
                         "  <div id=\"mailContentContainer\" onclick=\"getTop().previewContentImage(event, '')\"\n" +
                         "    onmousemove=\"getTop().contentImgMouseOver(event, '')\" onmouseout=\"getTop().contentImgMouseOut(event, '')\"\n" +
                         "    class=\"box\" style=\"opacity: 1;\">\n" +
@@ -391,7 +437,7 @@ public class LetterServiceImpl implements LetterService {
                         "    </style>\n" +
                         "    <style type=\"text/css\">\n" +
                         "      .box #shiyanlou-content {\n" +
-                        "        background: rgba(222, 201, 162, 0.6);\n" +
+                        "        background: url(https://www.taoyuantudigong.org.tw/main/wp-content/themes/project-theme/src/img/yellow.png) 0 0 / 400px auto repeat, #f9f9f9;\n" +
                         "        width: 80%;\n" +
                         "        margin: 0 auto;\n" +
                         "        font-family: 'Microsoft Yahei';\n" +
@@ -420,6 +466,19 @@ public class LetterServiceImpl implements LetterService {
                         "        width: 8.4375em;\n" +
                         "        /* 135px */\n" +
                         "        background-image: url('https://s2.loli.net/2024/10/12/QUhlj7zZnLpqimS.png');\n" +
+                        "      }\n" +
+                        "\n" +
+                        "      .box #header #icon {\n" +
+                        "        background-size: cover;\n" +
+                        "        background-repeat: no-repeat;\n" +
+                        "        height: 2.75em;\n" +
+                        "        /* 44px */\n" +
+                        "        width: 2.75em;\n" +
+                        "        /* 44px */\n" +
+                        "        background-image: url('https://s2.loli.net/2024/11/04/ZclRIekqd8giXhQ.png');\n" +
+                        "        margin-top: -70px;\n" +
+                        "        margin-right: 25px;\n" +
+                        "        float: right;\n" +
                         "      }\n" +
                         "\n" +
                         "      .box #body {\n" +
@@ -455,7 +514,7 @@ public class LetterServiceImpl implements LetterService {
                         "      }\n" +
                         "\n" +
                         "      .message a {\n" +
-                        "        color: #007bff;\n" +
+                        "        color: #E1B3FF;\n" +
                         "        text-decoration: none;\n" +
                         "        border-bottom: 0.0625em solid #007bff;\n" +
                         "        /* 1px */\n" +
@@ -473,7 +532,22 @@ public class LetterServiceImpl implements LetterService {
                         "        background-position: center;\n" +
                         "        display: block;\n" +
                         "        margin: 0 auto;\n" +
-                        "        background-image: url('" + letter.getCoverLink() + "');\n" +
+                        "        background-image: url("+coverLink+");\n" +
+                        "        width: 12.5em;\n" +
+                        "        /* 200px */\n" +
+                        "        height: 21.0625em;\n" +
+                        "        border-radius: 1.5em;\n" +
+                        "        /* 335px */\n" +
+                        "        z-index: 1;\n" +
+                        "      }\n" +
+                        "\n" +
+                        "      #coverdatabase {\n" +
+                        "        background-size: cover;\n" +
+                        "        background-repeat: no-repeat;\n" +
+                        "        background-position: center;\n" +
+                        "        display: block;\n" +
+                        "        margin: 0 auto;\n" +
+                        "        background-image: url("+coverBase64+");\n" +
                         "        width: 12.5em;\n" +
                         "        /* 200px */\n" +
                         "        height: 21.0625em;\n" +
@@ -506,15 +580,18 @@ public class LetterServiceImpl implements LetterService {
                         "      <div id=\"header\">\n" +
                         "        <p style=\"display: flex; align-items: center;\">\n" +
                         "          <a href=\"http://110.41.58.26\" target=\"_blank\" rel=\"noopener\"></a>\n" +
-                        "          <span style=\"color:#A52328; display:inline-block; line-height: 2.75em;\">侨缘信使</span>\n" +
+                        "          <!-- <span style=\"color:#A52328; display:inline-block; line-height: 2.75em;\">侨缘信使</span> -->\n" +
                         "        </p>\n" +
+                        "        <div id=\"icon\"></div>\n" +
                         "      </div>\n" +
-                        "      <p class=\"message\">" + letter.getRecipientName() + ",您的好友给您发了一封侨批喔,<a href=\"http://110.41.58.26\">快来看看吧</a></p>\n" +
+                        "      <p class=\"message\">"+letter.getRecipientName()+",您的好友给您发了一封侨批喔，<a href=\"http://110.41.58.26\">快来看看吧</a></p>\n" +
                         "      <div id=\"body\">\n" +
                         "\n" +
                         "        <p>&nbsp;</p>\n" +
                         "        <a href=\"http://110.41.58.26\" style=\"margin: 0 auto; display: block; height: 21.0625em; \">\n" +
                         "          <div id=\"cover\">\n" +
+                        "            <div id=\"coverdatabase\">\n" +
+                        "            </div>\n" +
                         "          </div>\n" +
                         "        </a>\n" +
                         "        <p class=\"margin10\">&nbsp;</p>\n" +
@@ -619,7 +696,7 @@ public class LetterServiceImpl implements LetterService {
         }
 
         //检查是否是好友
-        Friend friend = friendMapper.selectOne(new LambdaQueryWrapper<Friend>().eq(Friend::getUserId, letter.getRecipientUserId()).eq(Friend::getOwningId, UserContext.getUserId()));
+        Friend friend = friendMapper.selectOne(new LambdaQueryWrapper<Friend>().eq(Friend::getUserId, letter.getRecipientUserId()).eq(Friend::getOwningId, userId));
         if (friend == null) {
             letter.setRemark("new friend");
         }else{
@@ -768,7 +845,8 @@ public class LetterServiceImpl implements LetterService {
         if (!UserContext.getUserId().equals(letter.getRecipientUserId())) {
             throw new LetterException(message("letter.not.yours"));
         }
-        if (letter.getRemark().contains("new friend")) {
+        // 如果是新朋友的信,就加好友
+        if (letter.getRemark()!=null&&letter.getRemark().contains("new friend")) {
             FriendRequest friendRequest = FriendRequest.builder()
                     .receiverId(UserContext.getUserId())
                     .senderId(letter.getSenderUserId())
@@ -778,6 +856,12 @@ public class LetterServiceImpl implements LetterService {
                     .build();
             friendRequest.setCreateTime(letter.getDeliveryTime());
             friendRequestMapper.insert(friendRequest);
+        }
+        // 读信后加钱
+        if (letter.getPiggyMoney()>0){
+            User user = userMapper.selectById(UserContext.getUserId());
+            user.setMoney(user.getMoney()+letter.getPiggyMoney());
+            userMapper.updateById(user);
         }
         letter.setReadStatus(LetterConstants.READ);
         letterMapper.updateById(letter);
