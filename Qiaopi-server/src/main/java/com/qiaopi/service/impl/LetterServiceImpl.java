@@ -685,7 +685,7 @@ public class LetterServiceImpl implements LetterService {
                 }
             }
             if (!isInAddresses) {
-                senderAddress.setId(addresses.size() + 1L);
+                senderAddress.setId(addresses.get(addresses.size()-1).getId() + 1L);
                 addresses.add(senderAddress);
                 letter.setSenderAddress(senderAddress);
             }
@@ -718,7 +718,7 @@ public class LetterServiceImpl implements LetterService {
                 }
             }
             if (!isInAddresses) {
-                friendAddress.setId(addresses.size() + 1L);
+                friendAddress.setId(addresses.get(addresses.size()-1).getId() + 1L);
                 addresses.add(friendAddress);
                 letter.setRecipientAddress(friendAddress);
             }
@@ -853,6 +853,7 @@ public class LetterServiceImpl implements LetterService {
                     .status(FriendConstants.PENDING)
                     .giveAddress(letter.getSenderAddress())
                     .content(letter.getRecipientName() + "!我给你写了一封侨批哦,快来加我为好友吧!")
+                    .bottleId(letterId)
                     .build();
             friendRequest.setCreateTime(letter.getDeliveryTime());
             friendRequestMapper.insert(friendRequest);
