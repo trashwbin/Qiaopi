@@ -794,7 +794,8 @@ public class LetterServiceImpl implements LetterService {
     public List<LetterVO> getMySendLetter() {
         List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getSenderUserId, UserContext.getUserId()).orderByDesc(Letter::getCreateTime));
         //每次要查的时候再更新这个数据，减少更新次数
-        letters.replaceAll(ProgressUtils::getProgress);
+        // 只有status是2的才要更新
+        letters.replaceAll(letter -> letter.getStatus() == 2 ? ProgressUtils.getProgress(letter) : letter);
         //更新进度
         letterMapper.updateById(letters);
 
