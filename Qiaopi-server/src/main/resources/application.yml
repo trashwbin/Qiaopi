@@ -8,7 +8,7 @@ spring:
       max-request-size: 20MB # 单次请求的最大限制大小
 #  模式切换
   profiles:
-    active: test
+    active: prod
   main:
     allow-circular-references: true
   messages:
@@ -126,4 +126,5 @@ dromara:
 # AES加密
 aes:
   secret:
-    key: 12345678901234567890123456789012
+    key: qiaopiqiaopiqiaopiqiaopiqiaopinb
+

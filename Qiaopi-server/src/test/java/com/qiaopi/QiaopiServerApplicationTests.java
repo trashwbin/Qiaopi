@@ -3,6 +3,7 @@ package com.qiaopi;
 import cn.hutool.core.bean.BeanUtil;
 import com.qiaopi.entity.*;
 import com.qiaopi.mapper.*;
+import com.qiaopi.utils.AESUtil;
 import com.qiaopi.vo.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,14 @@ class QiaopiServerApplicationTests {
     private SignetMapper signetMapper;
     @Autowired
     private CardMapper cardMapper;
+
+
+    @Test
+    void encode() throws Exception {
+        String string = AESUtil.encrypt("hello", "12345678901234567890123456789012");
+        System.out.println(string);
+    }
+
     @Test
     void add() {
 
