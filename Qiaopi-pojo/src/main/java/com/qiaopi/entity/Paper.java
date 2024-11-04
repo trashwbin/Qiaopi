@@ -48,4 +48,6 @@ public class Paper {
     @Schema(description = "纸张价格")
     private int price;
 
+    @Schema(description = "纸张类型,1:侨批,2:普通信纸")
+    private int type;
 }
