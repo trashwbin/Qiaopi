@@ -17,4 +17,7 @@ public class PaperVO {
 
     @Schema(description = "预览图片")
     private String previewImage;
+
+    @Schema(description = "纸张类型,1:侨批,2:普通信纸")
+    private int type;
 }
