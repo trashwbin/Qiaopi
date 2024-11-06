@@ -134,7 +134,7 @@ public class UserController {
     @GetMapping("/getUserRepository")
     @Operation(summary = "获取用户仓库")
     public AjaxResult getUserRepository(){
-        Map<String,List> userRepository = userService.getUserRepository(UserContext.getUserId());
+        ConcurrentHashMap<String,List> userRepository = userService.getUserRepository(UserContext.getUserId());
         log.info("用户仓库：{}",userRepository);
         return success(message("user.get.repository.success"),userRepository);
     }
@@ -184,7 +184,7 @@ public class UserController {
     @GetMapping("/getMyFriends")
     @Operation(summary = "获取我的好友")
     public AjaxResult getMyFriends(){
-        log.info("获取我的好友：{}",UserContext.getUserId());
+        log.info("获取用户：{} 的好友",UserContext.getUserId());
         List<FriendVO> friends = userService.getMyFriends(UserContext.getUserId());
         return success(message("user.get.friends.success"),friends);
     }
@@ -192,7 +192,7 @@ public class UserController {
     @GetMapping("/getFriendAddress")
     @Operation(summary = "获取当前好友地址")
     public AjaxResult getFriendAddress(@RequestParam("friendId") Long friendId){
-        log.info("获取当前好友地址：{}",friendId);
+        log.info("获取用户：{}好友:{} 地址",UserContext.getUserId(),friendId);
         List<Address> addresses = userService.getFriendAddress(friendId);
         return success(message("user.get.friend.address.success"),addresses);
     }

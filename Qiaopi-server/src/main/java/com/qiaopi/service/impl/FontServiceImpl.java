@@ -1,6 +1,8 @@
 package com.qiaopi.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.json.JSONUtil;
 import com.qiaopi.context.UserContext;
 import com.qiaopi.entity.Font;
 import com.qiaopi.entity.FontColor;
@@ -8,6 +10,7 @@ import com.qiaopi.entity.User;
 import com.qiaopi.exception.font.FontException;
 import com.qiaopi.exception.user.UserNotExistsException;
 import com.qiaopi.mapper.FontColorMapper;
+import com.qiaopi.service.UserService;
 import com.qiaopi.vo.FontColorShopVO;
 import com.qiaopi.vo.FontColorVO;
 import com.qiaopi.vo.FontVO;
@@ -17,13 +20,18 @@ import com.qiaopi.service.FontService;
 import com.qiaopi.vo.FontShopVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import static com.qiaopi.constant.CacheConstant.*;
 import static com.qiaopi.utils.MessageUtils.message;
 
 @Service
@@ -34,37 +42,61 @@ public class FontServiceImpl implements FontService {
     private final FontMapper fontMapper;
     private final FontColorMapper fontColorMapper;
     private final UserMapper userMapper;
-    @Override
-    public List<FontShopVO> list() {
+    private final StringRedisTemplate stringRedisTemplate;
+    private final UserService userService;
+@Override
+public List<FontShopVO> list() {
+    Long userId = UserContext.getUserId();
 
-        User user = userMapper.selectById(UserContext.getUserId());
-        if (user == null) {
-            return fontMapper.selectList(null).stream().map(font -> BeanUtil.copyProperties(font, FontShopVO.class)).toList();
-        }
-        Map<Long, Long> map = user.getFonts().stream().collect(Collectors.groupingBy(FontVO::getId, Collectors.counting()));
-
-        List<FontShopVO> fontShopVOS = fontMapper.selectList(null).stream().map(font -> {
-            FontShopVO fontShopVO = BeanUtil.copyProperties(font, FontShopVO.class);
-            fontShopVO.setOwn(map.getOrDefault(font.getId(), 0L) > 0L);
-            return fontShopVO;
-        }).toList();
-
+    // 从Redis中获取字体列表
+    List<FontShopVO> fontShopVOS = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_SHOP_FONT_KEY), FontShopVO.class);
+    if (CollUtil.isEmpty(fontShopVOS)) {
+        fontShopVOS = fontMapper.selectList(null).stream().map(font -> BeanUtil.copyProperties(font, FontShopVO.class)).toList();
+        stringRedisTemplate.opsForValue().set(CACHE_SHOP_FONT_KEY, JSONUtil.toJsonStr(fontShopVOS), Duration.ofHours(24));
+    }
+    if (userId == null) {
         return fontShopVOS;
     }
+    // 设置用户是否拥有这个字体
+    ConcurrentHashMap repository = JSONUtil.toBean(stringRedisTemplate.opsForValue().get(CACHE_USER_REPOSITORY_KEY + userId), ConcurrentHashMap.class);
+    List<FontVO> userFonts = repository.get("fonts") == null ? Collections.emptyList() : JSONUtil.toList(repository.get("fonts").toString(), FontVO.class);
+    if (CollUtil.isEmpty(userFonts)) {
+        // 这个查询自动会存Redis
+        repository = userService.getUserRepository(userId);
+        userFonts = repository.get("fonts") == null ? Collections.emptyList() : JSONUtil.toList(repository.get("fonts").toString(), FontVO.class);
+    }
+    Map<Long, Long> map = userFonts.stream().collect(Collectors.groupingBy(FontVO::getId, Collectors.counting()));
+    fontShopVOS.forEach(fontShopVO -> {
+        fontShopVO.setOwn(map.getOrDefault(fontShopVO.getId(), 0L) > 0L);
+    });
+
+    return fontShopVOS;
+}
 
     @Override
     public List<FontColorShopVO> listColor() {
-        User user = userMapper.selectById(UserContext.getUserId());
-        if (user == null) {
-            return fontColorMapper.selectList(null).stream().map(fontColor -> BeanUtil.copyProperties(fontColor, FontColorShopVO.class)).toList();
-        }
-        Map<Long, Long> map = user.getFontColors().stream().collect(Collectors.groupingBy(FontColorVO::getId, Collectors.counting()));
+        Long userId = UserContext.getUserId();
 
-        List<FontColorShopVO> fontColorShopVOS = fontColorMapper.selectList(null).stream().map(fontColor -> {
-            FontColorShopVO fontColorShopVO = BeanUtil.copyProperties(fontColor, FontColorShopVO.class);
-            fontColorShopVO.setOwn(map.getOrDefault(fontColor.getId(), 0L) > 0L);
-            return fontColorShopVO;
-        }).toList();
+        // 从Redis中获取字体颜色列表
+        List<FontColorShopVO> fontColorShopVOS = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_SHOP_FONT_COLOR_KEY), FontColorShopVO.class);
+        if(CollUtil.isEmpty(fontColorShopVOS)){
+            fontColorShopVOS = fontColorMapper.selectList(null).stream().map(fontColor -> BeanUtil.copyProperties(fontColor, FontColorShopVO.class)).toList();
+            stringRedisTemplate.opsForValue().set(CACHE_SHOP_FONT_COLOR_KEY, JSONUtil.toJsonStr(fontColorShopVOS),Duration.ofHours(24));
+        }
+        if (userId == null) {
+            return fontColorShopVOS;
+        }
+        ConcurrentHashMap repository = JSONUtil.toBean(stringRedisTemplate.opsForValue().get(CACHE_USER_REPOSITORY_KEY + userId), ConcurrentHashMap.class);
+        List<FontColorVO> userFontColors = repository.get("fontColors") == null ? Collections.emptyList() : JSONUtil.toList(repository.get("fontColors").toString(), FontColorVO.class);
+        if (CollUtil.isEmpty(userFontColors)) {
+            // 这个查询自动会存Redis
+            repository = userService.getUserRepository(userId);
+            userFontColors = repository.get("fontColors") == null ? Collections.emptyList() : JSONUtil.toList(repository.get("fontColors").toString(), FontColorVO.class);
+        }
+        Map<Long, Long> map = userFontColors.stream().collect(Collectors.groupingBy(FontColorVO::getId, Collectors.counting()));
+        fontColorShopVOS.forEach(fontColorShopVO -> {
+            fontColorShopVO.setOwn(map.getOrDefault(fontColorShopVO.getId(), 0L) > 0L);
+        });
 
         return fontColorShopVOS;
     }
@@ -99,6 +131,7 @@ public class FontServiceImpl implements FontService {
         fonts.add(fontVO);
         user.setFonts(fonts);
         userMapper.updateById(user);
+        stringRedisTemplate.delete(CACHE_USER_REPOSITORY_KEY + UserContext.getUserId());
     }
 
     @Override
@@ -130,5 +163,6 @@ public class FontServiceImpl implements FontService {
         fontColors.add(fontColorVO);
         user.setFontColors(fontColors);
         userMapper.updateById(user);
+        stringRedisTemplate.delete(CACHE_USER_REPOSITORY_KEY + UserContext.getUserId());
     }
 }

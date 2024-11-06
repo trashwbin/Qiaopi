@@ -27,7 +27,16 @@ class QiaopiServerApplicationTests {
     private SignetMapper signetMapper;
     @Autowired
     private CardMapper cardMapper;
+    @Autowired
+    private LetterMapper letterMapper;
 
+    @Test
+    void trimLetters(){
+        letterMapper.selectList(null).forEach(letter -> {
+            letter.setLetterContent(letter.getLetterContent().trim().replaceAll("\n", ""));
+            letterMapper.updateById(letter);
+        });
+    }
 
     @Test
     void encode() throws Exception {

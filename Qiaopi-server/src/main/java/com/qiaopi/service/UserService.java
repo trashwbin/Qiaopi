@@ -14,6 +14,7 @@ import com.qiaopi.vo.UserVO;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public interface UserService {
 
@@ -25,7 +26,7 @@ public interface UserService {
 
     UserVO getUserInfo(Long userId);
 
-    Map<String, List> getUserRepository(Long userId);
+    ConcurrentHashMap<String, List> getUserRepository(Long userId);
 
     void updateUsername(UserUpdateDTO userUpdateDTO);
 

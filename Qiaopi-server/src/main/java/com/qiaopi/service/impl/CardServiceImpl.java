@@ -1,6 +1,8 @@
 package com.qiaopi.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.json.JSONUtil;
 import com.qiaopi.constant.LetterConstants;
 import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.FunctionCardUseDTO;
@@ -17,21 +19,27 @@ import com.qiaopi.mapper.LetterMapper;
 import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.service.CardService;
 import com.qiaopi.service.LetterService;
+import com.qiaopi.service.UserService;
 import com.qiaopi.utils.ProgressUtils;
 import com.qiaopi.vo.FunctionCardShopVO;
 import com.qiaopi.vo.FunctionCardVO;
 import com.qiaopi.vo.LetterVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import static com.qiaopi.constant.CacheConstant.*;
 import static com.qiaopi.utils.MessageUtils.message;
 
 @Service
@@ -43,10 +51,13 @@ public class CardServiceImpl implements CardService {
     private final LetterMapper letterMapper;
     private final UserMapper userMapper;
     private final LetterService letterService;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final UserService userService;
 
     @Override
     @Transactional
     public LetterVO useCard(FunctionCardUseDTO functionCardUseDTO) {
+
 
         // 1. 根据功能卡id查询功能卡信息
         FunctionCard functionCard = cardMapper.selectById(functionCardUseDTO.getCardId());
@@ -98,6 +109,7 @@ public class CardServiceImpl implements CardService {
         // 4. 更新用户信息
         user.setFunctionCards(userFunctionCards);
         userMapper.updateById(user);
+        stringRedisTemplate.delete(CACHE_USER_FUNCTION_CARDS_KEY + UserContext.getUserId());
         boolean isDelivery = false;
         // 5. 更新信件信息
         if (functionCard.getCardType() == 1) {
@@ -116,8 +128,6 @@ public class CardServiceImpl implements CardService {
                 letter.setReduceTime(String.valueOf(Integer.parseInt(letter.getReduceTime())+Integer.parseInt(functionCard.getReduceTime())));
                 ProgressUtils.getProgress(letter);
             }
-
-
         }
         if (letter.getDeliveryProgress() >= 10000) {
             isDelivery = true;
@@ -125,8 +135,9 @@ public class CardServiceImpl implements CardService {
         letterMapper.updateById(letter);
         // 调整剩余时间
         if (isDelivery) {
-            // 发送信件
-            letterService.sendLetterToEmail(Collections.singletonList(letter));
+            // 异步发送信件
+            CompletableFuture.runAsync(() -> letterService.sendLetterToEmail(Collections.singletonList(letter)));
+            //letterService.sendLetterToEmail(Collections.singletonList(letter));
         }
         //6 更新信件状态
         return BeanUtil.copyProperties(letter, LetterVO.class);
@@ -134,21 +145,30 @@ public class CardServiceImpl implements CardService {
 
     @Override
     public List<FunctionCardShopVO> list() {
+        Long userId = UserContext.getUserId();
 
-        User user = userMapper.selectById(UserContext.getUserId());
-        if (user == null) {
-            return cardMapper.selectList(null).stream().map(functionCard -> {
+        // 从Redis中获取功能卡列表
+        List<FunctionCardShopVO> functionCardShopVOS = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_SHOP_FUNCTION_CARD_KEY), FunctionCardShopVO.class);
+        if (CollUtil.isEmpty(functionCardShopVOS)) {
+            functionCardShopVOS = cardMapper.selectList(null).stream().map(functionCard -> {
                 FunctionCardShopVO functionCardShopVO = BeanUtil.copyProperties(functionCard, FunctionCardShopVO.class);
                 functionCardShopVO.setNumber(0);
                 return functionCardShopVO;
-            }).collect(Collectors.toList());
+            }).toList();
+            stringRedisTemplate.opsForValue().set(CACHE_SHOP_FUNCTION_CARD_KEY, JSONUtil.toJsonStr(functionCardShopVOS), Duration.ofHours(24));
         }
-        Map<Long, Integer> userFunctionCardList = user.getFunctionCards().stream().collect(Collectors.groupingBy(FunctionCardVO::getId,Collectors.summingInt(FunctionCardVO::getNumber)));
-        List<FunctionCardShopVO> functionCardShopVOS = cardMapper.selectList(null).stream().map(functionCard -> {
-            FunctionCardShopVO functionCardShopVO = BeanUtil.copyProperties(functionCard, FunctionCardShopVO.class);
-            functionCardShopVO.setNumber(userFunctionCardList.getOrDefault(functionCard.getId(),0));
-            return functionCardShopVO;
-        }).collect(Collectors.toList());
+        if (userId == null) {
+            return functionCardShopVOS;
+        }
+        // 设置用户拥有功能卡数量
+        List<FunctionCardVO> userFunctionCardList = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_USER_FUNCTION_CARDS_KEY + userId), FunctionCardVO.class);
+        if (CollUtil.isEmpty(userFunctionCardList)) {
+            userFunctionCardList = userService.getMyFunctionCard(userId);
+        }
+        Map<Long, Integer> userFunctionCardMap = userFunctionCardList.stream().collect(Collectors.groupingBy(FunctionCardVO::getId,Collectors.summingInt(FunctionCardVO::getNumber)));
+        functionCardShopVOS.forEach(functionCardShopVO -> {
+            functionCardShopVO.setNumber(userFunctionCardMap.getOrDefault(functionCardShopVO.getId(), 0));
+        });
         return functionCardShopVOS;
     }
 
@@ -189,5 +209,6 @@ public class CardServiceImpl implements CardService {
         }
 
         userMapper.updateById(user);
+        stringRedisTemplate.delete(CACHE_USER_FUNCTION_CARDS_KEY + UserContext.getUserId());
     }
 }
