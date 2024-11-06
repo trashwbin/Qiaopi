@@ -1,19 +1,31 @@
 package com.qiaopi;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.crypto.asymmetric.Sign;
+import cn.hutool.json.JSONUtil;
 import com.qiaopi.entity.*;
 import com.qiaopi.mapper.*;
 import com.qiaopi.utils.AESUtil;
 import com.qiaopi.vo.*;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.qiaopi.constant.CacheConstant.*;
+
 @SpringBootTest
+@Slf4j
 class QiaopiServerApplicationTests {
     @Autowired
     private UserMapper userMapper;
@@ -29,6 +41,72 @@ class QiaopiServerApplicationTests {
     private CardMapper cardMapper;
     @Autowired
     private LetterMapper letterMapper;
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Test
+    void sign(){
+        LocalDateTime now = LocalDateTime.now();
+        System.out.println(now.getDayOfWeek().getValue());
+        String prefix = stringRedisTemplate.opsForValue().get("sign:current");
+        stringRedisTemplate.opsForValue().setBit("sign:"+prefix+":user-1", now.getDayOfWeek().getValue()-1, true);
+        String s = stringRedisTemplate.opsForValue().get("sign:" + prefix + ":user-1");
+        System.out.println(s);
+        List<Long> result = stringRedisTemplate.opsForValue().bitField(
+                "sign:" + prefix + ":user-1",
+                BitFieldSubCommands.create()
+                        .get(BitFieldSubCommands.BitFieldType.unsigned(now.getDayOfWeek().getValue())).valueAt(0)
+        );
+        System.out.println(result);
+        Long num = result.get(0);
+        if (num == null || num == 0) {
+            // 6.如果为0，说明未签到，结束
+            System.out.println("未签到");
+        }
+        int count = 0;
+        String s1= Long.toBinaryString(num);
+        System.out.println(s1);
+        while (true) {
+            // 6.1.让这个数字与1做与运算，得到数字的最后一个bit位  // 判断这个bit位是否为0
+            if ((num & 1) == 0) {
+                // 如果为0，说明未签到，结束
+                break;
+            }else {
+                // 如果不为0，说明已签到，计数器+1
+                count++;
+            }
+            // 把数字右移一位，抛弃最后一个bit位，继续下一个bit位
+            num >>>= 1;
+        }
+        System.out.println(count);
+    }
+    @Test
+    public void deleteTodaySignCache(){
+        log.info("删除今日签到缓存");
+        Set<String> keys = stringRedisTemplate.keys(SIGN_TODAY_ALL_KEY);
+        assert keys != null;
+        System.out.println(stringRedisTemplate.delete(keys));
+        //stringRedisTemplate.opsForValue().set("sign:today:user", "1");
+    }
+    @Test
+    void buildSignTable(){
+        List<UserSignAward> userSignAwardList = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            UserSignAward userSignAward = new UserSignAward();
+            userSignAward.setId((long) i);
+            userSignAward.setAwardType("1");
+            userSignAward.setAwardDesc("猪仔钱");
+            userSignAward.setAwardName("猪仔钱");
+            userSignAward.setAwardNum(1);
+            userSignAward.setPreviewLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/card/0.webp");
+            userSignAward.setSignDays(i + 1);
+            userSignAwardList.add(userSignAward);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        String prefix = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        stringRedisTemplate.opsForValue().set("sign:"+prefix, JSONUtil.toJsonStr(userSignAwardList));
+        stringRedisTemplate.opsForValue().set("sign:current", prefix);
+    }
 
     @Test
     void trimLetters(){

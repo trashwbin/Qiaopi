@@ -7,11 +7,15 @@ import com.qiaopi.mapper.LetterMapper;
 import com.qiaopi.service.LetterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+
+import static com.qiaopi.constant.CacheConstant.*;
 
 /**
  * 自定义定时任务，实现信件任务定时处理
@@ -24,6 +28,7 @@ public class LetterTask {
     private final LetterMapper letterMapper;
 
     private final LetterService letterService;
+    private final StringRedisTemplate stringRedisTemplate;
     /**
      * 处理信件任务
      */
@@ -37,6 +42,13 @@ public class LetterTask {
          }
          log.info("处理信件任务：{},送信数:{}", System.currentTimeMillis(),letters.size());
     }
-
+    @Scheduled(cron = "0 0 0 * * ?")
+    public void deleteTodaySignCache(){
+        log.info("删除今日签到缓存");
+        Set<String> keys = stringRedisTemplate.keys(SIGN_TODAY_ALL_KEY);
+        assert keys != null;
+        System.out.println(stringRedisTemplate.delete(keys));
+        //stringRedisTemplate.opsForValue().set("sign:today:user", "1");
+    }
 
 }

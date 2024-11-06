@@ -7,10 +7,8 @@ import com.qiaopi.dto.UserUpdateDTO;
 import com.qiaopi.entity.Address;
 import com.qiaopi.entity.Avatar;
 import com.qiaopi.entity.Country;
-import com.qiaopi.vo.FriendVO;
-import com.qiaopi.vo.FunctionCardVO;
-import com.qiaopi.vo.UserLoginVO;
-import com.qiaopi.vo.UserVO;
+import com.qiaopi.entity.UserSignAward;
+import com.qiaopi.vo.*;
 
 import java.util.List;
 import java.util.Map;
@@ -63,4 +61,8 @@ public interface UserService {
     void deleteFriendAddress(Long friendId, Long addressId);
 
     void updateFriendRemark(Long friendId, String remark);
+
+    void sign(Long userId);
+
+    List<UserSignAwardVO> getSignList(Long userId);
 }
