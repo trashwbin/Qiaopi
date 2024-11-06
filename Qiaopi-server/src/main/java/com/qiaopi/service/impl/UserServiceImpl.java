@@ -34,12 +34,14 @@ import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.utils.StringUtils;
 import com.qiaopi.utils.ip.IpUtils;
 import com.qiaopi.vo.*;
+import io.swagger.v3.core.util.Json;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.MailException;
@@ -805,6 +807,74 @@ public class UserServiceImpl implements UserService {
         stringRedisTemplate.delete(CACHE_USER_FRIENDS_KEY + UserContext.getUserId());
     }
 
+    @Override
+    public void sign(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        // 获取当前签到的key
+        String prefix = stringRedisTemplate.opsForValue().get(SIGN_CURRENT_KEY);
+        String key = SIGN_PREFIX_KEY + prefix + SIGN_SUFFIX_KEY + userId;
+        // 写入Redis SETBIT key offset 1
+        stringRedisTemplate.opsForValue().setBit(key, now.getDayOfWeek().getValue()-1, true);
+        // 获取已签到的天数
+        int signedDays = getSignedDays(now, key);
+
+        //TODO 获取签到奖励
+    }
+
+    @Override
+    public List<UserSignAwardVO> getSignList(Long userId) {
+        List<UserSignAwardVO> userSignAwards = JSONUtil.toList(stringRedisTemplate.opsForValue().get(SIGN_TODAY_KEY + userId), UserSignAwardVO.class);
+        if (CollUtil.isEmpty(userSignAwards)) {
+            LocalDateTime now = LocalDateTime.now();
+            // 获取当前签到的key
+            String prefix = stringRedisTemplate.opsForValue().get(SIGN_CURRENT_KEY);
+            String key = SIGN_PREFIX_KEY + prefix + SIGN_SUFFIX_KEY + userId;
+            // 获取已签到的天数
+            int signedDays = getSignedDays(now, key);
+            // 获取当前周期签到奖励
+            List<UserSignAward> signAwardList = JSONUtil.toList(stringRedisTemplate.opsForValue().get(SIGN_AWARD_KEY+prefix), UserSignAward.class);
+            userSignAwards = BeanUtil.copyToList(signAwardList, UserSignAwardVO.class);
+            userSignAwards.forEach(userSignAward -> {
+                if (userSignAward.getSignDays() <= signedDays) {
+                    userSignAward.setReceived(true);
+                }
+            });
+            stringRedisTemplate.opsForValue().set(SIGN_TODAY_KEY + userId, JSONUtil.toJsonStr(userSignAwards), Duration.ofDays(1));
+        }
+        return userSignAwards;
+    }
+
+    private int getSignedDays(LocalDateTime now,String key ) {
+        // 保证和调用方法时刻、用户一致
+        // 1.获取今天是本周的第几天
+        int dayOfWeek = now.getDayOfWeek().getValue();
+        // 2.获取本月截止今天为止的所有的签到记录，返回的是一个十进制的数字 BITFIELD sign:5:202203 GET u14 0
+        List<Long> result = stringRedisTemplate.opsForValue().bitField(
+                key,
+                BitFieldSubCommands.create()
+                        .get(BitFieldSubCommands.BitFieldType.unsigned(dayOfWeek)).valueAt(0)
+        );
+        if (result == null || result.isEmpty()) {
+            // 没有任何签到结果
+            return 0;
+        }
+        Long num = result.get(0);
+        if (num == null || num == 0) {
+            return 0;
+        }
+        // 3.循环遍历
+        int count = 0;
+        while (num != 0) {
+            // 让这个数字与1做与运算，得到数字的最后一个bit位，判断这个bit位是否为1
+            if ((num & 1) == 1) {
+                // 如果为1，计数器+1
+                count++;
+            }
+            // 把数字右移一位，抛弃最后一个bit位，继续下一个bit位
+            num >>>= 1;
+        }
+        return count;
+    }
     //生成随机用户名，数字和字母组成,
     public String getStringRandom(int length) {
 

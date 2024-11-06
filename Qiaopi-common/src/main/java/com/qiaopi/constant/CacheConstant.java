@@ -17,4 +17,14 @@ public class CacheConstant {
     public final static String CACHE_SHOP_PAPER_KEY = "cache:shop:paper";
     public final static String CACHE_SHOP_FUNCTION_CARD_KEY = "cache:shop:function-card";
 
+    // 今日缓存
+    public final static String SIGN_TODAY_KEY = "sign:today:";
+    public final static String SIGN_TODAY_ALL_KEY = "sign:today:*";
+    // 签到奖励缓存
+    public final static String SIGN_AWARD_KEY = "sign:award:";
+    // 当前签到缓存
+    public final static String SIGN_CURRENT_KEY = "sign:current";
+    // 用户签到缓存
+    public final static String SIGN_PREFIX_KEY = "sign:signed:";
+    public final static String SIGN_SUFFIX_KEY = ":user-";
 }
