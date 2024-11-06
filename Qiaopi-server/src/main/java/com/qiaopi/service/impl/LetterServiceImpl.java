@@ -1,6 +1,8 @@
 package com.qiaopi.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qiaopi.constant.FriendConstants;
 import com.qiaopi.constant.LetterConstants;
@@ -24,6 +26,7 @@ import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -40,6 +43,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.List;
@@ -50,6 +54,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static com.qiaopi.utils.MessageUtils.message;
+import static com.qiaopi.constant.CacheConstant.*;
 
 
 @Service
@@ -65,6 +70,7 @@ public class LetterServiceImpl implements LetterService {
     private final JavaMailSender javaMailSender;
     private final CountryMapper countryMapper;
     private final RedisTemplate redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
     private final FriendMapper friendMapper;
     private final FriendRequestMapper friendRequestMapper;
     @Value("${spring.mail.username}")
@@ -387,6 +393,7 @@ public class LetterServiceImpl implements LetterService {
         return imageUrl.substring(lastDotIndex + 1).toLowerCase();
     }
     @Override
+    @Transactional
     public void sendLetterToEmail(List<Letter> letters) {
         // 创建一个邮件
         //SimpleMailMessage message = new SimpleMailMessage();
@@ -634,7 +641,6 @@ public class LetterServiceImpl implements LetterService {
     @Override
     @Transactional
     public LetterVO sendLetterPre(LetterSendDTO letterSendDTO) {
-        System.out.println(LocalDateTime.now());
         Long userId = UserContext.getUserId();
         User user = userMapper.selectById(userId);
         if (user == null) {
@@ -672,9 +678,10 @@ public class LetterServiceImpl implements LetterService {
             Address senderAddress = letter.getSenderAddress();
 
             boolean isInAddresses = false;
-            if (addresses == null) {
+            if (CollUtil.isEmpty(addresses)) {
                 addresses = new ArrayList<>();
                 senderAddress.setIsDefault(String.valueOf(true));
+                senderAddress.setId(1L);
             }else {
                 for (Address address : addresses) {
                     if (address.getFormattedAddress().equals(senderAddress.getFormattedAddress())||address.getId().equals(senderAddress.getId())) {
@@ -685,11 +692,14 @@ public class LetterServiceImpl implements LetterService {
                 }
             }
             if (!isInAddresses) {
+                if (senderAddress.getId() == null&& !addresses.isEmpty()) {
                 senderAddress.setId(addresses.get(addresses.size()-1).getId() + 1L);
+                }
                 addresses.add(senderAddress);
                 letter.setSenderAddress(senderAddress);
+                user.setAddresses(addresses);
+                stringRedisTemplate.delete(CACHE_USER_ADDRESSES_KEY + userId);
             }
-            user.setAddresses(addresses);
             userMapper.updateById(user);
         } else {
             throw new UserException(message("user.money.not.enough"));
@@ -705,9 +715,10 @@ public class LetterServiceImpl implements LetterService {
             Address friendAddress = letter.getRecipientAddress();
 
             boolean isInAddresses = false;
-            if (addresses == null) {
+            if (CollUtil.isEmpty(addresses)) {
                 addresses = new ArrayList<>();
                 friendAddress.setIsDefault(String.valueOf(true));
+                friendAddress.setId(1L);
             }else {
                 for (Address address : addresses) {
                     if (address.getFormattedAddress().equals(friendAddress.getFormattedAddress())||address.getId().equals(friendAddress.getId())) {
@@ -718,11 +729,16 @@ public class LetterServiceImpl implements LetterService {
                 }
             }
             if (!isInAddresses) {
-                friendAddress.setId(addresses.get(addresses.size()-1).getId() + 1L);
+                if (friendAddress.getId() == null&& !addresses.isEmpty()) {
+                    friendAddress.setId(addresses.get(addresses.size() - 1).getId() + 1L);
+                }
                 addresses.add(friendAddress);
                 letter.setRecipientAddress(friendAddress);
+                friend.setAddresses(addresses);
+                // 先这样吧后续再优化
+                stringRedisTemplate.delete(CACHE_USER_FRIENDS_KEY + userId);
+                friendMapper.updateById(friend);
             }
-            friendMapper.updateById(friend);
         }
         // 创建任务
         CompletableFuture<String> coverFuture = CompletableFuture.supplyAsync(() -> {
@@ -756,7 +772,6 @@ public class LetterServiceImpl implements LetterService {
         String coverLink = null;
         String letterLink = null;
         LocalDateTime deliveryTime = null;
-        System.out.println(LocalDateTime.now());
 
         try {
             // 等待所有任务完成
@@ -768,7 +783,6 @@ public class LetterServiceImpl implements LetterService {
             throw  new LetterException(message("letter.send.failed"));
         }
 
-        System.out.println(LocalDateTime.now());
 
         // 设置信件属性
         letter.setCoverLink(coverLink);
@@ -786,19 +800,26 @@ public class LetterServiceImpl implements LetterService {
         letter.setPiggyMoney(letterSendDTO.getPiggyMoney());
 
         letterMapper.insert(letter);
-
+        stringRedisTemplate.delete(CACHE_USER_WRITE_LETTER_KEY + userId);
 
         return BeanUtil.copyProperties(letter, LetterVO.class);
     }
     @Override
     public List<LetterVO> getMySendLetter() {
-        List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getSenderUserId, UserContext.getUserId()).orderByDesc(Letter::getCreateTime));
+
+        Long userId = UserContext.getUserId();
+        List<Letter> letters = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_USER_WRITE_LETTER_KEY + userId), Letter.class);
+
+        if (CollUtil.isEmpty(letters)) {
+            letters=letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getSenderUserId, userId).orderByDesc(Letter::getCreateTime));
+        }
         //每次要查的时候再更新这个数据，减少更新次数
         // 只有status是2的才要更新
         letters.replaceAll(letter -> letter.getStatus() == 2 ? ProgressUtils.getProgress(letter) : letter);
+        stringRedisTemplate.opsForValue().set(CACHE_USER_WRITE_LETTER_KEY + userId, JSONUtil.toJsonStr(letters), Duration.ofHours(12));
+
         //更新进度
         letterMapper.updateById(letters);
-
         return BeanUtil.copyToList(letters, LetterVO.class);
     }
 
