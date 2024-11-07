@@ -19,7 +19,6 @@ public class CacheConstant {
 
     // 今日缓存
     public final static String SIGN_TODAY_KEY = "sign:today:";
-    public final static String SIGN_TODAY_ALL_KEY = "sign:today:*";
     // 签到奖励缓存
     public final static String SIGN_AWARD_KEY = "sign:award:";
     // 当前签到缓存

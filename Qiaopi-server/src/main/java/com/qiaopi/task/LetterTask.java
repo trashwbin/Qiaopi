@@ -42,13 +42,4 @@ public class LetterTask {
          }
          log.info("处理信件任务：{},送信数:{}", System.currentTimeMillis(),letters.size());
     }
-    @Scheduled(cron = "0 0 0 * * ?")
-    public void deleteTodaySignCache(){
-        log.info("删除今日签到缓存");
-        Set<String> keys = stringRedisTemplate.keys(SIGN_TODAY_ALL_KEY);
-        assert keys != null;
-        System.out.println(stringRedisTemplate.delete(keys));
-        //stringRedisTemplate.opsForValue().set("sign:today:user", "1");
-    }
-
 }

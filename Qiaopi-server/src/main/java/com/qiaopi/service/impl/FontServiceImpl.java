@@ -59,11 +59,11 @@ public List<FontShopVO> list() {
     }
     // 设置用户是否拥有这个字体
     ConcurrentHashMap repository = JSONUtil.toBean(stringRedisTemplate.opsForValue().get(CACHE_USER_REPOSITORY_KEY + userId), ConcurrentHashMap.class);
-    List<FontVO> userFonts = repository.get("fonts") == null ? Collections.emptyList() : JSONUtil.toList(repository.get("fonts").toString(), FontVO.class);
+    List<FontVO> userFonts = repository.get("fonts") == null ? Collections.emptyList() : JSONUtil.toList(JSONUtil.toJsonStr(repository.get("fonts")), FontVO.class);
     if (CollUtil.isEmpty(userFonts)) {
         // 这个查询自动会存Redis
         repository = userService.getUserRepository(userId);
-        userFonts = repository.get("fonts") == null ? Collections.emptyList() : JSONUtil.toList(repository.get("fonts").toString(), FontVO.class);
+        userFonts = repository.get("fonts") == null ? Collections.emptyList() : JSONUtil.toList(JSONUtil.toJsonStr(repository.get("fonts")), FontVO.class);
     }
     Map<Long, Long> map = userFonts.stream().collect(Collectors.groupingBy(FontVO::getId, Collectors.counting()));
     fontShopVOS.forEach(fontShopVO -> {
@@ -87,11 +87,11 @@ public List<FontShopVO> list() {
             return fontColorShopVOS;
         }
         ConcurrentHashMap repository = JSONUtil.toBean(stringRedisTemplate.opsForValue().get(CACHE_USER_REPOSITORY_KEY + userId), ConcurrentHashMap.class);
-        List<FontColorVO> userFontColors = repository.get("fontColors") == null ? Collections.emptyList() : JSONUtil.toList(repository.get("fontColors").toString(), FontColorVO.class);
+        List<FontColorVO> userFontColors = repository.get("fontColors") == null ? Collections.emptyList() : JSONUtil.toList(JSONUtil.toJsonStr(repository.get("fontColors")), FontColorVO.class);
         if (CollUtil.isEmpty(userFontColors)) {
             // 这个查询自动会存Redis
             repository = userService.getUserRepository(userId);
-            userFontColors = repository.get("fontColors") == null ? Collections.emptyList() : JSONUtil.toList(repository.get("fontColors").toString(), FontColorVO.class);
+            userFontColors = repository.get("fontColors") == null ? Collections.emptyList() : JSONUtil.toList(JSONUtil.toJsonStr(repository.get("fontColors")), FontColorVO.class);
         }
         Map<Long, Long> map = userFontColors.stream().collect(Collectors.groupingBy(FontColorVO::getId, Collectors.counting()));
         fontColorShopVOS.forEach(fontColorShopVO -> {

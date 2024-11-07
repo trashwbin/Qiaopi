@@ -12,7 +12,9 @@ public class UserSignAward {
     private Long id;
     // 奖励类型
     // 1: 猪仔钱，2：功能卡，3：字体，4：字体颜色，5：纸张，6：其他收藏品
-    private String awardType;
+    private Integer awardType;
+    // 奖品id
+    private Long awardId;
     // 奖励图片
     private String previewLink;
     // 奖励描述
