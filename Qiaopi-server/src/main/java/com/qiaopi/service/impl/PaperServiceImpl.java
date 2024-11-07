@@ -59,11 +59,11 @@ public List<PaperShopVO> list() {
         return paperShopVOS;
     }
     ConcurrentHashMap repository = JSONUtil.toBean(stringRedisTemplate.opsForValue().get(CACHE_USER_REPOSITORY_KEY + userId), ConcurrentHashMap.class);
-    List<PaperVO> userPapers = repository.get("papers") == null ? Collections.emptyList() : JSONUtil.toList(repository.get("papers").toString(), PaperVO.class);
+    List<PaperVO> userPapers = repository.get("papers") == null ? Collections.emptyList() : JSONUtil.toList(JSONUtil.toJsonStr(repository.get("papers")), PaperVO.class);
     if (CollUtil.isEmpty(userPapers)) {
         // 这个查询自动会存Redis
         repository = userService.getUserRepository(userId);
-        userPapers = repository.get("papers") == null ? Collections.emptyList() : JSONUtil.toList(repository.get("papers").toString(), PaperVO.class);
+        userPapers = repository.get("papers") == null ? Collections.emptyList() : JSONUtil.toList(JSONUtil.toJsonStr(repository.get("papers")), PaperVO.class);
     }
     Map<Long, Long> map = userPapers.stream().collect(Collectors.groupingBy(PaperVO::getId, Collectors.counting()));
     paperShopVOS.forEach(paperShopVO -> {

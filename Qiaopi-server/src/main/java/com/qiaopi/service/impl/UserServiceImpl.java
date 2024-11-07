@@ -34,7 +34,6 @@ import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.utils.StringUtils;
 import com.qiaopi.utils.ip.IpUtils;
 import com.qiaopi.vo.*;
-import io.swagger.v3.core.util.Json;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +51,7 @@ import org.springframework.util.DigestUtils;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -814,18 +814,62 @@ public class UserServiceImpl implements UserService {
         String prefix = stringRedisTemplate.opsForValue().get(SIGN_CURRENT_KEY);
         String key = SIGN_PREFIX_KEY + prefix + SIGN_SUFFIX_KEY + userId;
         // 写入Redis SETBIT key offset 1
+        Boolean isSigned = stringRedisTemplate.opsForValue().getBit(key, now.getDayOfWeek().getValue() - 1);
+        if (Boolean.TRUE.equals(isSigned)) {
+            throw new UserException(message("user.sign.today"));
+        }
         stringRedisTemplate.opsForValue().setBit(key, now.getDayOfWeek().getValue()-1, true);
+        // 删除当天的签到签到缓存
+        stringRedisTemplate.delete(SIGN_TODAY_KEY + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + ":" + userId);
         // 获取已签到的天数
         int signedDays = getSignedDays(now, key);
 
+        List<UserSignAward> signAwardList = JSONUtil.toList(stringRedisTemplate.opsForValue().get(SIGN_AWARD_KEY+prefix), UserSignAward.class);
+        UserSignAward signAward = signAwardList.stream().filter(userSignAward -> userSignAward.getSignDays() == signedDays).findFirst().orElse(null);
+        if (signAward == null) {
+            throw new UserException(message("user.sign.award.error"));
+        }
         //TODO 获取签到奖励
+        switch (signAward.getAwardType())
+        {
+            case 1:
+                // 猪仔钱
+                User user = userMapper.selectById(userId);
+                user.setMoney(user.getMoney() + signAward.getAwardNum());
+                userMapper.updateById(user);
+                break;
+            case 2:
+                // 功能卡
+                break;
+            case 3:
+                // 字体
+                break;
+            case 4:
+                // 字体颜色
+                break;
+            case 5:
+                // 纸张
+                break;
+            case 6:
+                // 其他收藏品
+                break;
+            case 7:
+                // 头像
+                break;
+            case 8:
+                // xx
+                break;
+            default:
+                throw new UserException(message("user.sign.award.error"));
+        }
     }
 
     @Override
-    public List<UserSignAwardVO> getSignList(Long userId) {
-        List<UserSignAwardVO> userSignAwards = JSONUtil.toList(stringRedisTemplate.opsForValue().get(SIGN_TODAY_KEY + userId), UserSignAwardVO.class);
-        if (CollUtil.isEmpty(userSignAwards)) {
-            LocalDateTime now = LocalDateTime.now();
+    public ConcurrentHashMap<String,Object> getSignList(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        String todayKey = SIGN_TODAY_KEY + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + ":" + userId;
+        ConcurrentHashMap userSignAwardsMap = JSONUtil.toBean(stringRedisTemplate.opsForValue().get(todayKey),ConcurrentHashMap.class);
+        if (CollUtil.isEmpty(userSignAwardsMap)) {
             // 获取当前签到的key
             String prefix = stringRedisTemplate.opsForValue().get(SIGN_CURRENT_KEY);
             String key = SIGN_PREFIX_KEY + prefix + SIGN_SUFFIX_KEY + userId;
@@ -833,15 +877,19 @@ public class UserServiceImpl implements UserService {
             int signedDays = getSignedDays(now, key);
             // 获取当前周期签到奖励
             List<UserSignAward> signAwardList = JSONUtil.toList(stringRedisTemplate.opsForValue().get(SIGN_AWARD_KEY+prefix), UserSignAward.class);
-            userSignAwards = BeanUtil.copyToList(signAwardList, UserSignAwardVO.class);
+            List<UserSignAwardVO >userSignAwards = BeanUtil.copyToList(signAwardList, UserSignAwardVO.class);
             userSignAwards.forEach(userSignAward -> {
                 if (userSignAward.getSignDays() <= signedDays) {
                     userSignAward.setReceived(true);
                 }
             });
-            stringRedisTemplate.opsForValue().set(SIGN_TODAY_KEY + userId, JSONUtil.toJsonStr(userSignAwards), Duration.ofDays(1));
+            userSignAwardsMap.put("signedDays", signedDays);
+            userSignAwardsMap.put("userSignAwards", userSignAwards);
+            userSignAwardsMap.put("isSignToday", Objects.requireNonNull(stringRedisTemplate.opsForValue().getBit(key, now.getDayOfWeek().getValue() - 1)));
+            stringRedisTemplate.opsForValue().set(todayKey, JSONUtil.toJsonStr(userSignAwardsMap), Duration.ofDays(1));
         }
-        return userSignAwards;
+
+        return userSignAwardsMap;
     }
 
     private int getSignedDays(LocalDateTime now,String key ) {

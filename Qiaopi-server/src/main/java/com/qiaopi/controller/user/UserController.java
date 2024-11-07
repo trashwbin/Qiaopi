@@ -260,14 +260,14 @@ public class UserController {
     @PostMapping("/sign")
     @Operation(summary = "用户签到")
     public AjaxResult sign(){
-        log.info("用户：{}签到",UserContext.getUserId());
+        log.info("用户：{} 签到",UserContext.getUserId());
         userService.sign(UserContext.getUserId());
         return success(message("user.sign.success"));
     }
     @GetMapping("/getSignList")
     @Operation(summary = "获取签到列表")
     public AjaxResult getSignList() {
-        log.info("用户: {}获取签到列表", UserContext.getUserId());
+        log.info("用户: {} 获取签到列表", UserContext.getUserId());
         return success(message("user.get.sign.list.success"), userService.getSignList(UserContext.getUserId()));
     }
 }
