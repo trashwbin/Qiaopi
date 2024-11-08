@@ -54,52 +54,33 @@ public class BottleServiceImpl implements BottleService {
     private FriendRequestMapper friendRequestMapper;
 
 
-
-
-
-
     /**
      * 漂流瓶生成
      * @param bottleGenDTO
      * @return
      */
     @Override
-    public String GenerateDriftBottle(BottleGenDTO bottleGenDTO) {
+    public String generateDriftBottle(BottleGenDTO bottleGenDTO) {
         Bottle bottle = BeanUtil.copyProperties(bottleGenDTO, Bottle.class);
         Long userId = null;
 
 
-        try {
-            //获取到当前请求的用户id
-            userId = UserContext.getUserId();
-            bottle.setUserId(userId);
-        } catch (Exception e) {
-            throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));
-        }
-        String url = null;
+        userId = UserContext.getUserId();
+        //通过获取到的用户id去获取到用户邮箱和用户昵称
+        User user = userMapper.selectById(userId);
 
+        //完善bottle对象的内容
+        bottle.setUserId(userId);
+        bottle.setEmail(user.getEmail());
+        bottle.setNickName(user.getNickname());
 
-        try {
-            //通过获取到的用户id去获取到用户邮箱和用户昵称
-            User user = userMapper.selectById(userId);
+        //根据bottle的字体，字体颜色和文本，信纸生成信
+        //生成
+        String url = generateImage(bottle);
+        bottle.setBottleUrl(url);
 
-            //将bottle对象补充完整
-            bottle.setEmail(user.getEmail());
-            bottle.setNickName(user.getNickname());
-            //bottle.setCreatedTime(LocalDateTime.now());
-
-            //根据bottle的字体，字体颜色和文本，信纸生成信，并且展示给用户（返回）
-            //生成
-            url = generateImage(bottle);
-
-            bottle.setBottleUrl(url);
-
-            //存bottle里面的数据
-            bottleMapper.insert(bottle);
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            throw new BottleException(MessageUtils.message("bottle.creation.failed"));
-        }
+        //存bottle里面的数据
+        bottleMapper.insert(bottle);
 
         //返回
         return url;
@@ -127,6 +108,7 @@ public class BottleServiceImpl implements BottleService {
 
         String url = null;
 
+
         try {
             // 将图片写入字节流
             ByteArrayOutputStream baos = new ByteArrayOutputStream(); // 创建字节数组输出流
@@ -152,14 +134,61 @@ public class BottleServiceImpl implements BottleService {
         return url;
     }
 
+
+
+    /**
+     * 绘画昵称部分
+     */
+    public void drawNickName(Graphics2D g2d,  int width, int height, String text,  int x, int y) {
+
+        // 加载自定义字体
+        Font customFont = null; // 定义字体对象
+        try {
+            // 调整字体文件路径以匹配类路径
+            String fontPath = "fonts/MainContent/不二情书字体.TTF";
+
+            // 使用类加载器获取字体文件输入流
+            InputStream fontStream = getClass().getClassLoader().getResourceAsStream(fontPath);
+
+            if (fontStream != null) {
+                // 加载字体文件
+                customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont((float) 50);
+            } else {
+                log.error("字体文件未找到: " + fontPath);
+            }
+
+            // 获取本地图形环境并注册字体
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            ge.registerFont(customFont);
+
+        } catch (FontFormatException | IOException e) {
+            // 如果字体加载失败，使用默认字体
+            customFont = new Font("宋体", Font.PLAIN, 50); // 使用支持中文的默认字体，例如宋体
+            log.error("加载字体文件时发生错误: " + e.getMessage());
+        }
+
+
+        // 设置字体及颜色
+        g2d.setFont(customFont); // 设置字体
+
+        String color = "#030303";
+        g2d.setColor(Color.decode(color)); // 设置字体颜色
+
+        // 获取字体度量信息
+        FontMetrics fontMetrics = g2d.getFontMetrics();
+
+        // 计算文本宽度和高度
+        int textWidth = fontMetrics.stringWidth(text);
+        int textHeight = fontMetrics.getHeight();
+
+        // 绘制文本
+        g2d.drawString(text, x, y + textHeight);
+    }
+
+
+
     /**
      * 绘画漂流瓶照片文本部分
-     * @param g2d
-     * @param width
-     * @param height
-     * @param text
-     * @param x
-     * @param y
      */
     public void drawMain(Graphics2D g2d, int width, int height, String text, int x, int y) {
         // 加载背景图片
@@ -182,13 +211,10 @@ public class BottleServiceImpl implements BottleService {
         Font customFont = null;
         try {
             InputStream fontStream = getClass().getClassLoader().getResourceAsStream("fonts/MainContent/不二情书字体.TTF");
-            if (fontStream != null) {
-                customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont(50f);
-            } else {
-                log.error("字体文件未找到: fonts/MainContent/不二情书字体.TTF");
-            }
+            customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont(50f);
             GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
             ge.registerFont(customFont);
+
         } catch (FontFormatException | IOException e) {
             customFont = new Font("宋体", Font.PLAIN, 50);
             log.error("加载字体文件时发生错误: " + e.getMessage());
@@ -208,7 +234,9 @@ public class BottleServiceImpl implements BottleService {
             g2d.drawString(line, x, currentY + fontMetrics.getAscent());
             currentY += lineHeight;
         }
+
     }
+
 
     private static List<String> wrapText(String text, FontMetrics fontMetrics, int maxWidth) {
         List<String> wrappedLines = new ArrayList<>();
@@ -265,8 +293,6 @@ public class BottleServiceImpl implements BottleService {
         return -1;
     }
 
-
-
     /**
      * 字体换行方法
      * @param text
@@ -283,129 +309,9 @@ public class BottleServiceImpl implements BottleService {
 
     }
 
-    /*// 绘制昵称
-        g2d.drawString(nickName, x, y + textHeight * 2);*/
-
-    /**
-     * 绘画昵称部分
-     * @param g2d
-     * @param width
-     * @param height
-     * @param text
-     * @param x
-     * @param y
-     */
-    public void drawNickName(Graphics2D g2d,  int width, int height, String text,  int x, int y) {
-
-        // 加载自定义字体
-        Font customFont = null; // 定义字体对象
-        try {
-            // 调整字体文件路径以匹配类路径
-            String fontPath = "fonts/MainContent/不二情书字体.TTF";
-
-            // 使用类加载器获取字体文件输入流
-            InputStream fontStream = getClass().getClassLoader().getResourceAsStream(fontPath);
-
-            if (fontStream != null) {
-                // 加载字体文件
-                customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont((float) 50);
-            } else {
-                log.error("字体文件未找到: " + fontPath);
-            }
-
-            // 获取本地图形环境并注册字体
-            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-            ge.registerFont(customFont);
-
-        } catch (FontFormatException | IOException e) {
-            // 如果字体加载失败，使用默认字体
-            customFont = new Font("宋体", Font.PLAIN, 50); // 使用支持中文的默认字体，例如宋体
-            log.error("加载字体文件时发生错误: " + e.getMessage());
-        }
 
 
-        // 设置字体及颜色
-        g2d.setFont(customFont); // 设置字体
 
-        String color = "#030303";
-        g2d.setColor(Color.decode(color)); // 设置字体颜色
-
-        // 获取字体度量信息
-        FontMetrics fontMetrics = g2d.getFontMetrics();
-
-        // 计算文本宽度和高度
-        int textWidth = fontMetrics.stringWidth(text);
-        int textHeight = fontMetrics.getHeight();
-
-        // 绘制文本
-        g2d.drawString(text, x, y + textHeight);
-    }
-
-
-    /**
-     * 展示漂流瓶
-     * @return
-     */
-    @Override
-    public String showBottle() {
-        Long userId = null;
-
-        try {
-            //获取到当前请求的用户id
-            userId = UserContext.getUserId();
-        } catch (Exception e) {
-            throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));
-        }
-
-        //获取到非空的id记录的bottle集合
-        //List<Bottle> nonEmptyIdRecords = getNonEmptyIdRecords();
-        // 获取数据库中的id不为空的记录
-        List<Bottle> bottles = getNonEmptyIdRecords();
-        if (bottles.isEmpty()) {
-            throw new BottleException(MessageUtils.message("bottle.Database.Bottles.empty"));
-        }
-
-
-        try {
-            while (true) {
-                int index = random.nextInt(bottles.size());
-
-                Bottle bottle = bottles.get(index);
-
-                if (bottle.getIsPicked() == 1) {
-                    //没被捡走
-                    //设置更新时间和更新人
-                    bottle.setUpdateTime(LocalDateTime.now());
-                    bottle.setUpdateUser(userId);
-                    bottle.setIsPicked(0);
-                    int result = bottleMapper.updateById(bottle);
-
-                    //获取照片地址
-                    String bottleUrl = bottle.getBottleUrl();
-                    //返回图片地址
-                    return bottleUrl;
-                } else if (bottle.getIsPicked() == 0) {
-                    //被捡走，重新获取
-                    continue;
-                }
-            }
-        } catch (Exception e) {
-            throw new BottleException(MessageUtils.message("bottle.get.From.Database.failed"));
-        }
-
-
-    }
-
-
-    /**
-     * 获取id不为空的记录
-     */
-    public List<Bottle> getNonEmptyIdRecords() {
-
-         // 查询条件：id 不为空
-        //0 表示捡了
-        return bottleMapper.selectList(new LambdaQueryWrapper<Bottle>().eq(Bottle::getIsPicked, 1).notIn(Bottle::getUserId,UserContext.getUserId()).notIn(Bottle::getUpdateUser,UserContext.getUserId()));
-    }
 
 
     /**
@@ -413,17 +319,104 @@ public class BottleServiceImpl implements BottleService {
      * @return
      */
     @Override
-    public void getBottle(FriendSendDTO friendSendDTO) {
+    public String getBottle() {
+        Long userId = UserContext.getUserId();
 
+        //获取漂流瓶库中合适的漂流瓶
+        List<Bottle> bottles = getNotIsPickedBottles();
 
-        //List<Address> giveAddresss, String context
-        Long currentUserId = null;
-        try {
-            //获取到当前请求的用户id
-            currentUserId = UserContext.getUserId();
-        } catch (Exception e) {
-            throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));
+        if (bottles.isEmpty()) {
+            //如果未能取到合适的漂流瓶
+            throw new BottleException(MessageUtils.message("bottle.Database.Bottles.empty"));
         }
+
+        try {
+            // 随机选择一个未被捡起的漂流瓶
+            int index = random.nextInt(bottles.size());
+            Bottle bottle = bottles.get(index);
+
+            // 设置更新时间和更新人
+            bottle.setUpdateTime(LocalDateTime.now());
+            bottle.setUpdateUser(userId);
+            bottle.setPicked(true);
+
+            // 更新漂流瓶状态
+            bottleMapper.updateById(bottle);
+
+            // 返回照片地址
+            return bottle.getBottleUrl();
+
+        } catch (Exception e) {
+            throw new BottleException(MessageUtils.message("bottle.get.From.Database.failed") + ": " + e.getMessage());
+        }
+    }
+
+
+    /**
+     * 获取未被拾起的漂流瓶记录。
+     * 该方法用于查询所有未被拾起的漂流瓶，并且排除当前用户创建或更新的漂流瓶。
+     * @return 未被拾起的漂流瓶列表
+     */
+    public List<Bottle> getNotIsPickedBottles() {
+
+        // 使用 LambdaQueryWrapper 构建查询条件
+        LambdaQueryWrapper<Bottle> queryWrapper = new LambdaQueryWrapper<Bottle>()
+                .eq(Bottle::isPicked, false) // 筛选未被拾起的漂流瓶
+                .notIn(Bottle::getUserId, UserContext.getUserId()) // 排除当前用户创建的漂流瓶
+                .notIn(Bottle::getUpdateUser, UserContext.getUserId()); // 排除当前用户更新的漂流瓶
+
+        // 执行查询并返回结果
+        return bottleMapper.selectList(queryWrapper);
+    }
+
+
+
+    // 扔回
+    @Override
+    public void ThrowBack() {
+        //获取到当前请求的用户id
+        Long currentUserId = UserContext.getUserId();
+
+        try {
+            // 获取距离当前时间最近的漂流瓶
+            Bottle bottle = getMostRecentBottleByUserId(currentUserId);
+            bottle.setPicked(false);
+
+            // 执行更新
+            bottleMapper.updateById(bottle);
+
+        } catch (Exception e) {
+            throw new BottleException(MessageUtils.message("bottle.throw.back.failed"));
+        }
+
+
+    }
+
+    /**
+     * 根据 userId 获取符合条件的 Bottle 对象集合，按 created_time 排序
+     * @param userId 用户ID
+     * @return Bottle 距离当前时间最近的 Bottle 对象
+     */
+    public Bottle getMostRecentBottleByUserId(Long userId) {
+        // 构建查询条件
+        QueryWrapper<Bottle> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("update_user", userId)
+                //.notIn("update_user",userId)             // 查询条件：update_user 等于传入的 userId
+                .orderByDesc("update_time")           // 按 created_time 降序排序
+                .last("LIMIT 1");                      // 只取最近的一条记录
+
+        // 查询最近的一条 Bottle 记录
+        return bottleMapper.selectOne(queryWrapper);
+    }
+
+
+
+
+
+    @Override
+    public void sendFriendRequest(FriendSendDTO friendSendDTO) {
+        //获取到当前请求的用户id
+        Long currentUserId = UserContext.getUserId();
 
         // 获取距离当前时间最近的漂流瓶
         Bottle bottle = getMostRecentBottleByUserId(currentUserId);
@@ -453,16 +446,6 @@ public class BottleServiceImpl implements BottleService {
         } catch (Exception e) {
             throw new FriendException(MessageUtils.message("friend.create.Request.failed"));
         }
-
-        //String replySuccess = "好友申请已发送";
-        //String replySuccess = MessageUtils.message("friend.request.sended.success");
-
-
-
-      /*
-        bottleVo.setId(bottle.getId());
-        return bottleVo;*/
-
     }
 
 
@@ -483,22 +466,7 @@ public class BottleServiceImpl implements BottleService {
         return bottleVo;
     }
 
-    /**
-     * 根据 userId 获取符合条件的 Bottle 对象集合，按 created_time 排序
-     * @param userId 用户ID
-     * @return Bottle 距离当前时间最近的 Bottle 对象
-     */
-    public Bottle getMostRecentBottleByUserId(Long userId) {
-        // 构建查询条件
-        QueryWrapper<Bottle> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("update_user", userId)
-                //.notIn("update_user",userId)             // 查询条件：update_user 等于传入的 userId
-                .orderByDesc("create_time")           // 按 created_time 降序排序
-                .last("LIMIT 1");                      // 只取最近的一条记录
 
-        // 查询最近的一条 Bottle 记录
-        return bottleMapper.selectOne(queryWrapper);
-    }
 
     /**
      * 根据 update_user 获取符合条件的 Bottle 对象集合
@@ -517,36 +485,6 @@ public class BottleServiceImpl implements BottleService {
         return bottles;
     }
 
-
-
-
-
-    @Override
-    public void ThrowBack() {
-        Long currentUserId = null;
-        try {
-            //获取到当前请求的用户id
-            currentUserId = UserContext.getUserId();
-        } catch (Exception e) {
-            throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));
-        }
-
-        try {
-            // 获取距离当前时间最近的漂流瓶
-            Bottle bottle = getMostRecentBottleByUserId(currentUserId);
-            // 构建更新条件
-            UpdateWrapper<Bottle> updateWrapper1 = new UpdateWrapper<>();
-            updateWrapper1.eq("id", bottle.getId())            // 根据 id 匹配记录
-                    .set("is_picked", 1);                // 设置 is_picked 字段为 1
-
-            // 执行更新
-            bottleMapper.update(null, updateWrapper1);
-        } catch (Exception e) {
-            throw new BottleException(MessageUtils.message("bottle.throw.back.failed"));
-        }
-
-
-    }
 
 
 

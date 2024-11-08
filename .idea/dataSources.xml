@@ -37,7 +37,7 @@
       </jdbc-additional-properties>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="qiaopi@localhost" uuid="40c99cc2-04eb-46e7-a4ee-44f1a45e5238">
+    <data-source source="LOCAL" name="qiaopi@localhost" uuid="9a5a44b8-8aae-4a7f-bb45-7df61a89c30c">
       <driver-ref>mysql.8</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>

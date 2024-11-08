@@ -9,7 +9,7 @@ import com.qiaopi.mapper.FontColorMapper;
 import com.qiaopi.mapper.FontMapper;
 import com.qiaopi.mapper.FontPaperMapper;
 import com.qiaopi.mapper.PaperMapper;
-import com.qiaopi.service.TryService;
+import com.qiaopi.service.G2dService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 @Slf4j
 @RequiredArgsConstructor //自动注入
-public class TryServiceImpl implements TryService {
+public class G2dServiceImpl implements G2dService {
 
     private final FontColorMapper fontColorMapper;
 
@@ -144,26 +144,33 @@ public class TryServiceImpl implements TryService {
 
         //获取纸张信息，包括偏移量X，Y，适配字数
         Paper paper = paperMapper.selectById(letterGenDTO.getPaperId());
-        //TODO 新建一个库用于存放字体和信纸适配的字数 上同
+        Long fontId = letterGenDTO.getFontId();
+        Long paperId = letterGenDTO.getPaperId();
+        // 构建查询条件
+        QueryWrapper<FontPaper> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("font_id", fontId).eq("paper_id", paperId);
+        // 查询 fontPaper 记录
+        FontPaper fontPaper = paperFontMapper.selectOne(queryWrapper);
+        int fitNumber = Math.toIntExact(fontPaper.getFitNumber());
 
         ExecutorService executor = Executors.newFixedThreadPool(3);
         // 提交任务 使用多线程进行（分别对内容，发送者名称，收件者名称进行旋转，转换成古代书法规则）
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
-            //drawFontStyleDetail2(clonedG2D, letterGenDTO.getLetterContent(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()),paper.getFitNumber());
-            drawFontStyleDetail2(clonedG2D, letterGenDTO.getLetterContent(), 40, 70, paper.getFitNumber());//TODO需要修改
+            drawFontStyleDetail2(clonedG2D, letterGenDTO.getLetterContent(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()),fitNumber);
+            //drawFontStyleDetail2(clonedG2D, letterGenDTO.getLetterContent(), 40, 70, Math.toIntExact(fitNumber));
             clonedG2D.dispose();
         });
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
-            drawFontStyleDetail2(clonedG2D, letterGenDTO.getSenderName(), 350, 580, paper.getFitNumber());
-            //drawFontStyleDetail2(clonedG2D, letterGenDTO.getSenderName(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()),paper.getFitNumber());
+            //drawFontStyleDetail2(clonedG2D, letterGenDTO.getSenderName(), 350, 580, Math.toIntExact(fitNumber));
+            drawFontStyleDetail2(clonedG2D, letterGenDTO.getSenderName(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()),fitNumber);
             clonedG2D.dispose();
         });
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
-            drawFontStyleDetail2(clonedG2D, letterGenDTO.getRecipientName(), 30, 50, paper.getFitNumber());
-            //drawFontStyleDetail2(clonedG2D, letterGenDTO.getRecipientName(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()),paper.getFitNumber());
+            //drawFontStyleDetail2(clonedG2D, letterGenDTO.getRecipientName(), 30, 50, Math.toIntExact(fitNumber));
+            drawFontStyleDetail2(clonedG2D, letterGenDTO.getRecipientName(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()),fitNumber);
             clonedG2D.dispose();
         });
 
@@ -476,32 +483,30 @@ public class TryServiceImpl implements TryService {
         //获取纸张信息，包括偏移量X，Y，适配字数
         Paper paper = paperMapper.selectById(letterGenDTO.getPaperId());
 
-        //获取适配字数
-        Long fitNumber = Optional.ofNullable(
-                paperFontMapper.selectOne(
-                        new QueryWrapper<FontPaper>()
-                                .eq("paper_id", letterGenDTO.getPaperId())
-                                .eq("font_id", letterGenDTO.getFontId())
-                )
-        ).map(FontPaper::getFitNumber).orElse(15L);
+        Long fontId = letterGenDTO.getFontId();
+        Long paperId = letterGenDTO.getPaperId();
+        //构建查询条件
+        QueryWrapper<FontPaper> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("font_id", fontId).eq("paper_id", paperId);
+        //查询fontPaper记录
+        FontPaper fontPaper = paperFontMapper.selectOne(queryWrapper);
+        int fitNumber = Math.toIntExact(fontPaper.getFitNumber());
 
         ExecutorService executor = Executors.newFixedThreadPool(3);
         // 提交任务 使用多线程进行（分别对内容，发送者名称，收件者名称进行旋转，转换成古代书法规则）
-
-
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
-            drawFontStyleDetail(clonedG2D, letterGenDTO.getLetterContent(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()), Math.toIntExact(fitNumber));
+            drawFontStyleDetail(clonedG2D, letterGenDTO.getLetterContent(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()), fitNumber);
             clonedG2D.dispose();
         });
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
-            drawSenderFontStyleDetail(clonedG2D, letterGenDTO.getSenderName(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()), paper.getFitNumber());
+            drawSenderFontStyleDetail(clonedG2D, letterGenDTO.getSenderName(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()), fitNumber);
             clonedG2D.dispose();
         });
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) g2D.create();
-            drawFontStyleDetail(clonedG2D, letterGenDTO.getRecipientName(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()), paper.getFitNumber());
+            drawFontStyleDetail(clonedG2D, letterGenDTO.getRecipientName(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()), fitNumber);
             clonedG2D.dispose();
         });
 
@@ -520,11 +525,15 @@ public class TryServiceImpl implements TryService {
     }
 
     private void drawSenderFontStyleDetail(Graphics2D g2d, String text, int x, int y, int fitNumber) {
+        //分析传进来的文本有多少个字符
+        int textNumber = text.length();
+        int temp = textNumber - 3;
 
         // 每行字符数，设置为15
         int charsPerLine = 15;
-        // 当前绘制字符的 x 坐标，初始化为传入的 x 参数
-        int currentX = x;
+        // 当前绘制字符的 x 坐标，初始化为传入的 x 参数  可以根据字数自动配置位置
+        //x变大，对应的字体下移
+        int currentX = x - 50 * temp;
         // 当前绘制字符的 y 坐标，初始化为传入的 y 参数
         int currentY = y;
 

@@ -4,14 +4,10 @@ package com.qiaopi.controller.Bottle;
 import com.qiaopi.dto.BeFriendDTO;
 import com.qiaopi.dto.BottleGenDTO;
 import com.qiaopi.dto.FriendSendDTO;
-import com.qiaopi.dto.LetterGenDTO;
-import com.qiaopi.entity.Address;
-import com.qiaopi.entity.FriendRequest;
 import com.qiaopi.result.AjaxResult;
 import com.qiaopi.service.BottleService;
 import com.qiaopi.service.FriendService;
 import com.qiaopi.utils.MessageUtils;
-import com.qiaopi.vo.BottleVo;
 import com.qiaopi.vo.FriendRequestVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -41,17 +37,26 @@ public class BottleController {
     public AjaxResult GenerateDriftBottle(@RequestBody BottleGenDTO bottleGenDTO) {
 
         log.info("生成漂流瓶：{}", bottleGenDTO);
-        String url = bottleService.GenerateDriftBottle(bottleGenDTO);
+        String url = bottleService.generateDriftBottle(bottleGenDTO);
         return AjaxResult.success(MessageUtils.message("bottle.generateImage.success"),url);
     }
 
 
-    @GetMapping("/showDriftBottle")
-    @Operation(summary = "拿一个漂流瓶")
-    public AjaxResult showtBottleById() {
-        log.info("展示漂流瓶");
-        String url = bottleService.showBottle();
+    @GetMapping("/showDriftBottle")//TODO 前端完成后修改为getBottle
+    @Operation(summary = "获取漂流瓶")
+    public AjaxResult getBottle() {
+        log.info("获取漂流瓶");
+        String url = bottleService.getBottle();
         return AjaxResult.success(MessageUtils.message("bottle.showBottleById.success"),url);
+    }
+
+
+    @PutMapping("/ThrowBack")
+    @Operation(summary = "扔回")
+    public AjaxResult ThrowBack() {
+        log.info("扔回漂流瓶");
+        bottleService.ThrowBack();
+        return AjaxResult.success(MessageUtils.message("bottle.throw.back.success"));
     }
 
 
@@ -59,7 +64,7 @@ public class BottleController {
     @Operation(summary = "请求成为好友")
     public AjaxResult toBeFriends(@RequestBody FriendSendDTO friendSendDTO) {
         log.info("请求成为好友");
-        bottleService.getBottle(friendSendDTO);
+        bottleService.sendFriendRequest(friendSendDTO);
         return AjaxResult.success(MessageUtils.message("Friend.application.sent.success"));
     }
 
@@ -83,17 +88,6 @@ public class BottleController {
         String reply = friendService.becomeFriend(beFriendDTO);
         return AjaxResult.success(MessageUtils.message("Friend.application.success"),reply);
     }
-
-
-    @PutMapping("/ThrowBack")
-    @Operation(summary = "扔回海里")
-    public AjaxResult ThrowBack() {
-        log.info("扔回漂流瓶");
-        bottleService.ThrowBack();
-        return AjaxResult.success(MessageUtils.message("bottle.throw.back.success"));
-    }
-
-
 
 
 

@@ -2,9 +2,13 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="10464eb5-60fd-4fe1-b290-82d53ae28663" name="更改" comment="">
-      <change beforePath="$PROJECT_DIR$/../../../../../../Qiaopi-pojo/src/main/java/com/qiaopi/entity/Letter.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../../../../../Qiaopi-pojo/src/main/java/com/qiaopi/entity/Letter.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../java/com/qiaopi/controller/other/CoverController.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../../../../README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../../../../../../README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../../../../.idea/dataSources.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../../../../../.idea/dataSources.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../../../../Qiaopi-pojo/src/main/java/com/qiaopi/entity/Paper.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../../../../../Qiaopi-pojo/src/main/java/com/qiaopi/entity/Paper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../java/com/qiaopi/handler/Letter/LetterSocketHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../../java/com/qiaopi/handler/Letter/LetterSocketHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../java/com/qiaopi/service/LetterService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../../java/com/qiaopi/service/LetterService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../java/com/qiaopi/service/TryService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../../java/com/qiaopi/service/G2dService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../java/com/qiaopi/service/impl/LetterServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../../java/com/qiaopi/service/impl/LetterServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../java/com/qiaopi/service/impl/TryServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../../java/com/qiaopi/service/impl/G2dServiceImpl.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -14,9 +18,9 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../../../../../.." />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 5
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
   <component name="ProjectId" id="2nMvLeRa1pg34iSqDTUGeCOyUA4" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -25,7 +29,7 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "wbTest",
+    "git-widget-placeholder": "chTest",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "D:/Code/HomeworkCode/dataStructrue",
     "nodejs_package_manager_path": "npm",
@@ -49,6 +53,7 @@
       <option name="presentableId" value="Default" />
       <updated>1728795704375</updated>
       <workItem from="1728795705443" duration="14000" />
+      <workItem from="1730698730565" duration="12000" />
     </task>
     <servers />
   </component>

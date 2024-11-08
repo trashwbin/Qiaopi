@@ -3,8 +3,7 @@ package com.qiaopi.handler.Letter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qiaopi.dto.LetterGenDTO;
 import com.qiaopi.service.LetterService;
-import com.qiaopi.service.TryService;
-import com.qiaopi.service.impl.TryServiceImpl;
+import com.qiaopi.service.G2dService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -25,7 +24,7 @@ public class LetterSocketHandler extends TextWebSocketHandler {
     private LetterService letterService;
 
     @Autowired
-    private TryService tryService;
+    private G2dService g2dService;
 
   // 用于保存所有连接的 WebSocket 会话
     private static final Set<WebSocketSession> sessions = Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -67,7 +66,7 @@ public class LetterSocketHandler extends TextWebSocketHandler {
         LetterGenDTO letterGenDTO = objectMapper.readValue(payload, LetterGenDTO.class);
 
         // 调用 Service 方法
-        String base64Result = tryService.generateImage(letterGenDTO, currentUserId);
+        String base64Result = g2dService.generateImage(letterGenDTO, currentUserId);
         //String base64Result = letterService.generateImage(letterGenDTO, currentUserId);
 
         // 将生成的 URL 发送给特定用户

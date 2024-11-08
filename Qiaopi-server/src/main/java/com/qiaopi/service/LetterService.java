@@ -113,7 +113,7 @@ public interface LetterService {
 //     */
     //String generateImage(LetterGenDTO letterGenDTO);
 
-    String generateImage(LetterGenDTO letterGenDTO, Long currnetUserId);
+  //  String generateImage(LetterGenDTO letterGenDTO, Long currnetUserId);
 //
 //
 //    /**

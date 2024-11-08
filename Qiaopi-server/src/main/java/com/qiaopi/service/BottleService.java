@@ -14,14 +14,12 @@ public interface BottleService {
      * 漂流瓶生成
      * @param bottleGenDTO
      */
-    String GenerateDriftBottle(BottleGenDTO bottleGenDTO);
+    String generateDriftBottle(BottleGenDTO bottleGenDTO);
 
-    String  showBottle();
+    String  getBottle();
 
-    void getBottle(FriendSendDTO friendSendDTO);
+    void sendFriendRequest(FriendSendDTO friendSendDTO);
 
-    /**
-     * 扔回漂流瓶
-     */
+
     void ThrowBack();
 }

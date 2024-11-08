@@ -97,7 +97,7 @@ public class FriendServiceImpl implements FriendService {
      */
     private boolean canCurrentUserOperateBottle(Long currentUserId, Bottle latestBottle) {
         // 假设只有当漂流瓶已经被捡走且当前用户是更新者时，才允许操作
-        return latestBottle.getIsPicked() == 1 && latestBottle.getUpdateUser().equals(currentUserId);
+        return latestBottle.isPicked() == true && latestBottle.getUpdateUser().equals(currentUserId);
     }
 
 
@@ -136,7 +136,6 @@ public class FriendServiceImpl implements FriendService {
         Long requestId = beFriendDTO.getRequestId();
         Long longIsAccepted = beFriendDTO.getIsAccepted();
         boolean isAccepted;
-
 
         if (longIsAccepted == 1) {
             isAccepted = true;

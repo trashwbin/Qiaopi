@@ -24,81 +24,48 @@ public class Bottle extends BaseEntity {
     /**
      * 漂流瓶id
      */
-/*
     @Schema(description = "漂流瓶id")
-    private Long bottleId;
-*/
+    private Long id;
 
-    /**
-     * 用户id
-     */
     @Schema(description = "用户id")
     @TableField(value = "user_id")
     private Long userId;
 
-    /**
-     * 用户昵称
-     */
     @Schema(description = "用户昵称")
     @TableField(value = "nick_name")
     private String nickName;
 
-    /**
-     * 用户邮箱
-     */
     @Schema(description = "用户邮箱")
     @TableField(value = "email")
     private String email;
 
 
-    /**
-     * 发送者地址
-     */
     @Schema(description = "发送者地址")
     @TableField(value = "sender_address",typeHandler = JacksonTypeHandler.class)
     private Address senderAddress;
 
-
-    /**
-     * 漂流瓶内容
-     */
     @Schema(description = "漂流瓶内容")
     @TableField(value = "content")
     private String content;
 
-    /**
-     * 字体类型
-     */
-    //@Schema(description = "字体类型")
-    //private String fontId;
-
-    /**
-     * 字体颜色(以 HEX 格式存储)
-     */
-    //@Schema(description = "字体颜色")
-    //private String fontColorId;
-
-    /**
-     * 纸张类型
-     */
-    //@Schema(description = "纸张类型")
-    //private String paperId;
-
-    /**
-     * 创建时间
-     */
-    /*@Schema(description = "创建时间")
-    @TableField(value = "created_time")
-    private LocalDateTime createdTime;*/
-
 
     @Schema(description = "漂流瓶状态")
     @TableField(value = "is_picked")
-    private Integer isPicked;
+    private boolean picked;
 
     @Schema(description = "漂流瓶图片地址")
     @TableField(value = "bottle_url")
     private String bottleUrl;
+    // Getter 和 Setter 方法
+    public boolean isPicked() {
+        return picked;
+    }
+
+    public void setPicked(boolean picked) {
+        this.picked = picked;
+    }
+
+
 
 
 }

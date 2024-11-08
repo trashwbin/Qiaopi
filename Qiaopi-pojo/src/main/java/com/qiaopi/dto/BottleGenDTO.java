@@ -30,24 +30,6 @@ public class BottleGenDTO {
     @Schema(description = "漂流瓶内容")
     private String content;
 
-    /**
-     * 字体类型
-     */
-    //@Schema(description = "字体类型")
-    //private String fontId;
-
-    /**
-     * 字体颜色(以 HEX 格式存储)
-     */
-    //@Schema(description = "字体颜色")
-    //private String fontColorId;
-
-    /**
-     * 纸张类型
-     */
-    //@Schema(description = "纸张类型")
-    //private String paperId;
-
 
 
 }

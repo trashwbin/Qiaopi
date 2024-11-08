@@ -78,7 +78,7 @@ public class LetterServiceImpl implements LetterService {
     // 缓存字体
     private final Map<String, Font> fontCache = new HashMap<>();
 
-    @Override
+   /* @Override
     public String generateImage(LetterGenDTO letterGenDTO,Long currnetUserId) {
 //        log.warn(String.valueOf(LocalDateTime.now()));
         // 设置图片的宽和高（根据实际需求可以动态调整）
@@ -111,28 +111,28 @@ public class LetterServiceImpl implements LetterService {
             redisTemplate.opsForValue().set(redisKey, base64Image);
 
 
-          /*  // 生成一个随机的文件名
+          *//*  // 生成一个随机的文件名
             String fileName =  UUID.randomUUID()+ ".png";
             //将照片存储到服务器
             FileInfo fileInfo = fileStorageService.of(imageBytes).setSaveFilename(fileName).setPath("letter/").upload();
             url = fileInfo.getUrl();
-            */
+            *//*
 
-           /* // 设置响应头并返回图片
+           *//* // 设置响应头并返回图片
             HttpHeaders headers = new HttpHeaders(); // 创建HttpHeaders对象
             headers.setContentType(MediaType.IMAGE_PNG); // 设置响应内容类型为PNG图片
             headers.setContentLength(imageBytes.length); // 设置响应内容长度
             //return ResponseEntity.ok().headers(headers).body(imageBytes); // 返回包含图片字节数组的响应实体
-*/
+*//*
             return base64Image;
 
         } catch (IOException e) {
             log.error("生成图片失败", e);
         }
         return null;
-    }
+    }*/
 
-    public BufferedImage createAndDrawImage(int width, int height, LetterGenDTO letterGenDTO, FontColor fontColor, com.qiaopi.entity.Font font, Paper paper) {
+  /*  public BufferedImage createAndDrawImage(int width, int height, LetterGenDTO letterGenDTO, FontColor fontColor, com.qiaopi.entity.Font font, Paper paper) {
         // 创建一个 BufferedImage 对象
         BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = bufferedImage.createGraphics(); // 获取Graphics2D对象，用于绘制图像
@@ -148,7 +148,9 @@ public class LetterServiceImpl implements LetterService {
 
         return bufferedImage;
     }
+*/
 
+    /*
     public void drawAll(Graphics2D g2d, LetterGenDTO letterGenDTO, FontColor fontColor, com.qiaopi.entity.Font font, Paper paper, int width, int height) {
 
         // 初始化 g2d  进行字体颜色，种类，背景图片等的绘制
@@ -159,17 +161,17 @@ public class LetterServiceImpl implements LetterService {
         //TODO 标记
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) startG2D.create();
-            Main(clonedG2D, letterGenDTO.getLetterContent(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()),paper.getFitNumber());
+            Main(clonedG2D, letterGenDTO.getLetterContent(), Integer.parseInt(paper.getTranslateX()), Integer.parseInt(paper.getTranslateY()),paper.());
             clonedG2D.dispose();
         });
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) startG2D.create();
-            Main(clonedG2D, letterGenDTO.getSenderName(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()),paper.getFitNumber());
+            Main(clonedG2D, letterGenDTO.getSenderName(), Integer.parseInt(paper.getSenderTranslateX()), Integer.parseInt(paper.getSenderTranslateY()),paper.());
             clonedG2D.dispose();
         });
         executor.submit(() -> {
             Graphics2D clonedG2D = (Graphics2D) startG2D.create();
-            Main(clonedG2D, letterGenDTO.getRecipientName(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()),paper.getFitNumber());
+            Main(clonedG2D, letterGenDTO.getRecipientName(), Integer.parseInt(paper.getRecipientTranslateX()), Integer.parseInt(paper.getRecipientTranslateY()),paper.());
             clonedG2D.dispose();
         });
 
@@ -186,8 +188,8 @@ public class LetterServiceImpl implements LetterService {
             Thread.currentThread().interrupt();
         }
     }
-
-    public Graphics2D start(Graphics2D g2d,  int width, int height, String color, String font, String stationery){
+*/
+   /* public Graphics2D start(Graphics2D g2d,  int width, int height, String color, String font, String stationery){
 
         // 从缓存中获取背景图片
         BufferedImage bgImage = bgImageCache.get(stationery);
@@ -240,9 +242,9 @@ public class LetterServiceImpl implements LetterService {
         g2d.setColor(Color.decode(color)); // 设置字体颜色
 
         return g2d;
-    }
+    }*/
 
-    public void Main(Graphics2D g2d, String text, int x, int y,int fitNumber) {
+   /* public void Main(Graphics2D g2d, String text, int x, int y,int fitNumber) {
 
         // 每行字符数，设置为15
         int charsPerLine = 15;
@@ -313,9 +315,9 @@ public class LetterServiceImpl implements LetterService {
 
         }
 
-    }
+    }*/
 
-    public BufferedImage rotateImage(BufferedImage image, int angle) {
+  /*  public BufferedImage rotateImage(BufferedImage image, int angle) {
         double radians = Math.toRadians(angle);
         double sin = Math.abs(Math.sin(radians));
         double cos = Math.abs(Math.cos(radians));
@@ -335,6 +337,7 @@ public class LetterServiceImpl implements LetterService {
         return rotatedImage;
     }
 
+*/
 
     // Cover
     public String coverGenerieren(LetterSendDTO letterSendDTO) {
