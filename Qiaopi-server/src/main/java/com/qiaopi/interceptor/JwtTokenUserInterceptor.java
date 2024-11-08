@@ -87,7 +87,7 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
 
         //2、校验令牌
         try {
-            log.info("jwt校验:{}", token);
+            log.debug("jwt校验:{}", token);
             if (token == null) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 writeErrorResponse(response, message("user.unlogin"), UNAUTHORIZED);
@@ -95,7 +95,7 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
             }
             Jws<Claims> claims = JwtUtil.parseJWT(token,jwtProperties.getUserSecretKey());
             Long userId = Long.valueOf(claims.getPayload().get(JwtClaimsConstant.USER_ID).toString());
-            log.info("当前用户的id：{}", userId);
+            log.debug("当前用户的id：{}", userId);
             UserContext.setUserId(userId);
             // 3、通过，放行
             return true;

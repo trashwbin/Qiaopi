@@ -134,7 +134,7 @@ public class UserController {
     @GetMapping("/getUserRepository")
     @Operation(summary = "获取用户仓库")
     public AjaxResult getUserRepository(){
-        Map<String,List> userRepository = userService.getUserRepository(UserContext.getUserId());
+        ConcurrentHashMap<String,List> userRepository = userService.getUserRepository(UserContext.getUserId());
         log.info("用户仓库：{}",userRepository);
         return success(message("user.get.repository.success"),userRepository);
     }
@@ -184,7 +184,7 @@ public class UserController {
     @GetMapping("/getMyFriends")
     @Operation(summary = "获取我的好友")
     public AjaxResult getMyFriends(){
-        log.info("获取我的好友：{}",UserContext.getUserId());
+        log.info("获取用户：{} 的好友",UserContext.getUserId());
         List<FriendVO> friends = userService.getMyFriends(UserContext.getUserId());
         return success(message("user.get.friends.success"),friends);
     }
@@ -192,7 +192,7 @@ public class UserController {
     @GetMapping("/getFriendAddress")
     @Operation(summary = "获取当前好友地址")
     public AjaxResult getFriendAddress(@RequestParam("friendId") Long friendId){
-        log.info("获取当前好友地址：{}",friendId);
+        log.info("获取用户：{}好友:{} 地址",UserContext.getUserId(),friendId);
         List<Address> addresses = userService.getFriendAddress(friendId);
         return success(message("user.get.friend.address.success"),addresses);
     }
@@ -255,6 +255,27 @@ public class UserController {
         log.info("修改好友{}备注：{}",friendId,remark);
         userService.updateFriendRemark(friendId,remark);
         return success(message("user.update.friend.remark.success"));
+    }
+
+    @PostMapping("/sign")
+    @Operation(summary = "用户签到")
+    public AjaxResult sign(){
+        log.info("用户：{} 签到",UserContext.getUserId());
+        userService.sign(UserContext.getUserId());
+        return success(message("user.sign.success"));
+    }
+    @GetMapping("/getSignList")
+    @Operation(summary = "获取签到列表")
+    public AjaxResult getSignList() {
+        log.info("用户: {} 获取签到列表", UserContext.getUserId());
+        return success(message("user.get.sign.list.success"), userService.getSignList(UserContext.getUserId()));
+    }
+
+    @GetMapping("/getUserStatistics")
+    @Operation(summary = "获取用户统计信息")
+    public AjaxResult getUserStatistics(){
+        log.info("获取用户：{} 统计信息",UserContext.getUserId());
+        return success(message("user.get.statistics.success"),userService.getUserStatistics(UserContext.getUserId()));
     }
 }
 

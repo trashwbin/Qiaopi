@@ -7,13 +7,12 @@ import com.qiaopi.dto.UserUpdateDTO;
 import com.qiaopi.entity.Address;
 import com.qiaopi.entity.Avatar;
 import com.qiaopi.entity.Country;
-import com.qiaopi.vo.FriendVO;
-import com.qiaopi.vo.FunctionCardVO;
-import com.qiaopi.vo.UserLoginVO;
-import com.qiaopi.vo.UserVO;
+import com.qiaopi.entity.UserStatistics;
+import com.qiaopi.vo.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public interface UserService {
 
@@ -25,7 +24,7 @@ public interface UserService {
 
     UserVO getUserInfo(Long userId);
 
-    Map<String, List> getUserRepository(Long userId);
+    ConcurrentHashMap<String, List> getUserRepository(Long userId);
 
     void updateUsername(UserUpdateDTO userUpdateDTO);
 
@@ -62,4 +61,10 @@ public interface UserService {
     void deleteFriendAddress(Long friendId, Long addressId);
 
     void updateFriendRemark(Long friendId, String remark);
+
+    void sign(Long userId);
+
+    ConcurrentHashMap getSignList(Long userId);
+
+    UserStatistics getUserStatistics(Long userId);
 }

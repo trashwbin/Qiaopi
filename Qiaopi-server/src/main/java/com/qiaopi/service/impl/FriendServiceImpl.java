@@ -126,7 +126,7 @@ public class FriendServiceImpl implements FriendService {
         }
 
         QueryWrapper<FriendRequest> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("receiver_id", receiverId).eq("status", 0); // 查询待处理的请求
+        queryWrapper.eq("receiver_id", receiverId).eq("status", FriendConstants.PENDING); // 查询待处理的请求
 
         List<FriendRequestVO> friendRequestVOS = BeanUtil.copyToList(friendRequestMapper.selectList(queryWrapper), FriendRequestVO.class);
         friendRequestVOS.stream().collect(Collectors.groupingBy(FriendRequestVO::getSenderId));

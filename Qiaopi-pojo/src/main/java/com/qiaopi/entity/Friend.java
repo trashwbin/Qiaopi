@@ -29,7 +29,8 @@ public class Friend extends BaseEntity {
     private String sex;
     @Schema(description = "好友邮箱(必需项)")
     private String email;
-
+    @Schema(description = "好友头像")
+    private String avatar;
     /** 地址 */
     @Schema(description = "地址")
     @TableField(typeHandler = JacksonTypeHandler.class)

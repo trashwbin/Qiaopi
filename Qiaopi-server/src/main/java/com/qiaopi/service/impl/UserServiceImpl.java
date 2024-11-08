@@ -8,6 +8,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FastByteArrayOutputStream;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qiaopi.constant.JwtClaimsConstant;
 import com.qiaopi.constant.UserConstants;
@@ -39,7 +40,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -48,11 +51,13 @@ import org.springframework.util.DigestUtils;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static cn.hutool.core.bean.BeanUtil.copyProperties;
+import static com.qiaopi.constant.CacheConstant.*;
 import static com.qiaopi.result.AjaxResult.error;
 import static com.qiaopi.result.AjaxResult.success;
 import static com.qiaopi.utils.MessageUtils.message;
@@ -72,6 +77,7 @@ public class UserServiceImpl implements UserService {
     private final CardMapper cardMapper;
     private final JwtProperties jwtProperties;
     private final RedisTemplate redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
     private final LetterMapper letterMapper;
     private final LetterService letterService;
     private final CountryMapper countryMapper;
@@ -206,7 +212,10 @@ public class UserServiceImpl implements UserService {
         //设置默认字体
         user.setFonts(Collections.singletonList(BeanUtil.copyProperties(fontMapper.selectById(1), FontVO.class)));
         //设置默认纸张
-        user.setPapers(Collections.singletonList(BeanUtil.copyProperties(paperMapper.selectById(1), PaperVO.class)));
+        List<PaperVO> papers = new ArrayList<>();
+        papers.add(BeanUtil.copyProperties(paperMapper.selectById(1), PaperVO.class));
+        papers.add(BeanUtil.copyProperties(paperMapper.selectById(4), PaperVO.class));
+        user.setPapers(papers);
         //设置默认功能卡
         FunctionCard functionCard = cardMapper.selectById(0L);
         FunctionCardVO functionCardVO = copyProperties(functionCard, FunctionCardVO.class);
@@ -272,33 +281,43 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserVO getUserInfo(Long userId) {
-        User user = userMapper.selectById(userId);
-        if (user == null) {
-            throw new UserNotExistsException();
+        UserVO userVO = JSONUtil.toBean(stringRedisTemplate.opsForValue().get(CACHE_USER_INFO_KEY + userId), UserVO.class);
+        if (userVO == null || userVO.getId() == null) {
+            User user = userMapper.selectById(userId);
+            if (user == null) {
+                throw new UserNotExistsException();
+            }
+            userVO = BeanUtil.copyProperties(user, UserVO.class);
+            stringRedisTemplate.opsForValue().set(CACHE_USER_INFO_KEY + userId, JSONUtil.toJsonStr(userVO), Duration.ofHours(12));
         }
-
-        return copyProperties(user, UserVO.class);
+        return userVO;
     }
 
     @Override
-    public Map<String, List> getUserRepository(Long userId) {
-        User user = userMapper.selectById(userId);
+    public ConcurrentHashMap<String, List> getUserRepository(Long userId) {
 
-        if (user == null) {
-            throw new UserNotExistsException();
+        ConcurrentHashMap<String, List> repository = JSONUtil.toBean(stringRedisTemplate.opsForValue().get(CACHE_USER_REPOSITORY_KEY + userId), ConcurrentHashMap.class);
+
+        if (CollUtil.isEmpty(repository)) {
+            repository = new ConcurrentHashMap<>();
+            User user = userMapper.selectById(userId);
+
+            if (user == null) {
+                throw new UserNotExistsException();
+            }
+            List<FontVO> fonts = user.getFonts();
+            repository.put("fonts", CollUtil.isEmpty(fonts) ? Collections.emptyList() : fonts);
+
+            List<PaperVO> papers = user.getPapers();
+            repository.put("papers", CollUtil.isEmpty(papers) ? Collections.emptyList() : papers);
+
+            List<FontColorVO> fontColors = user.getFontColors();
+            repository.put("fontColors", CollUtil.isEmpty(fontColors) ? Collections.emptyList() : fontColors);
+
+            List<SignetVO> signets = user.getSignets();
+            repository.put("signets", CollUtil.isEmpty(signets) ? Collections.emptyList() : signets);
+            stringRedisTemplate.opsForValue().set(CACHE_USER_REPOSITORY_KEY + userId, JSONUtil.toJsonStr(repository), Duration.ofHours(24));
         }
-        Map<String, List> repository = new HashMap<>();
-        List<FontVO> fonts = user.getFonts();
-        repository.put("fonts", CollUtil.isEmpty(fonts) ? Collections.emptyList() : fonts);
-
-        List<PaperVO> papers = user.getPapers();
-        repository.put("papers", CollUtil.isEmpty(papers) ? Collections.emptyList() : papers);
-
-        List<FontColorVO> fontColors = user.getFontColors();
-        repository.put("fontColors", CollUtil.isEmpty(fontColors) ? Collections.emptyList() : fontColors);
-
-        List<SignetVO> signets = user.getSignets();
-        repository.put("signets", CollUtil.isEmpty(signets) ? Collections.emptyList() : signets);
 
         return repository;
     }
@@ -306,7 +325,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public void updateUsername(UserUpdateDTO userUpdateDTO) {
         //管理员用户名禁止更改
-        if (UserContext.getUserId()==1L){
+        Long userId = UserContext.getUserId();
+        if (userId == 1L) {
             throw new UserException(MessageUtils.message("user.admin.error"));
         }
         //检验用户名是否合法
@@ -317,12 +337,13 @@ public class UserServiceImpl implements UserService {
         if (userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, userUpdateDTO.getUsername())) != null) {
             throw new UserException(message("user.username.exists"));
         }
-        User user = userMapper.selectById(UserContext.getUserId());
+        User user = userMapper.selectById(userId);
         if (user == null) {
             throw new UserNotExistsException();
         }
         user.setUsername(userUpdateDTO.getUsername());
         userMapper.updateById(user);
+        stringRedisTemplate.delete(CACHE_USER_INFO_KEY + userId);
     }
 
     @Override
@@ -354,14 +375,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updateUserInfo(UserUpdateDTO userUpdateDTO) {
-        User user = userMapper.selectById(UserContext.getUserId());
+        Long userId = UserContext.getUserId();
+        User user = userMapper.selectById(userId);
         if (user == null) {
             throw new UserNotExistsException();
         }
         if (StringUtils.isNotEmpty(userUpdateDTO.getNickname())) {
             user.setNickname(userUpdateDTO.getNickname());
         }
-        if (userUpdateDTO.getAvatarId()!=null) {
+        if (userUpdateDTO.getAvatarId() != null) {
             Avatar avatar = avatarMapper.selectById(userUpdateDTO.getAvatarId());
             user.setAvatar(avatar.getUrl());
         }
@@ -369,6 +391,8 @@ public class UserServiceImpl implements UserService {
             user.setSex(userUpdateDTO.getSex());
         }
         userMapper.updateById(user);
+        stringRedisTemplate.delete(CACHE_USER_INFO_KEY + userId);
+
     }
 
     @Override
@@ -382,35 +406,76 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<FriendVO> getMyFriends(Long userId) {
-        //查询好友列表
-        List<Friend> friendList = friendMapper.selectList(new LambdaQueryWrapper<Friend>().eq(Friend::getOwningId, userId));
-
+        //查询好友列表, 从 Redis 中获取好友列表 , 如果不存在则查询数据库 , 并将查询结果存入 Redis, 作用是减少数据库查询次数
+        List<Friend> friendList = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_USER_FRIENDS_KEY + userId), Friend.class);
         if (CollUtil.isEmpty(friendList)) {
-            return Collections.emptyList();
+            friendList = friendMapper.selectList(new LambdaQueryWrapper<Friend>().eq(Friend::getOwningId, userId));
+            if (CollUtil.isEmpty(friendList)) {
+                return Collections.emptyList();
+            }
         }
-        List<User> friends = userMapper.selectBatchIds(friendList.stream().map(Friend::getUserId).collect(Collectors.toList()));
-        for (int i = 0; i < friendList.size(); i++) {
-            friendList.get(i).setName(friends.get(i).getNickname());
-            friendList.get(i).setSex(friends.get(i).getSex());
-            friendList.get(i).setEmail(friends.get(i).getEmail());
+
+
+        // 可能会出现好友信息为空的情况，需要处理，但如果好友信息为空，说明该用户并不经常访问，更不会更新自己的个人信息，直接使用旧数据即可，不需要再次查询数据库
+        List<UserVO> friends = new ArrayList<>(Objects.requireNonNull(stringRedisTemplate.opsForValue().multiGet(friendList.stream()
+                        .map(Friend::getUserId)
+                        .map(id -> CACHE_USER_INFO_KEY + id)
+                        .collect(Collectors.toList())))
+                .stream()
+                .filter(Objects::nonNull)
+                .map(json -> JSONUtil.toBean(json, UserVO.class))
+                .toList());
+        // 查询信息为空，说明缓存中没有数据，需要查询数据库
+        if (CollUtil.hasNull(friends) || friends.size() != friendList.size()) {
+            List<Long> missingFriendIds = friendList.stream()
+                    .map(Friend::getUserId)
+                    .filter(id -> friends.stream().noneMatch(friend -> friend.getId().equals(id)))
+                    .collect(Collectors.toList());
+            if (!missingFriendIds.isEmpty()) {
+                List<User> missingUsers = userMapper.selectBatchIds(missingFriendIds);
+                List<UserVO> missingFriends = BeanUtil.copyToList(missingUsers, UserVO.class);
+                friends.addAll(missingFriends);
+                for (UserVO userVO : missingFriends) {
+                    if (userVO != null) {
+                        stringRedisTemplate.opsForValue().set(CACHE_USER_INFO_KEY + userVO.getId(), JSONUtil.toJsonStr(userVO), Duration.ofHours(12));
+                    }
+                }
+            }
         }
-        List<FriendVO> friendVOS = BeanUtil.copyToList(friendList, FriendVO.class);
-        for (int i = 0; i < friendVOS.size(); i++) {
-            friendVOS.get(i).setAvatar(friends.get(i).getAvatar());
+
+        // 将 friends 转换为 Map，以便快速查找，更新好友信息模块
+        Map<Long, UserVO> userVOMap = friends.stream()
+                .collect(Collectors.toMap(UserVO::getId, userVO -> userVO, (existing, replacement) -> existing));
+        for (Friend friend : friendList) {
+            UserVO userVO = userVOMap.get(friend.getUserId());
+            if (userVO != null) {
+                friend.setName(userVO.getNickname());
+                friend.setSex(userVO.getSex());
+                friend.setEmail(userVO.getEmail());
+                friend.setAvatar(userVO.getAvatar());
+            }
         }
+        stringRedisTemplate.opsForValue().set(CACHE_USER_FRIENDS_KEY + userId, JSONUtil.toJsonStr(friendList), Duration.ofHours(12));
+        // 这个更新虽然非必要更新，但是为了保证数据的一致性，还是更新一下
         friendMapper.updateById(friendList);
-        return friendVOS;
+        return BeanUtil.copyToList(friendList, FriendVO.class);
     }
 
     @Override
     public List<Address> getMyAddress(Long userId) {
-        User user = userMapper.selectById(userId);
-        if (user == null) {
-            throw new UserNotExistsException();
+        List<Address> list = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_USER_ADDRESSES_KEY + userId), Address.class);
+        if (CollUtil.isEmpty(list)) {
+            User user = userMapper.selectById(userId);
+            if (user == null) {
+                throw new UserNotExistsException();
+            }
+            list = user.getAddresses();
+            stringRedisTemplate.opsForValue().set(CACHE_USER_ADDRESSES_KEY + userId, JSONUtil.toJsonStr(list), Duration.ofHours(12));
         }
-        return user.getAddresses();
+        return list;
     }
 
+    // 接口已弃用
     @Override
     public List<Address> getFriendAddress(Long friendId) {
         //查询好友地址,根据好友id和所属用户id查询
@@ -426,6 +491,7 @@ public class UserServiceImpl implements UserService {
     private String sender;
     @Value("${spring.mail.nickname}")
     private String nickname;
+
     @Override
     public void sendResetPasswordCode(String email) {
         email = email.toLowerCase();
@@ -583,21 +649,40 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<FunctionCardVO> getMyFunctionCard(Long userId) {
-        User user = userMapper.selectById(userId);
-        if (user == null) {
-            throw new UserNotExistsException();
+        // 从 Redis 中获取功能卡列表 , 如果不存在则查询数据库 , 并将查询结果存入 Redis, 作用是减少数据库查询次数
+        List<FunctionCardVO> functionCardVOS = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_USER_FUNCTION_CARDS_KEY + userId), FunctionCardVO.class);
+        if (CollUtil.isEmpty(functionCardVOS)) {
+            User user = userMapper.selectById(userId);
+            if (user == null) {
+                throw new UserNotExistsException();
+            }
+            functionCardVOS = user.getFunctionCards();
+            stringRedisTemplate.opsForValue().set(CACHE_USER_FUNCTION_CARDS_KEY + userId, JSONUtil.toJsonStr(functionCardVOS), Duration.ofHours(12));
         }
-        return user.getFunctionCards();
+        return functionCardVOS;
     }
 
     @Override
     public List<Avatar> getAvatarList() {
+        // 从 Redis 中获取头像列表 , 如果不存在则查询数据库 , 并将查询结果存入 Redis, 作用是减少数据库查询次数
+        List<Avatar> avatars = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_AVATARS_KEY), Avatar.class);
+        if (avatars == null || avatars.isEmpty()) {
+            avatars = avatarMapper.selectList(null);
+            stringRedisTemplate.opsForValue().set(CACHE_AVATARS_KEY, JSONUtil.toJsonStr(avatars), Duration.ofHours(24));
+        }
         return avatarMapper.selectList(null);
     }
 
     @Override
     public List<Country> getCountries() {
-        return countryMapper.selectList(null);
+        ;
+        // 从 Redis 中获取国家列表 , 如果不存在则查询数据库 , 并将查询结果存入 Redis, 作用是减少数据库查询次数
+        List<Country> countries = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_COUNTRIES_KEY), Country.class);
+        if (countries == null || countries.isEmpty()) {
+            countries = countryMapper.selectList(null);
+            stringRedisTemplate.opsForValue().set(CACHE_COUNTRIES_KEY, JSONUtil.toJsonStr(countries), Duration.ofHours(24));
+        }
+        return countries;
     }
 
     @Override
@@ -624,6 +709,7 @@ public class UserServiceImpl implements UserService {
         }
         user.setAddresses(addresses);
         userMapper.updateById(user);
+        stringRedisTemplate.delete(CACHE_USER_ADDRESSES_KEY + UserContext.getUserId());
     }
 
     @Override
@@ -651,6 +737,7 @@ public class UserServiceImpl implements UserService {
         addresses.removeIf(address -> address.getId().equals(addressId));
         user.setAddresses(addresses);
         userMapper.updateById(user);
+        stringRedisTemplate.delete(CACHE_USER_ADDRESSES_KEY + UserContext.getUserId());
     }
 
     @Override
@@ -678,6 +765,7 @@ public class UserServiceImpl implements UserService {
         }
         friend.setAddresses(addresses);
         friendMapper.updateById(friend);
+        stringRedisTemplate.delete(CACHE_USER_FRIENDS_KEY + UserContext.getUserId());
     }
 
     @Override
@@ -705,6 +793,7 @@ public class UserServiceImpl implements UserService {
         addresses.removeIf(address -> address.getId().equals(addressId));
         friend.setAddresses(addresses);
         friendMapper.updateById(friend);
+        stringRedisTemplate.delete(CACHE_USER_FRIENDS_KEY + UserContext.getUserId());
     }
 
     @Override
@@ -715,8 +804,147 @@ public class UserServiceImpl implements UserService {
         }
         friend.setRemark(remark);
         friendMapper.updateById(friend);
+        stringRedisTemplate.delete(CACHE_USER_FRIENDS_KEY + UserContext.getUserId());
     }
 
+    @Override
+    public void sign(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        // 获取当前签到的key
+        String prefix = stringRedisTemplate.opsForValue().get(SIGN_CURRENT_KEY);
+        String key = SIGN_PREFIX_KEY + prefix + SIGN_SUFFIX_KEY + userId;
+        // 写入Redis SETBIT key offset 1
+        Boolean isSigned = stringRedisTemplate.opsForValue().getBit(key, now.getDayOfWeek().getValue() - 1);
+        if (Boolean.TRUE.equals(isSigned)) {
+            throw new UserException(message("user.sign.today"));
+        }
+        stringRedisTemplate.opsForValue().setBit(key, now.getDayOfWeek().getValue()-1, true);
+        // 删除当天的签到签到缓存
+        stringRedisTemplate.delete(SIGN_TODAY_KEY + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + ":" + userId);
+        // 获取已签到的天数
+        int signedDays = getSignedDays(now, key);
+
+        List<UserSignAward> signAwardList = JSONUtil.toList(stringRedisTemplate.opsForValue().get(SIGN_AWARD_KEY+prefix), UserSignAward.class);
+        UserSignAward signAward = signAwardList.stream().filter(userSignAward -> userSignAward.getSignDays() == signedDays).findFirst().orElse(null);
+        if (signAward == null) {
+            throw new UserException(message("user.sign.award.error"));
+        }
+        //TODO 获取签到奖励
+        switch (signAward.getAwardType())
+        {
+            case 1:
+                // 猪仔钱
+                User user = userMapper.selectById(userId);
+                user.setMoney(user.getMoney() + signAward.getAwardNum());
+                userMapper.updateById(user);
+                break;
+            case 2:
+                // 功能卡
+                break;
+            case 3:
+                // 字体
+                break;
+            case 4:
+                // 字体颜色
+                break;
+            case 5:
+                // 纸张
+                break;
+            case 6:
+                // 其他收藏品
+                break;
+            case 7:
+                // 头像
+                break;
+            case 8:
+                // xx
+                break;
+            default:
+                throw new UserException(message("user.sign.award.error"));
+        }
+    }
+
+    @Override
+    public ConcurrentHashMap<String,Object> getSignList(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        String todayKey = SIGN_TODAY_KEY + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + ":" + userId;
+        ConcurrentHashMap userSignAwardsMap = JSONUtil.toBean(stringRedisTemplate.opsForValue().get(todayKey),ConcurrentHashMap.class);
+        if (CollUtil.isEmpty(userSignAwardsMap)) {
+            // 获取当前签到的key
+            String prefix = stringRedisTemplate.opsForValue().get(SIGN_CURRENT_KEY);
+            String key = SIGN_PREFIX_KEY + prefix + SIGN_SUFFIX_KEY + userId;
+            // 获取已签到的天数
+            int signedDays = getSignedDays(now, key);
+            // 获取当前周期签到奖励
+            List<UserSignAward> signAwardList = JSONUtil.toList(stringRedisTemplate.opsForValue().get(SIGN_AWARD_KEY+prefix), UserSignAward.class);
+            List<UserSignAwardVO >userSignAwards = BeanUtil.copyToList(signAwardList, UserSignAwardVO.class);
+            userSignAwards.forEach(userSignAward -> {
+                if (userSignAward.getSignDays() <= signedDays) {
+                    userSignAward.setReceived(true);
+                }
+            });
+            userSignAwardsMap.put("signedDays", signedDays);
+            userSignAwardsMap.put("userSignAwards", userSignAwards);
+            userSignAwardsMap.put("isSignToday", Objects.requireNonNull(stringRedisTemplate.opsForValue().getBit(key, now.getDayOfWeek().getValue() - 1)));
+            stringRedisTemplate.opsForValue().set(todayKey, JSONUtil.toJsonStr(userSignAwardsMap), Duration.ofDays(1));
+        }
+
+        return userSignAwardsMap;
+    }
+
+    @Override
+    public UserStatistics getUserStatistics(Long userId) {
+        List<Friend> friendList = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_USER_FRIENDS_KEY + userId), Friend.class);
+        int friendCount = 0;
+        if (CollUtil.isEmpty(friendList)) {
+            friendCount = getMyFriends(userId).size();
+        }else {
+            friendCount = friendList.size();
+        }
+        List<LetterVO> letterList = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_USER_RECEIVE_LETTER_KEY + userId), LetterVO.class);
+        int receiveLetterCount = 0;
+        if (CollUtil.isEmpty(letterList)) {
+            receiveLetterCount = letterService.getMyReceiveLetter(userId).size();
+        }else {
+            receiveLetterCount = letterList.size();
+        }
+        return UserStatistics.builder()
+                .friendCount(friendCount)
+                .receiveLetterCount(receiveLetterCount)
+                .build();
+    }
+
+    private int getSignedDays(LocalDateTime now,String key ) {
+        // 保证和调用方法时刻、用户一致
+        // 1.获取今天是本周的第几天
+        int dayOfWeek = now.getDayOfWeek().getValue();
+        // 2.获取本月截止今天为止的所有的签到记录，返回的是一个十进制的数字 BITFIELD sign:5:202203 GET u14 0
+        List<Long> result = stringRedisTemplate.opsForValue().bitField(
+                key,
+                BitFieldSubCommands.create()
+                        .get(BitFieldSubCommands.BitFieldType.unsigned(dayOfWeek)).valueAt(0)
+        );
+        if (result == null || result.isEmpty()) {
+            // 没有任何签到结果
+            return 0;
+        }
+        Long num = result.get(0);
+        if (num == null || num == 0) {
+            return 0;
+        }
+        // 3.循环遍历
+        int count = 0;
+        while (num != 0) {
+            // 让这个数字与1做与运算，得到数字的最后一个bit位，判断这个bit位是否为1
+            if ((num & 1) == 1) {
+                // 如果为1，计数器+1
+                count++;
+            }
+            // 把数字右移一位，抛弃最后一个bit位，继续下一个bit位
+            num >>>= 1;
+        }
+        return count;
+    }
     //生成随机用户名，数字和字母组成,
     public String getStringRandom(int length) {
 
