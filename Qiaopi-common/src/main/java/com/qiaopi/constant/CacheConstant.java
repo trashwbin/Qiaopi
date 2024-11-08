@@ -7,6 +7,7 @@ public class CacheConstant {
     public final static String CACHE_USER_ADDRESSES_KEY = "cache:user:addresses:";
     public final static String CACHE_USER_REPOSITORY_KEY = "cache:user:repository:";
     public final static String CACHE_USER_WRITE_LETTER_KEY = "cache:user:write-letter:";
+    public final static String CACHE_USER_RECEIVE_LETTER_KEY = "cache:user:receive-letter:";
 
     public final static String CACHE_AVATARS_KEY = "cache:avatars:list";
     public final static String CACHE_COUNTRIES_KEY = "cache:countries:list";
