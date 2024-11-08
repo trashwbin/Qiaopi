@@ -34,4 +34,8 @@ public class LetterConstants {
     public final static int VERTICAL_FONT_LETTER = 2;
     //横版信件
     public final static int HORIZONTAL_LETTER = 1;
+
+
+
+
 }
