@@ -9,7 +9,7 @@ import com.qiaopi.mapper.FontColorMapper;
 import com.qiaopi.mapper.FontMapper;
 import com.qiaopi.mapper.FontPaperMapper;
 import com.qiaopi.mapper.PaperMapper;
-import com.qiaopi.service.TryService;
+import com.qiaopi.service.G2dService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 @Slf4j
 @RequiredArgsConstructor //自动注入
-public class TryServiceImpl implements TryService {
+public class G2dServiceImpl implements G2dService {
 
     private final FontColorMapper fontColorMapper;
 
