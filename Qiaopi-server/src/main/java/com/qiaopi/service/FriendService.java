@@ -11,9 +11,8 @@ public interface FriendService {
 
  /*   *//**
      * 请求成为好友
-     *//*
-    String sendFriendRequest();
-*/
+     */
+//    void sendFriendRequest();
     /**
      * 处理好友申请
      *

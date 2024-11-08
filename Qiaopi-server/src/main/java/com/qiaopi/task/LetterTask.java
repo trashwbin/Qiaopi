@@ -1,13 +1,12 @@
 package com.qiaopi.task;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.qiaopi.constant.LetterStatus;
+import com.qiaopi.constant.LetterConstants;
 import com.qiaopi.entity.Letter;
 import com.qiaopi.mapper.LetterMapper;
 import com.qiaopi.service.LetterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -31,8 +30,8 @@ public class LetterTask {
      @Scheduled(cron = "0 * * * * ?")
     public void processLetterTask(){
          List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>()
-                 .le(Letter::getExpectedDeliveryTime, LocalDateTime.now())
-                 .eq(Letter::getStatus, LetterStatus.TRANSIT));
+                 .le(Letter::getDeliveryTime, LocalDateTime.now())
+                 .eq(Letter::getStatus, LetterConstants.TRANSIT));
          if (!letters.isEmpty()) {
              letterService.sendLetterToEmail(letters);
          }

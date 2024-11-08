@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.qiaopi.BaseEntity;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @EqualsAndHashCode(callSuper = true)
@@ -93,4 +94,29 @@ public class Letter extends BaseEntity {
      * 寄信人的邮箱
      */
     private String senderEmail;
+
+    /**
+     * 携带猪仔钱
+     */
+    private Long piggyMoney;
+
+    /**
+     * 信件类型(1:竖版字体信件,2:横版信件)
+     */
+    private int letterType;
+
+    /**
+     * 加速倍率
+     */
+    private String speedRate;
+
+    /**
+     * 减少的时间(单位:分钟)
+     */
+    private String reduceTime;
+
+    /**
+     * 送达时间(用于定时任务送达)
+     */
+    private LocalDateTime deliveryTime;
 }

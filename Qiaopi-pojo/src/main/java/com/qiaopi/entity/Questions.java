@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 public class Questions {
 
     @Schema(description = "主键")
-    @TableField(value = "id")
+//    @TableField(value = "id")
     private Long id;
 
     /**

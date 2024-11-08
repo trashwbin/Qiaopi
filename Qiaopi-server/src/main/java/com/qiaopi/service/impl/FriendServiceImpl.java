@@ -2,6 +2,7 @@ package com.qiaopi.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.qiaopi.constant.FriendConstants;
 import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.BeFriendDTO;
 import com.qiaopi.entity.*;
@@ -101,6 +102,19 @@ public class FriendServiceImpl implements FriendService {
     }
 
 
+/*    @Override
+    public void sendFriendRequest() {
+        // 插入好友申请
+        FriendRequest friendRequest = new FriendRequest();
+        friendRequest.setSenderId(currentUserId);
+        friendRequest.setReceiverId(targetUserId);
+        friendRequest.setStatus(0); // 0表示待处理
+        friendRequest.setGiveAddress(friendSendDTO.getGiveAddresss());
+        friendRequest.setContent(friendSendDTO.getContext());
+        friendRequest.setBottleId(bottle.getId());
+        friendRequestMapper.insert(friendRequest);
+    }*/
+
     @Override
     public List<FriendRequestVO> ProcessingFriendRequests() {
         Long receiverId = null;
@@ -176,7 +190,7 @@ public class FriendServiceImpl implements FriendService {
         }
         if (isAccepted) {
             // 更新好友申请状态为已接受
-            friendRequest.setStatus(1); // 1表示已接受
+            friendRequest.setStatus(FriendConstants.AGREE); // 1表示已接受
             friendRequest.setUpdateTime(LocalDateTime.now());
 
             try {
@@ -194,7 +208,7 @@ public class FriendServiceImpl implements FriendService {
             return MessageUtils.message("friend.application.accepted");
         } else {
             // 更新好友申请状态为已拒绝
-            friendRequest.setStatus(2); // 2表示已拒绝
+            friendRequest.setStatus(FriendConstants.REFUSE); // 2表示已拒绝
             friendRequest.setUpdateTime(LocalDateTime.now());
             friendRequestMapper.updateById(friendRequest);
             return MessageUtils.message("friend.application.refused");

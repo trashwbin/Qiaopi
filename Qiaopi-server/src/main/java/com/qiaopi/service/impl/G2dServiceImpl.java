@@ -1,7 +1,7 @@
 package com.qiaopi.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.qiaopi.constant.LetterStatus;
+import com.qiaopi.constant.LetterConstants;
 import com.qiaopi.dto.LetterGenDTO;
 import com.qiaopi.entity.FontPaper;
 import com.qiaopi.entity.Paper;
@@ -14,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
@@ -123,8 +122,8 @@ public class G2dServiceImpl implements G2dService {
      */
     private BufferedImage createAndDrawImage2(LetterGenDTO letterGenDTO) {
         //设置照片的宽和高
-        int width = LetterStatus.NOT_ONLY_CHINESES_WIDTH;//照片宽度
-        int height = LetterStatus.NOT_ONLY_CHINESES_HEIGHT;//照片宽度
+        int width = LetterConstants.NOT_ONLY_CHINESES_WIDTH;//照片宽度
+        int height = LetterConstants.NOT_ONLY_CHINESES_HEIGHT;//照片宽度
 
         // 创建一个 BufferedImage 对象
         BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -425,8 +424,8 @@ public class G2dServiceImpl implements G2dService {
     private BufferedImage createAndDrawImage(LetterGenDTO letterGenDTO) {
 
         //设置照片的宽和高
-        int width = LetterStatus.ONLY_CHINESES_HEIGHT;//照片宽度
-        int height = LetterStatus.ONLY_CHINESES_WIDTH;//照片宽度
+        int width = LetterConstants.ONLY_CHINESES_HEIGHT;//照片宽度
+        int height = LetterConstants.ONLY_CHINESES_WIDTH;//照片宽度
 
         // 创建一个 BufferedImage 对象
         BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);

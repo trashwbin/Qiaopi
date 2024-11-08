@@ -54,4 +54,10 @@ public class LetterGenDTO {
 
 
 
+    /**
+     * 信件类型(1:竖版字体信件,2:横版信件)
+     */
+    @Schema(description = "信件类型(1:竖版字体信件,2:横版信件)")
+    private int letterType;
+
 }
