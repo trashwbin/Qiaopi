@@ -401,6 +401,10 @@ public class LetterServiceImpl implements LetterService {
         MimeMessage message = javaMailSender.createMimeMessage();
 
         for (Letter letter : letters) {
+            // 删除缓存
+            if (letter.getRecipientUserId()!=null){
+                stringRedisTemplate.delete(CACHE_USER_RECEIVE_LETTER_KEY + letter.getRecipientUserId());
+            }
             try {
                 MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
@@ -805,9 +809,8 @@ public class LetterServiceImpl implements LetterService {
         return BeanUtil.copyProperties(letter, LetterVO.class);
     }
     @Override
-    public List<LetterVO> getMySendLetter() {
+    public List<LetterVO> getMySendLetter(Long userId) {
 
-        Long userId = UserContext.getUserId();
         List<Letter> letters = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_USER_WRITE_LETTER_KEY + userId), Letter.class);
 
         if (CollUtil.isEmpty(letters)) {
@@ -823,25 +826,35 @@ public class LetterServiceImpl implements LetterService {
         return BeanUtil.copyToList(letters, LetterVO.class);
     }
 
+    private static Letter hello = null;
     @Override
-    public List<LetterVO> getMyReceiveLetter() {
-        User user = userMapper.selectById(UserContext.getUserId());
-        Letter hello = letterMapper.selectById(1);
-        //查询收信人为当前用户的信件
-        List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getRecipientEmail, user.getEmail()).eq(Letter::getStatus, LetterConstants.DELIVERED).orderByDesc(Letter::getExpectedDeliveryTime));
-        letters.forEach(letter -> {
-            letter.setRecipientUserId(UserContext.getUserId());
-        });
-        //更新letter的收信人id
-        letterMapper.updateById(letters);
-        letters.add(hello);
-        return BeanUtil.copyToList(letters, LetterVO.class);
+    public List<LetterVO> getMyReceiveLetter(Long userId) {
+        List<LetterVO> letterVOS = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_USER_RECEIVE_LETTER_KEY + UserContext.getUserId()),LetterVO.class);
+        if (CollUtil.isEmpty(letterVOS)) {
+            User user = userMapper.selectById(UserContext.getUserId());
+            //查询收信人为当前用户的信件
+            List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getRecipientEmail, user.getEmail()).eq(Letter::getStatus, LetterConstants.DELIVERED).orderByDesc(Letter::getDeliveryTime));
+            letters.forEach(letter -> {
+                letter.setRecipientUserId(UserContext.getUserId());
+            });
+            //更新letter的收信人id
+            letterMapper.updateById(letters);
+
+            if (hello == null) {
+                hello = letterMapper.selectById(1);
+            }
+            letters.add(hello);
+            letterVOS = BeanUtil.copyToList(letters, LetterVO.class);
+            stringRedisTemplate.opsForValue().set(CACHE_USER_RECEIVE_LETTER_KEY + UserContext.getUserId(), JSONUtil.toJsonStr(letterVOS), Duration.ofHours(12));
+        }
+
+        return letterVOS;
     }
 
     @Override
-    public LetterVO getMyNotReadLetter() {
+    public LetterVO getMyNotReadLetter(Long userId) {
         //获取这人的全部收到的信
-        List<LetterVO> myReceiveLetter = getMyReceiveLetter();
+        List<LetterVO> myReceiveLetter = getMyReceiveLetter(userId);
         if (myReceiveLetter.isEmpty()) {
             return null;
         }
@@ -850,7 +863,7 @@ public class LetterServiceImpl implements LetterService {
         if (letterVO.getReadStatus() == LetterConstants.READ) {
             return null;
         }
-        //筛选未读的信
+        //筛选未读的信c
         return letterVO;
     }
 
@@ -869,16 +882,19 @@ public class LetterServiceImpl implements LetterService {
         }
         // 如果是新朋友的信,就加好友
         if (letter.getRemark()!=null&&letter.getRemark().contains("new friend")) {
-            FriendRequest friendRequest = FriendRequest.builder()
-                    .receiverId(UserContext.getUserId())
-                    .senderId(letter.getSenderUserId())
-                    .status(FriendConstants.PENDING)
-                    .giveAddress(letter.getSenderAddress())
-                    .content(letter.getRecipientName() + "!我给你写了一封侨批哦,快来加我为好友吧!")
-                    .bottleId(letterId)
-                    .build();
-            friendRequest.setCreateTime(letter.getDeliveryTime());
-            friendRequestMapper.insert(friendRequest);
+            Long count = friendRequestMapper.selectCount(new LambdaQueryWrapper<FriendRequest>().eq(FriendRequest::getSenderId, letter.getSenderUserId()).eq(FriendRequest::getReceiverId, UserContext.getUserId()));
+            if (count == 0) {
+                FriendRequest friendRequest = FriendRequest.builder()
+                        .receiverId(UserContext.getUserId())
+                        .senderId(letter.getSenderUserId())
+                        .status(FriendConstants.PENDING)
+                        .giveAddress(letter.getSenderAddress())
+                        .content(letter.getRecipientName() + "!我给你写了一封侨批哦,快来加我为好友吧!")
+                        .bottleId(letterId)
+                        .build();
+                friendRequest.setCreateTime(letter.getDeliveryTime());
+                friendRequestMapper.insert(friendRequest);
+            }
         }
         // 读信后加钱
         if (letter.getPiggyMoney()>0){

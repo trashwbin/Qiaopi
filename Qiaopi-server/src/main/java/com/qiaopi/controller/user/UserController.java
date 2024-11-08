@@ -270,6 +270,13 @@ public class UserController {
         log.info("用户: {} 获取签到列表", UserContext.getUserId());
         return success(message("user.get.sign.list.success"), userService.getSignList(UserContext.getUserId()));
     }
+
+    @GetMapping("/getUserStatistics")
+    @Operation(summary = "获取用户统计信息")
+    public AjaxResult getUserStatistics(){
+        log.info("获取用户：{} 统计信息",UserContext.getUserId());
+        return success(message("user.get.statistics.success"),userService.getUserStatistics(UserContext.getUserId()));
+    }
 }
 
 

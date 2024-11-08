@@ -1,15 +1,9 @@
 package com.qiaopi.service;
 
-import com.qiaopi.dto.LetterGenDTO;
 import com.qiaopi.entity.Letter;
 import com.qiaopi.dto.LetterSendDTO;
 import com.qiaopi.vo.LetterVO;
-import org.springframework.http.ResponseEntity;
 
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 public interface LetterService {
@@ -32,11 +26,11 @@ public interface LetterService {
      * 获取我写的侨批
      * @return
      */
-    List<LetterVO> getMySendLetter();
+    List<LetterVO> getMySendLetter(Long userId);
 
-    List<LetterVO> getMyReceiveLetter();
+    List<LetterVO> getMyReceiveLetter(Long userId);
 
-    LetterVO getMyNotReadLetter();
+    LetterVO getMyNotReadLetter(Long userId);
 
     void readLetter(Long letterId);
 }

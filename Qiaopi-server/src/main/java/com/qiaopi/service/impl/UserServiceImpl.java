@@ -892,6 +892,28 @@ public class UserServiceImpl implements UserService {
         return userSignAwardsMap;
     }
 
+    @Override
+    public UserStatistics getUserStatistics(Long userId) {
+        List<Friend> friendList = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_USER_FRIENDS_KEY + userId), Friend.class);
+        int friendCount = 0;
+        if (CollUtil.isEmpty(friendList)) {
+            friendCount = getMyFriends(userId).size();
+        }else {
+            friendCount = friendList.size();
+        }
+        List<LetterVO> letterList = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_USER_RECEIVE_LETTER_KEY + userId), LetterVO.class);
+        int receiveLetterCount = 0;
+        if (CollUtil.isEmpty(letterList)) {
+            receiveLetterCount = letterService.getMyReceiveLetter(userId).size();
+        }else {
+            receiveLetterCount = letterList.size();
+        }
+        return UserStatistics.builder()
+                .friendCount(friendCount)
+                .receiveLetterCount(receiveLetterCount)
+                .build();
+    }
+
     private int getSignedDays(LocalDateTime now,String key ) {
         // 保证和调用方法时刻、用户一致
         // 1.获取今天是本周的第几天

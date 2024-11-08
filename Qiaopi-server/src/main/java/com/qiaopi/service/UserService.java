@@ -7,6 +7,7 @@ import com.qiaopi.dto.UserUpdateDTO;
 import com.qiaopi.entity.Address;
 import com.qiaopi.entity.Avatar;
 import com.qiaopi.entity.Country;
+import com.qiaopi.entity.UserStatistics;
 import com.qiaopi.vo.*;
 
 import java.util.List;
@@ -64,4 +65,6 @@ public interface UserService {
     void sign(Long userId);
 
     ConcurrentHashMap getSignList(Long userId);
+
+    UserStatistics getUserStatistics(Long userId);
 }
