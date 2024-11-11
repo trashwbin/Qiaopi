@@ -80,6 +80,8 @@ public class LetterServiceImpl implements LetterService {
 
     // Cover
     private ExecutorService subExecutorService = Executors.newFixedThreadPool(3);
+
+    //绘制封面的主代码
     public String coverGenerieren(LetterSendDTO letterSendDTO,Long userId) {
         // 设置图片的宽和高（根据实际需求可以动态调整）
         int width = 1000; // 图片宽度
@@ -91,16 +93,96 @@ public class LetterServiceImpl implements LetterService {
 
         // TODO 如何正确截取地址和用户名字
         String tempMailingAddress = letterSendDTO.getSenderAddress().getFormattedAddress(); // 寄件人地址
-        String mailingAddress = tempMailingAddress.substring(3, 6);
+        Long countryId = letterSendDTO.getSenderAddress().getCountryId();
+        String senderAddress;
 
-        String tempInsideAddress = letterSendDTO.getRecipientAddress().getFormattedAddress(); // 收件人地址
-        String insideAddress = tempInsideAddress.substring(0, 6);
+        if (countryId != 1) {
+            // 如果是外国
+            Country country = countryMapper.selectById(countryId);
+            String countryName = country.getCountryName();
+            if (countryName.length() > 6) {
+                String countryNameTemp = country.getCountryNameEnglish();
+                StringBuilder initials = new StringBuilder();
+                for (String word : countryNameTemp.split("\\s+")) {
+                    if (!word.isEmpty()) {
+                        initials.append(word.charAt(0));
+                    }
+                }
+                senderAddress = initials.toString();
+            } else {
+                senderAddress = countryName;
+            }
+        } else {
+            // 如果是中国
+            senderAddress = tempMailingAddress;
+            String[] mainCities = {"北京市", "天津市", "上海市", "重庆市"};
+
+            if (senderAddress.contains("自治区")) {
+                senderAddress = senderAddress.substring(0, senderAddress.indexOf("自治区"));
+            } else if (senderAddress.contains("省")) {
+                senderAddress = senderAddress.substring(0, senderAddress.indexOf("省"));
+            } else {
+                String prefix = senderAddress.substring(0, 3);
+                for (String city : mainCities) {
+                    if (city.equals(prefix)) {
+                        senderAddress = city;
+                        break;
+                    }
+                }
+            }
+        }
+
+        String tempRecipientAddress = letterSendDTO.getRecipientAddress().getFormattedAddress();
+        Long countryIdRe = letterSendDTO.getRecipientAddress().getCountryId();
+        String recipientAddress;
+
+        if (countryIdRe != 1) {
+            // 如果是外国
+            Country country = countryMapper.selectById(countryIdRe);
+            String countryName = country.getCountryName();
+            if (countryName.length() > 6) {
+                String countryNameTemp = country.getCountryNameEnglish();
+                StringBuilder initials = new StringBuilder();
+                for (String word : countryNameTemp.split("\\s+")) {
+                    if (!word.isEmpty()) {
+                        initials.append(word.charAt(0));
+                    }
+                }
+                recipientAddress = initials.toString();
+            } else {
+                recipientAddress = countryName;
+            }
+        } else {
+            // 如果是中国
+            recipientAddress = tempRecipientAddress;
+            String[] mainCities = {"北京市", "天津市", "上海市", "重庆市"};
+
+            if (recipientAddress.contains("自治区")) {
+                recipientAddress = recipientAddress.substring(0, recipientAddress.indexOf("自治区"));
+            } else if (recipientAddress.contains("省")) {
+                recipientAddress = recipientAddress.substring(0, recipientAddress.indexOf("省"));
+            } else {
+                String prefix = recipientAddress.substring(0, 3);
+                for (String city : mainCities) {
+                    if (city.equals(prefix)) {
+                        recipientAddress = city;
+                        break;
+                    }
+                }
+            }
+        }
 
         String sender = letterSendDTO.getSenderName(); // 寄件人姓名
         String recipient = letterSendDTO.getRecipientName(); // 收件人姓名
-
+        // 将 senderAddress 声明为 final
+        final String finalSenderAddress = senderAddress;
         // 收信地址
-        drawCoverMain(g2d, insideAddress, width, height, 156, 185);
+        //  x增下减上 y增左减右
+        int length = recipientAddress.length();
+        int i = 3 - length;
+        //半个字差60
+        int x = 430 + 83 * i;
+        drawCoverMain(g2d, recipientAddress, width, height, x, 185);
 
         // 创建 Graphics2D 对象用于绘制子内容
         Graphics2D fontG2d = drawCoverSubordinate(g2d);
@@ -117,7 +199,7 @@ public class LetterServiceImpl implements LetterService {
                 }, subExecutorService);
         CompletableFuture<Void> mailingAddressFuture = CompletableFuture.runAsync(() -> {
                     Graphics2D clonedG2D = (Graphics2D) fontG2d.create();
-                    coverSubordinate(clonedG2D, mailingAddress, 440, 405);
+                    coverSubordinate(clonedG2D, finalSenderAddress, 260, 360);
                     clonedG2D.dispose();
                 }, subExecutorService);
 
@@ -126,6 +208,7 @@ public class LetterServiceImpl implements LetterService {
 
         // 释放 Graphics2D 资源
         g2d.dispose();
+
         bufferedImage = rotateImage2(bufferedImage, 90);
 
         String url = null;
@@ -154,6 +237,8 @@ public class LetterServiceImpl implements LetterService {
         // 这里实在没办法了,原图片有透明部分,转换成jpg会变成黑色,只能用png
         return url;
     }
+
+
     public void coverMain(Graphics2D g2d, String text, int x, int y) {
         int charsPerLine = 15;
         int currentX = x;
@@ -222,7 +307,7 @@ public class LetterServiceImpl implements LetterService {
         g2d.drawImage(bgImage, 0, 0, width, height, null);
 
         // 调整字体文件路径以匹配类路径
-        String fontPath = "fonts/CoverFont/1.TTF";
+        String fontPath = "fonts/CoverFont/2.ttf";
         // 检查缓存中是否存在该图像
         Font customFont = coverFontCache.get(fontPath + "160");
         if (customFont == null) {

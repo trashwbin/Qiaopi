@@ -42,10 +42,16 @@ public class BottleController {
     }
 
 
-    @GetMapping("/showDriftBottle")//TODO 前端完成后修改为getBottle
+    @GetMapping("/showDriftBottle")
     @Operation(summary = "获取漂流瓶")
     public AjaxResult getBottle() {
         log.info("获取漂流瓶");
+        try {
+            Thread.sleep(500); // 睡眠1秒
+        } catch (InterruptedException e) {
+            log.error("线程睡眠中断", e);
+            Thread.currentThread().interrupt(); // 恢复中断状态
+        }
         String url = bottleService.getBottle();
         return AjaxResult.success(MessageUtils.message("bottle.showBottleById.success"),url);
     }

@@ -232,6 +232,7 @@ public class FriendServiceImpl implements FriendService {
         myNewFriend.setEmail(friend.getEmail());
         myNewFriend.setAddresses(Collections.singletonList(friendToMeAddress));
         myNewFriend.setOwningId(userId);
+        myNewFriend.setAvatar(friend.getAvatar());
         friendMapper.insert(myNewFriend);
 
 
@@ -250,6 +251,7 @@ public class FriendServiceImpl implements FriendService {
         BecomeFriendOfTheOtherParty.setEmail(myInfoOfUser.getEmail());
         BecomeFriendOfTheOtherParty.setAddresses(Collections.singletonList(mineToFriendAddresses));
         BecomeFriendOfTheOtherParty.setOwningId(friendId);
+        BecomeFriendOfTheOtherParty.setAvatar(friend.getAvatar());
 
         friendMapper.insert(BecomeFriendOfTheOtherParty);
     }

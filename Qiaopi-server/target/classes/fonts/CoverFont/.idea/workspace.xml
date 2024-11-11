@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="10464eb5-60fd-4fe1-b290-82d53ae28663" name="更改" comment="">
+      <change beforePath="$PROJECT_DIR$/../../../../../../.idea/dataSources.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../../../../../.idea/dataSources.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../../../../Qiaopi-pojo/src/main/java/com/qiaopi/entity/Paper.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../../../../../Qiaopi-pojo/src/main/java/com/qiaopi/entity/Paper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../java/com/qiaopi/handler/Letter/LetterSocketHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../../java/com/qiaopi/handler/Letter/LetterSocketHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../java/com/qiaopi/service/LetterService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../../java/com/qiaopi/service/LetterService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../java/com/qiaopi/service/TryService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../../java/com/qiaopi/service/G2dService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../java/com/qiaopi/service/impl/LetterServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../../java/com/qiaopi/service/impl/LetterServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../java/com/qiaopi/service/impl/TryServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../../java/com/qiaopi/service/impl/G2dServiceImpl.java" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../../../../../.." />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
+  <component name="ProjectId" id="2nMvLeRa1pg34iSqDTUGeCOyUA4" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "chTest",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "D:/Code/HomeworkCode/dataStructrue",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-28b599e66164-intellij.indexing.shared.core-IU-242.23339.11" />
+        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-IU-242.23339.11" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="应用程序级" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="默认任务">
+      <changelist id="10464eb5-60fd-4fe1-b290-82d53ae28663" name="更改" comment="" />
+      <created>1728795704375</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1728795704375</updated>
+      <workItem from="1728795705443" duration="14000" />
+      <workItem from="1730698730565" duration="12000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>
