@@ -319,7 +319,7 @@ public class LetterServiceImpl implements LetterService {
 
     public void coverSubordinate(Graphics2D g2d, String text, int x, int y) {
         int charsPerLine = 15;
-        int currentX = x;
+        int currentX = x ;
         int currentY = y;
 
         FontMetrics fontMetrics = g2d.getFontMetrics();

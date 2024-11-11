@@ -44,6 +44,8 @@ class QiaopiServerApplicationTests {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
+
+
     @Test
     void sign(){
         LocalDateTime now = LocalDateTime.now();
@@ -128,8 +130,6 @@ class QiaopiServerApplicationTests {
 
     @Test
     void add() {
-
-
 
         List<FontVO> fonts = BeanUtil.copyToList(fontMapper.selectList(null), FontVO.class);;
 

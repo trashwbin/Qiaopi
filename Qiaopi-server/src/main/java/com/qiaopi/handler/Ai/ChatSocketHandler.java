@@ -1,28 +1,41 @@
-package com.qiaopi.handler.Letter;
+package com.qiaopi.handler.Ai;
 
+import cn.hutool.cron.timingwheel.SystemTimer;
+import cn.hutool.json.JSONUtil;
+import com.alibaba.fastjson2.JSON;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.qiaopi.constant.AiConstant;
+import com.qiaopi.dto.ChatDTO;
 import com.qiaopi.dto.LetterGenDTO;
-import com.qiaopi.service.LetterService;
+import com.qiaopi.result.AjaxResult;
+import com.qiaopi.service.ChatService;
 import com.qiaopi.service.G2dService;
+import com.qiaopi.utils.MessageUtils;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.PongMessage;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @Slf4j
-public class LetterSocketHandler extends TextWebSocketHandler {
+@RequiredArgsConstructor
+public class ChatSocketHandler extends TextWebSocketHandler {
 
-    @Autowired
-    private G2dService g2dService;
-
+    private final ChatService chatService;
+    private final StringRedisTemplate stringRedisTemplate;
   // 用于保存所有连接的 WebSocket 会话
     private static final Set<WebSocketSession> sessions = Collections.newSetFromMap(new ConcurrentHashMap<>());
     // 用于保存用户与 WebSocket 会话的映射
@@ -32,16 +45,17 @@ public class LetterSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         // 从 WebSocket 会话中获取用户 ID
-        Long userId = (Long) session.getAttributes().get("userId");
-        System.out.println("用户 ID: " + userId);
 
+        Long userId = (Long) session.getAttributes().get("userId");
+        log.debug("用户 ID: {} 连接中", userId);
         // 如果用户 ID 不为 null，将用户会话存储在 userSessions 中
         if (userId != null) {
             userSessions.put(userId, session);
             sessions.add(session); // 添加到所有会话集合中
-            session.sendMessage(new TextMessage("success")); // 发送消息给客户端
+            log.debug("用户 ID: {} 的会话已存储", userId);
+            ChatSocketHandler.sendMessageToUser(userId, JSON.toJSONString(AjaxResult.success(MessageUtils.message("chat.connect.success"))));
         } else {
-            log.warn("无法获取用户 ID，无法存储会话。");
+            log.error("无法获取用户 ID，无法存储会话。");
             session.close(); // 关闭会话
         }
     }
@@ -55,21 +69,18 @@ public class LetterSocketHandler extends TextWebSocketHandler {
 
         // 获取传来的 message 信息
         String payload = message.getPayload();
+        ChatDTO chatDTO = JSONUtil.toBean(payload, ChatDTO.class);
+        chatDTO.setUserId(currentUserId);
+        chatDTO.setMessage(chatDTO.getMessage().trim());
+        log.info("收到用户 {} 的消息: {}", currentUserId, chatDTO);
 
-        // 创建 ObjectMapper 实例
-        // 将 JSON 数据转换为 LetterGenDTO 对象
-        ObjectMapper objectMapper = new ObjectMapper();
-        LetterGenDTO letterGenDTO = objectMapper.readValue(payload, LetterGenDTO.class);
-
-        // 调用 Service 方法
-        String base64Result = g2dService.generateImage(letterGenDTO, currentUserId);
-        //String base64Result = letterService.generateImage(letterGenDTO, currentUserId);
-
-        // 将生成的 URL 发送给特定用户
-        if (currentUserId != null) {
-            sendMessageToUser(currentUserId, base64Result);
-        } else {
-            log.error("无法获取用户 ID，无法发送消息。");
+        switch (chatDTO.getMessage()) {
+            case AiConstant.ORDER_CLEAR, AiConstant.ORDER_NEW:
+                chatService.storeChat(currentUserId);
+                break;
+            default:
+                chatService.chat(chatDTO);
+                break;
         }
     }
 
@@ -77,16 +88,18 @@ public class LetterSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         sessions.remove(session);
-
-        // 从 userSessions 中移除用户会话
         Long userId = (Long) session.getAttributes().get("userId");
+        log.info("用户 ID: {} 断开连接",userId );
+        // 将用户对话存储到 chat:user:userId:timestamp
+        chatService.storeChat(userId);
+        // 从 userSessions 中移除用户会话
         if (userId != null) {
             userSessions.remove(userId);
         }
     }
 
     // 向特定用户发送消息
-    public void sendMessageToUser(Long userId, String responseEntity) { // 使用 Long 类型
+    public static void sendMessageToUser(Long userId, String responseEntity) { // 使用 Long 类型
         WebSocketSession session = userSessions.get(userId);
         if (session != null && session.isOpen()) {
             try {
