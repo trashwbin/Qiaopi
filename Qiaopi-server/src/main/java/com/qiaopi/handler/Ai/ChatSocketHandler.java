@@ -11,6 +11,7 @@ import com.qiaopi.result.AjaxResult;
 import com.qiaopi.service.ChatService;
 import com.qiaopi.service.G2dService;
 import com.qiaopi.utils.MessageUtils;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @Slf4j
@@ -36,24 +40,36 @@ public class ChatSocketHandler extends TextWebSocketHandler {
 
     private final ChatService chatService;
     private final StringRedisTemplate stringRedisTemplate;
-  // 用于保存所有连接的 WebSocket 会话
+
+    // 用于保存所有连接的 WebSocket 会话
     private static final Set<WebSocketSession> sessions = Collections.newSetFromMap(new ConcurrentHashMap<>());
+
     // 用于保存用户与 WebSocket 会话的映射
     private static final Map<Long, WebSocketSession> userSessions = new ConcurrentHashMap<>();
+
+    // 用于保存离线用户及其最后在线时间
+    private static final Map<Long, LocalDateTime> offlineUsers = new ConcurrentHashMap<>();
+
+    // 定时任务执行器
+    private static final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
     // 当有客户端连接时调用
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        // 从 WebSocket 会话中获取用户 ID
-
         Long userId = (Long) session.getAttributes().get("userId");
         log.debug("用户 ID: {} 连接中", userId);
-        // 如果用户 ID 不为 null，将用户会话存储在 userSessions 中
+
         if (userId != null) {
             userSessions.put(userId, session);
             sessions.add(session); // 添加到所有会话集合中
             log.debug("用户 ID: {} 的会话已存储", userId);
-            ChatSocketHandler.sendMessageToUser(userId, JSON.toJSONString(AjaxResult.success(MessageUtils.message("chat.connect.success"))));
+        if (offlineUsers.containsKey(userId)) {
+            chatService.getChattingHistory(userId);
+        } else {
+            sendMessageToUser(userId, JSON.toJSONString(AjaxResult.success(MessageUtils.message("chat.connect.success"))));
+        }
+            // 用户重新连接，移除离线状态
+            offlineUsers.remove(userId);
         } else {
             log.error("无法获取用户 ID，无法存储会话。");
             session.close(); // 关闭会话
@@ -63,11 +79,13 @@ public class ChatSocketHandler extends TextWebSocketHandler {
     // 当有消息从客户端发送过来时调用
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-//        log.info("收用户1到消息: {}", message.getPayload());
-        // 从 session 的 attributes 中获取用户 ID
         Long currentUserId = (Long) session.getAttributes().get("userId");
 
-        // 获取传来的 message 信息
+        if (currentUserId == null) {
+            log.error("无法获取用户 ID，无法处理消息。");
+            return;
+        }
+
         String payload = message.getPayload();
         ChatDTO chatDTO = JSONUtil.toBean(payload, ChatDTO.class);
         chatDTO.setUserId(currentUserId);
@@ -77,6 +95,12 @@ public class ChatSocketHandler extends TextWebSocketHandler {
         switch (chatDTO.getMessage()) {
             case AiConstant.ORDER_CLEAR, AiConstant.ORDER_NEW:
                 chatService.storeChat(currentUserId);
+                break;
+            case AiConstant.ORDER_HISTORY:
+                chatService.getChatHistory(currentUserId);
+                break;
+            case AiConstant.ORDER_HELP:
+                chatService.help(currentUserId);
                 break;
             default:
                 chatService.chat(chatDTO);
@@ -89,17 +113,17 @@ public class ChatSocketHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         sessions.remove(session);
         Long userId = (Long) session.getAttributes().get("userId");
-        log.info("用户 ID: {} 断开连接",userId );
-        // 将用户对话存储到 chat:user:userId:timestamp
-        chatService.storeChat(userId);
-        // 从 userSessions 中移除用户会话
+        log.info("用户 ID: {} 断开连接", userId);
+
         if (userId != null) {
-            userSessions.remove(userId);
+            // 标记用户为离线状态
+            offlineUsers.put(userId, LocalDateTime.now());
+            log.info("用户 ID: {} 已标记为离线", userId);
         }
     }
 
     // 向特定用户发送消息
-    public static void sendMessageToUser(Long userId, String responseEntity) { // 使用 Long 类型
+    public static void sendMessageToUser(Long userId, String responseEntity) {
         WebSocketSession session = userSessions.get(userId);
         if (session != null && session.isOpen()) {
             try {
@@ -118,9 +142,28 @@ public class ChatSocketHandler extends TextWebSocketHandler {
             try {
                 session.sendMessage(new TextMessage(message));
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("广播消息失败: ", e);
             }
         }
     }
 
+    // 初始化定时任务，检查离线用户
+    @PostConstruct
+    public void initOfflineCheck() {
+        executorService.scheduleAtFixedRate(() -> {
+            LocalDateTime now = LocalDateTime.now();
+            for (Map.Entry<Long, LocalDateTime> entry : offlineUsers.entrySet()) {
+                Long userId = entry.getKey();
+                LocalDateTime lastOnlineTime = entry.getValue();
+                long minutesSinceLastOnline = java.time.Duration.between(lastOnlineTime, now).toMinutes();
+
+                if (minutesSinceLastOnline > 5) { // 假设5分钟为离线超时时间
+                    log.info("用户 ID: {} 超过5分钟未重新连接，移除会话", userId);
+                    chatService.storeChat(userId);
+                    userSessions.remove(userId);
+                    offlineUsers.remove(userId);
+                }
+            }
+        }, 0, 1, TimeUnit.MINUTES);
+    }
 }

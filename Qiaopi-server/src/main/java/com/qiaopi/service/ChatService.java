@@ -9,4 +9,9 @@ public interface ChatService {
     void chat(ChatDTO chatDTO);
 
     void storeChat(Long userId);
+
+    void getChatHistory(Long userId);
+    void getChattingHistory(Long userId);
+
+    void help(Long currentUserId);
 }

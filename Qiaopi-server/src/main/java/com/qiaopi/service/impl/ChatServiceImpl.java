@@ -5,13 +5,14 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.json.JSONUtil;
 import com.alibaba.fastjson2.JSON;
 import com.qiaopi.constant.AiConstant;
-import com.qiaopi.constant.AiConstant.*;
 import com.qiaopi.dto.ChatDTO;
-import com.qiaopi.handler.Ai.ChatSocketHandler;
+import com.qiaopi.handler.Ai.pojo.AiData;
 import com.qiaopi.handler.Ai.pojo.MyModelData;
 import com.qiaopi.result.AjaxResult;
 import com.qiaopi.service.ChatService;
 import com.qiaopi.utils.MessageUtils;
+import com.qiaopi.utils.StringUtils;
+import com.qiaopi.utils.redis.RedisUtils;
 import com.zhipu.oapi.ClientV4;
 import com.zhipu.oapi.service.v4.model.*;
 import io.reactivex.Flowable;
@@ -47,6 +48,8 @@ public class ChatServiceImpl implements ChatService {
 
     private ClientV4 client;
     private final StringRedisTemplate stringRedisTemplate;
+    private final RedisUtils redisUtils;
+
     @PostConstruct
     public void init() {
         this.client = new ClientV4.Builder(API_SECRET_KEY)
@@ -232,11 +235,12 @@ public class ChatServiceImpl implements ChatService {
         Long userId = chatDTO.getUserId();
         String message = chatDTO.getMessage();
         // 从Redis中获取聊天消息列表
-        String key = CHAT_USER+userId+CHAT_CHATTING;
-        List<ChatMessage> messages = JSON.parseArray(stringRedisTemplate.opsForValue().get(key), ChatMessage.class);
+        String key = CHAT_USER + userId + CHAT_CHATTING;
+        // 多次测试发现有断联情况，所以加上重试机制，redisUtils.getWithRetry(key)方法会重试3次
+        List<ChatMessage> messages = JSON.parseArray(redisUtils.getWithRetry(key), ChatMessage.class);
         if (CollUtil.isEmpty(messages)) {
             // 如果消息列表为空，则从Redis中获取系统提示消息
-            messages = new ArrayList<>(Objects.requireNonNull(JSON.parseArray(stringRedisTemplate.opsForValue().get(CHAT_SYSTEM_PROMPT), ChatMessage.class)));
+            messages = new ArrayList<>(Objects.requireNonNull(JSON.parseArray(redisUtils.getWithRetry(CHAT_SYSTEM_PROMPT), ChatMessage.class)));
         }
 
         // 创建用户发送的聊天消息
@@ -309,7 +313,7 @@ public class ChatServiceImpl implements ChatService {
                                             sb.append(chatResponse.getChoices().get(0).getDelta().getContent()); // 拼接响应内容
                                         }
                                     }
-                                    if ("[DONE]".equals(line.trim())) {
+                                    if (DONE.equals(line.trim())) {
                                         end.set(true); // 标记响应结束
                                         break;
                                     }
@@ -327,11 +331,12 @@ public class ChatServiceImpl implements ChatService {
                 modelData.getChoices().get(0).getDelta().setContent(sb.toString()); // 设置最终内容
                 if (end.get()) {
                     success = true; // 设置成功标志
+                    responseSuccess(userId, MessageUtils.message("chat.response.success"), AiData.getDoneMessage()); // 发送成功消息给WebSocket客户端
                 }
             } catch (Exception e) {
                 retryCount++; // 增加重试次数
                 if (retryCount >= maxRetries) {
-                    responseError(userId,MessageUtils.message("chat.response.timeout")); // 发送超时消息给WebSocket客户端
+                    responseError(userId, MessageUtils.message("chat.response.timeout")); // 发送超时消息给WebSocket客户端
                     throw e; // 达到最大重试次数后抛出异常
                 }
                 log.warn("Retrying... ({}/{})", retryCount, maxRetries); // 记录重试日志
@@ -340,31 +345,71 @@ public class ChatServiceImpl implements ChatService {
             // 将助手回复添加到消息列表
             messages.add(new ChatMessage(ChatMessageRole.ASSISTANT.value(), answer));
             // 将更新后的消息列表存储回Redis
-            stringRedisTemplate.opsForValue().set(key, JSON.toJSONString(messages));
+            redisUtils.setWithRetry(key, JSON.toJSONString(messages));
         }
     }
 
     @Override
     public void storeChat(Long userId) {
-        String string = stringRedisTemplate.opsForValue().get(CHAT_USER + userId + CHAT_CHATTING);
+        String string = redisUtils.getWithRetry(CHAT_USER + userId + CHAT_CHATTING);
         if (string != null) {
-            stringRedisTemplate.opsForValue().set(AiConstant.CHAT_USER + userId + ":" + System.currentTimeMillis(), string);
+            redisUtils.setWithRetry(AiConstant.CHAT_USER + userId + ":" + System.currentTimeMillis(), string);
             stringRedisTemplate.delete(AiConstant.CHAT_USER + userId + AiConstant.CHAT_CHATTING);
         }
-
-        sendMessageToUser(userId, JSON.toJSONString(AjaxResult.success(MessageUtils.message("chat.clear.success"))));
+        responseSuccess(userId, MessageUtils.message("chat.store.success"), new AiData(1, "clean", null));
     }
 
+    @Override
+    public void getChatHistory(Long userId) {
+        String key = AiConstant.CHAT_USER + userId + ":*";
+        String string = "";
+        List<ChatMessage> messages = new ArrayList<>();
+        // 查最后一条消息
+        Set<String> keys = stringRedisTemplate.keys(key);
+        while (CollUtil.isNotEmpty(keys)) {
+            String latestKey = Collections.max(keys);
+            string = redisUtils.getWithRetry(latestKey);
+            messages = JSON.parseArray(string, ChatMessage.class);
+            // 移除系统消息
+            assert messages != null;
+            messages.removeIf(chatMessage -> Objects.equals(chatMessage.getRole(), ChatMessageRole.SYSTEM.value()));
+            if (messages.isEmpty()) {
+                stringRedisTemplate.delete(latestKey);
+                keys.remove(latestKey);
+            } else {
+                break;
+            }
+        }
+        responseSuccess(userId, MessageUtils.message("chat.get.history.success"), new AiData(2, "history", messages));
+    }
 
-    private void responseMessage(Long userId, String message){
+    @Override
+    public void getChattingHistory(Long userId) {
+        String key = AiConstant.CHAT_USER + userId + AiConstant.CHAT_CHATTING;
+        String string = redisUtils.getWithRetry(key);
+        List<ChatMessage> messages = JSON.parseArray(string, ChatMessage.class);
+        // 移除系统消息
+        if(messages != null)
+        messages.removeIf(chatMessage -> Objects.equals(chatMessage.getRole(), ChatMessageRole.SYSTEM.value()));
+
+        responseSuccess(userId, MessageUtils.message("chat.get.chatting.success"), new AiData(2, "chatting", messages));
+    }
+
+    @Override
+    public void help(Long currentUserId) {
+        ChatMessage helpMe = JSON.parseObject(redisUtils.getWithRetry(CHAT_HELP_LIST), ChatMessage.class);
+        responseSuccess(currentUserId, MessageUtils.message("chat.get.help"), new AiData(2, "help", helpMe.getContent()));
+    }
+
+    private void responseMessage(Long userId, String message) {
         sendMessageToUser(userId, message);
     }
 
-    private void responseError(Long userId, String message){
+    private void responseError(Long userId, String message) {
         sendMessageToUser(userId, JSON.toJSONString(AjaxResult.error(message)));
     }
-    private void responseSuccess(Long userId, String message){
-        sendMessageToUser(userId, JSON.toJSONString(AjaxResult.success(message)));
 
+    private void responseSuccess(Long userId, String message, AiData aiData) {
+        sendMessageToUser(userId, JSON.toJSONString(AjaxResult.success(message, aiData)));
     }
 }

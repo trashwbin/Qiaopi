@@ -586,5 +586,16 @@ public class ZhiPuAiTests {
         messages.add(chatMessage);
         stringRedisTemplate.opsForValue().set(AiConstant.CHAT_SYSTEM_PROMPT, JSON.toJSONString(messages));
     }
+
+    @Test
+    public void buildHelpMe(){
+        String helpMe = """
+                /help : 获取指令帮助
+                /clean : 清空当前对话
+                /new : 开启新对话
+                /history : 获取上次对话""";
+        ChatMessage chatMessage = new ChatMessage(ChatMessageRole.ASSISTANT.value(), helpMe);
+        stringRedisTemplate.opsForValue().set(AiConstant.CHAT_HELP_LIST, JSON.toJSONString(chatMessage));
+    }
 }
 
