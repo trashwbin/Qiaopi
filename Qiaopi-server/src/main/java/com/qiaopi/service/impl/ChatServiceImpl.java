@@ -250,18 +250,19 @@ public class ChatServiceImpl implements ChatService {
         // 创建工具列表
         List<ChatTool> tools = new ArrayList<>();
         ChatTool chatTool = new ChatTool();
-        chatTool.setType("web_search"); // 设置工具类型为web_search
-        WebSearch webSearch = new WebSearch();
-        webSearch.setEnable(Boolean.TRUE); // 启用搜索
-        webSearch.setSearch_result(Boolean.TRUE); // 启用搜索结果
-        // webSearch.setSearch_query("侨批 侨缘信使"); // 设置搜索查询（注释掉）
-        chatTool.setWeb_search(webSearch); // 设置WebSearch对象
-        tools.add(chatTool); // 将工具添加到工具列表
-
+        if (chatDTO.getIsWebSearch()) {
+            chatTool.setType("web_search"); // 设置工具类型为web_search
+            WebSearch webSearch = new WebSearch();
+            webSearch.setEnable(Boolean.TRUE); // 启用搜索
+            webSearch.setSearch_result(Boolean.TRUE); // 启用搜索结果
+            // webSearch.setSearch_query("侨批 侨缘信使"); // 设置搜索查询（注释掉）
+            chatTool.setWeb_search(webSearch); // 设置WebSearch对象
+            tools.add(chatTool); // 将工具添加到工具列表
+        }
         // 构建ChatCompletionRequest对象
         ChatCompletionRequest chatCompletionRequest = ChatCompletionRequest.builder()
                 .requestId("chat-" + String.valueOf(System.currentTimeMillis())) // 设置请求ID
-                .model("glm-4-flash") // 设置模型
+                .model(StringUtils.isNotEmpty(chatDTO.getChatModel()) ? chatDTO.getChatModel() : "GLM-4-Flash") // 设置模型
                 .stream(Boolean.TRUE) // 设置流式传输
                 .messages(messages) // 设置消息列表
                 .maxTokens(4095) // 设置最大token数
@@ -293,7 +294,6 @@ public class ChatServiceImpl implements ChatService {
                 MyModelData modelData = new MyModelData();
                 StringBuffer sb = new StringBuffer(); // 用于拼接响应内容
                 AtomicBoolean end = new AtomicBoolean(false); // 标记响应是否结束
-
                 // 发送异步请求并处理响应
                 client.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream())
                         .thenApply(HttpResponse::body)
@@ -302,13 +302,14 @@ public class ChatServiceImpl implements ChatService {
                                 String line;
                                 while ((line = reader.readLine()) != null) {
                                     line = line.replaceFirst("^data:\\s*", ""); // 去除前缀"data: "
-                                    System.out.println("Response: " + line); // 打印响应内容
+//                                    System.out.println("Response: " + line); // 打印响应内容
                                     if (line.startsWith("{")) {
                                         // 解析JSON响应
                                         MyModelData chatResponse = JSON.parseObject(line, MyModelData.class);
                                         if (chatResponse != null && chatResponse.getChoices() != null && !chatResponse.getChoices().isEmpty()) {
                                             // 将响应内容发送给WebSocket客户端
                                             responseMessage(userId, chatResponse.getChoices().get(0).getDelta().getContent());
+
                                             BeanUtil.copyProperties(chatResponse, modelData); // 复制属性到modelData
                                             sb.append(chatResponse.getChoices().get(0).getDelta().getContent()); // 拼接响应内容
                                         }
@@ -366,6 +367,9 @@ public class ChatServiceImpl implements ChatService {
         List<ChatMessage> messages = new ArrayList<>();
         // 查最后一条消息
         Set<String> keys = stringRedisTemplate.keys(key);
+        if (CollUtil.isNotEmpty(keys)) {
+            keys.removeIf(k -> k.endsWith(AiConstant.CHAT_CHATTING));
+        }
         while (CollUtil.isNotEmpty(keys)) {
             String latestKey = Collections.max(keys);
             string = redisUtils.getWithRetry(latestKey);
@@ -380,6 +384,10 @@ public class ChatServiceImpl implements ChatService {
                 break;
             }
         }
+        if(CollUtil.isNotEmpty(messages)){
+            storeChat(userId);
+            redisUtils.setWithRetry(CHAT_USER + userId + CHAT_CHATTING, string);
+        }
         responseSuccess(userId, MessageUtils.message("chat.get.history.success"), new AiData(2, "history", messages));
     }
 
@@ -389,9 +397,9 @@ public class ChatServiceImpl implements ChatService {
         String string = redisUtils.getWithRetry(key);
         List<ChatMessage> messages = JSON.parseArray(string, ChatMessage.class);
         // 移除系统消息
-        if(messages != null)
-        messages.removeIf(chatMessage -> Objects.equals(chatMessage.getRole(), ChatMessageRole.SYSTEM.value()));
-
+        if(CollUtil.isNotEmpty(messages)) {
+            messages.removeIf(chatMessage -> Objects.equals(chatMessage.getRole(), ChatMessageRole.SYSTEM.value()));
+        }
         responseSuccess(userId, MessageUtils.message("chat.get.chatting.success"), new AiData(2, "chatting", messages));
     }
 
@@ -399,6 +407,19 @@ public class ChatServiceImpl implements ChatService {
     public void help(Long currentUserId) {
         ChatMessage helpMe = JSON.parseObject(redisUtils.getWithRetry(CHAT_HELP_LIST), ChatMessage.class);
         responseSuccess(currentUserId, MessageUtils.message("chat.get.help"), new AiData(2, "help", helpMe.getContent()));
+    }
+
+    @Override
+    public void retry(Long userId) {
+        List<ChatMessage> messages = JSON.parseArray(redisUtils.getWithRetry(CHAT_USER + userId + CHAT_CHATTING), ChatMessage.class);
+        if (CollUtil.isNotEmpty(messages)&&messages.size()>2) {
+            if(messages.get(messages.size() - 1).getRole().equals(ChatMessageRole.ASSISTANT.value())){
+                messages.remove(messages.size() - 1);
+                ChatMessage userMessage = messages.remove(messages.size() - 1);
+                redisUtils.setWithRetry(CHAT_USER + userId + CHAT_CHATTING, JSON.toJSONString(messages));
+                chat(new ChatDTO(userId, (String) userMessage.getContent()));
+            }
+        }
     }
 
     private void responseMessage(Long userId, String message) {

@@ -1,24 +1,19 @@
 package com.qiaopi.handler.Ai;
 
-import cn.hutool.cron.timingwheel.SystemTimer;
 import cn.hutool.json.JSONUtil;
 import com.alibaba.fastjson2.JSON;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qiaopi.constant.AiConstant;
 import com.qiaopi.dto.ChatDTO;
-import com.qiaopi.dto.LetterGenDTO;
 import com.qiaopi.result.AjaxResult;
 import com.qiaopi.service.ChatService;
-import com.qiaopi.service.G2dService;
 import com.qiaopi.utils.MessageUtils;
+import com.qiaopi.utils.StringUtils;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.PongMessage;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
@@ -26,7 +21,6 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -89,8 +83,12 @@ public class ChatSocketHandler extends TextWebSocketHandler {
         String payload = message.getPayload();
         ChatDTO chatDTO = JSONUtil.toBean(payload, ChatDTO.class);
         chatDTO.setUserId(currentUserId);
+        if (StringUtils.isEmpty(chatDTO.getMessage())) {
+            log.error("消息内容为空，无法处理。");
+            return;
+        }
         chatDTO.setMessage(chatDTO.getMessage().trim());
-        log.info("收到用户 {} 的消息: {}", currentUserId, chatDTO);
+        log.debug("收到用户 {} 的消息: {}", currentUserId, chatDTO);
 
         switch (chatDTO.getMessage()) {
             case AiConstant.ORDER_CLEAR, AiConstant.ORDER_NEW:
@@ -101,6 +99,9 @@ public class ChatSocketHandler extends TextWebSocketHandler {
                 break;
             case AiConstant.ORDER_HELP:
                 chatService.help(currentUserId);
+                break;
+            case AiConstant.ORDER_RETRY:
+                chatService.retry(currentUserId);
                 break;
             default:
                 chatService.chat(chatDTO);
@@ -113,12 +114,12 @@ public class ChatSocketHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         sessions.remove(session);
         Long userId = (Long) session.getAttributes().get("userId");
-        log.info("用户 ID: {} 断开连接", userId);
+        log.debug("用户 ID: {} 断开连接", userId);
 
         if (userId != null) {
             // 标记用户为离线状态
             offlineUsers.put(userId, LocalDateTime.now());
-            log.info("用户 ID: {} 已标记为离线", userId);
+            log.debug("用户 ID: {} 已标记为离线", userId);
         }
     }
 
@@ -131,9 +132,10 @@ public class ChatSocketHandler extends TextWebSocketHandler {
             } catch (Exception e) {
                 log.error("发送消息失败: ", e);
             }
-        } else {
-            log.info("用户会话已关闭或不存在: {}", userId);
         }
+        //else {
+        //    log.warn("用户会话已关闭或不存在: {}", userId);
+        //}
     }
 
     // 广播消息给所有连接的客户端
@@ -158,7 +160,7 @@ public class ChatSocketHandler extends TextWebSocketHandler {
                 long minutesSinceLastOnline = java.time.Duration.between(lastOnlineTime, now).toMinutes();
 
                 if (minutesSinceLastOnline > 5) { // 假设5分钟为离线超时时间
-                    log.info("用户 ID: {} 超过5分钟未重新连接，移除会话", userId);
+                    log.debug("用户 ID: {} 超过5分钟未重新连接，移除会话", userId);
                     chatService.storeChat(userId);
                     userSessions.remove(userId);
                     offlineUsers.remove(userId);

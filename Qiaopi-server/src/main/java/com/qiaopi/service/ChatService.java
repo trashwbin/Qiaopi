@@ -14,4 +14,6 @@ public interface ChatService {
     void getChattingHistory(Long userId);
 
     void help(Long currentUserId);
+
+    void retry(Long currentUserId);
 }

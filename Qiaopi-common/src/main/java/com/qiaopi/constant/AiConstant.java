@@ -8,7 +8,7 @@ public class AiConstant {
     public static final String ORDER_HELP = "/help";
     public static final String ORDER_HISTORY = "/history";
     public static final String ORDER_NEW = "/new";
-    public static final String ORDER_PROMPT = "/retry";
+    public static final String ORDER_RETRY = "/retry";
 
     public static final String CHAT_USER = "chat:user:";
     public static final String CHAT_CHATTING = ":chatting";
