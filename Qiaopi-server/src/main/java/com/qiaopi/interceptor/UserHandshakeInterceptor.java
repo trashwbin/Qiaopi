@@ -36,7 +36,7 @@ public class UserHandshakeInterceptor implements HandshakeInterceptor {
         String token = request.getHeaders().getFirst("Sec-WebSocket-Protocol");
         // 获取 Servlet 的 HttpServletRequest 和 HttpServletResponse 对象
         try {
-            log.info("jwt校验:{}", token);
+            log.debug("jwt校验:{}", token);
             if (token == null) {
                 response.setStatusCode(HttpStatus.UNAUTHORIZED);
                 return false;
@@ -44,7 +44,7 @@ public class UserHandshakeInterceptor implements HandshakeInterceptor {
 
             Jws<Claims> claims = JwtUtil.parseJWT(token, jwtProperties.getUserSecretKey());
             Long userId = Long.valueOf(claims.getPayload().get(JwtClaimsConstant.USER_ID).toString());
-            log.info("当前用户的id：{}", userId);
+            log.debug("当前用户的id：{}", userId);
             // 将用户 ID 存入 WebSocket 会话属性
             attributes.put("userId", userId);
 
@@ -53,6 +53,7 @@ public class UserHandshakeInterceptor implements HandshakeInterceptor {
         } catch (NumberFormatException e) {
             // 4、不通过，响应401状态码
             response.setStatusCode(HttpStatus.UNAUTHORIZED);
+            response.getHeaders().add("Sec-WebSocket-Protocol", "Unauthorized");
             //writeErrorResponse(response, message("user.please.relogin"), UNAUTHORIZED);
             return false;
         }

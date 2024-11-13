@@ -21,9 +21,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class LetterSocketHandler extends TextWebSocketHandler {
 
     @Autowired
-    private LetterService letterService;
-
-    @Autowired
     private G2dService g2dService;
 
   // 用于保存所有连接的 WebSocket 会话
