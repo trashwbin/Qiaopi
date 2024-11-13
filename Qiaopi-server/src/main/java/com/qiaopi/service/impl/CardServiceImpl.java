@@ -57,7 +57,7 @@ public class CardServiceImpl implements CardService {
     @Override
     @Transactional
     public LetterVO useCard(FunctionCardUseDTO functionCardUseDTO) {
-
+        Long userId = UserContext.getUserId();
 
         // 1. 根据功能卡id查询功能卡信息
         FunctionCard functionCard = cardMapper.selectById(functionCardUseDTO.getCardId());
@@ -73,7 +73,7 @@ public class CardServiceImpl implements CardService {
         }
 
         // 3. 根据信件信息查询对应的用户信息
-        User user = userMapper.selectById(UserContext.getUserId());
+        User user = userMapper.selectById(userId);
         if (user == null) {
             throw new UserException(message("user.not.exists"));
         }
@@ -109,7 +109,8 @@ public class CardServiceImpl implements CardService {
         // 4. 更新用户信息
         user.setFunctionCards(userFunctionCards);
         userMapper.updateById(user);
-        stringRedisTemplate.delete(CACHE_USER_FUNCTION_CARDS_KEY + UserContext.getUserId());
+        stringRedisTemplate.delete(CACHE_USER_FUNCTION_CARDS_KEY + userId);
+        stringRedisTemplate.delete(CACHE_USER_WRITE_LETTER_KEY + userId);
         boolean isDelivery = false;
         // 5. 更新信件信息
         if (functionCard.getCardType() == 1) {
@@ -122,7 +123,7 @@ public class CardServiceImpl implements CardService {
 
             // 减时卡
             if (functionCard.getId() == 0){
-                isDelivery = true;
+                letter.setDeliveryProgress(10000L);
                 letter.setReduceTime("-1");
             }else {
                 letter.setReduceTime(String.valueOf(Integer.parseInt(letter.getReduceTime())+Integer.parseInt(functionCard.getReduceTime())));

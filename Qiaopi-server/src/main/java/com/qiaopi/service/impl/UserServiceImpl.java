@@ -9,6 +9,7 @@ import cn.hutool.core.io.FastByteArrayOutputStream;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
+import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qiaopi.constant.JwtClaimsConstant;
 import com.qiaopi.constant.UserConstants;
@@ -901,12 +902,12 @@ public class UserServiceImpl implements UserService {
         }else {
             friendCount = friendList.size();
         }
-        List<LetterVO> letterList = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_USER_RECEIVE_LETTER_KEY + userId), LetterVO.class);
+        Set<Long> letterIds = JSON.parseObject(stringRedisTemplate.opsForValue().get(CACHE_USER_RECEIVE_LETTER_KEY + userId), Set.class);
         int receiveLetterCount = 0;
-        if (CollUtil.isEmpty(letterList)) {
+        if (CollUtil.isEmpty(letterIds)) {
             receiveLetterCount = letterService.getMyReceiveLetter(userId).size();
         }else {
-            receiveLetterCount = letterList.size();
+            receiveLetterCount = letterIds.size();
         }
         return UserStatistics.builder()
                 .friendCount(friendCount)

@@ -8,7 +8,7 @@ spring:
       max-request-size: 20MB # 单次请求的最大限制大小
 #  模式切换
   profiles:
-    active: dev
+    active: staging
   main:
     allow-circular-references: true
   messages:
@@ -128,3 +128,6 @@ aes:
   secret:
     key: qiaopiqiaopiqiaopiqiaopiqiaopinb
 
+zhipu:
+  api:
+    key: d47a47e58685c01f26b96d5359d679bf.3KWedloOPitdhDVH

@@ -3,6 +3,7 @@ package com.qiaopi.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.json.JSONUtil;
+import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qiaopi.constant.FriendConstants;
 import com.qiaopi.constant.LetterConstants;
@@ -52,6 +53,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import static com.qiaopi.utils.MessageUtils.message;
 import static com.qiaopi.constant.CacheConstant.*;
@@ -342,7 +344,7 @@ public class LetterServiceImpl implements LetterService {
     public Graphics2D drawCoverSubordinate(Graphics2D g2d){
 
       // 调整字体文件路径以匹配类路径
-      String fontPath = "fonts/CoverFont/1.TTF";
+      String fontPath = "fonts/CoverFont/1.ttf";
       // 检查缓存中是否存在该图像
       Font customFont = coverFontCache.get(fontPath+"110");
       if (customFont == null) {
@@ -902,32 +904,40 @@ public class LetterServiceImpl implements LetterService {
     }
     @Override
     public List<LetterVO> getMySendLetter(Long userId) {
-
-        List<Letter> letters = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_USER_WRITE_LETTER_KEY + userId), Letter.class);
-
-        if (CollUtil.isEmpty(letters)) {
+        Set<Long> letterIds = JSON.parseObject(stringRedisTemplate.opsForValue().get(CACHE_USER_WRITE_LETTER_KEY + userId), Set.class);
+        List<Letter> letters = null;
+        if (CollUtil.isEmpty(letterIds)) {
             letters=letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getSenderUserId, userId).orderByDesc(Letter::getCreateTime));
+            letterIds = letters.stream().map(Letter::getId).collect(Collectors.toSet());
+            stringRedisTemplate.opsForValue().set(CACHE_USER_WRITE_LETTER_KEY + userId, JSON.toJSONString(letterIds), Duration.ofHours(12));
+        }else {
+            letters = letterMapper.selectBatchIds(letterIds);
         }
+
         //每次要查的时候再更新这个数据，减少更新次数
         // 只有status是2的才要更新
         letters.replaceAll(letter -> letter.getStatus() == 2 ? ProgressUtils.getProgress(letter) : letter);
-        stringRedisTemplate.opsForValue().set(CACHE_USER_WRITE_LETTER_KEY + userId, JSONUtil.toJsonStr(letters), Duration.ofHours(12));
-
         //更新进度
+
         letterMapper.updateById(letters);
-        return BeanUtil.copyToList(letters, LetterVO.class);
+        // After
+        List<LetterVO> letterVOList = BeanUtil.copyToList(letters, LetterVO.class);
+        letterVOList.sort(Comparator.comparing(LetterVO::getCreateTime).reversed());
+        return letterVOList;
     }
 
     private static Letter hello = null;
     @Override
+    @Transactional
     public List<LetterVO> getMyReceiveLetter(Long userId) {
-        List<LetterVO> letterVOS = JSONUtil.toList(stringRedisTemplate.opsForValue().get(CACHE_USER_RECEIVE_LETTER_KEY + UserContext.getUserId()),LetterVO.class);
-        if (CollUtil.isEmpty(letterVOS)) {
-            User user = userMapper.selectById(UserContext.getUserId());
+        Set<Long> letterIds = JSON.parseObject(stringRedisTemplate.opsForValue().get(CACHE_USER_RECEIVE_LETTER_KEY + userId), Set.class);
+        List<Letter> letters = null;
+        if (CollUtil.isEmpty(letterIds)) {
+            User user = userMapper.selectById(userId);
             //查询收信人为当前用户的信件
-            List<Letter> letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getRecipientEmail, user.getEmail()).eq(Letter::getStatus, LetterConstants.DELIVERED).orderByDesc(Letter::getDeliveryTime));
+            letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getRecipientEmail, user.getEmail()).eq(Letter::getStatus, LetterConstants.DELIVERED).orderByDesc(Letter::getDeliveryTime));
             letters.forEach(letter -> {
-                letter.setRecipientUserId(UserContext.getUserId());
+                letter.setRecipientUserId(userId);
             });
             //更新letter的收信人id
             letterMapper.updateById(letters);
@@ -936,11 +946,21 @@ public class LetterServiceImpl implements LetterService {
                 hello = letterMapper.selectById(1);
             }
             letters.add(hello);
-            letterVOS = BeanUtil.copyToList(letters, LetterVO.class);
-            stringRedisTemplate.opsForValue().set(CACHE_USER_RECEIVE_LETTER_KEY + UserContext.getUserId(), JSONUtil.toJsonStr(letterVOS), Duration.ofHours(12));
+            letterIds = letters.stream().map(Letter::getId).collect(Collectors.toSet());
+            stringRedisTemplate.opsForValue().set(CACHE_USER_RECEIVE_LETTER_KEY + userId, JSON.toJSONString(letterIds), Duration.ofHours(12));
+        } else {
+            letters = letterMapper.selectBatchIds(letterIds);
         }
 
-        return letterVOS;
+        //每次要查的时候再更新这个数据，减少更新次数
+        // 只有status是2的才要更新
+        letters.replaceAll(letter -> letter.getStatus() == 2 ? ProgressUtils.getProgress(letter) : letter);
+        //更新进度
+        letterMapper.updateById(letters);
+        // After
+        List<LetterVO> letterVOList = BeanUtil.copyToList(letters, LetterVO.class);
+        letterVOList.sort(Comparator.comparing(LetterVO::getCreateTime).reversed());
+        return letterVOList;
     }
 
     @Override
