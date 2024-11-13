@@ -21,6 +21,6 @@ public class AiData {
     private Object data;
 
     public static AiData getDoneMessage(){
-        return new AiData(1, DONE,null);
+        return new AiData(TYPE_SYSTEM, CODE_DONE,null);
     }
 }

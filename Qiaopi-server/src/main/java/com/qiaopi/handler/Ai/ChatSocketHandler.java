@@ -4,11 +4,13 @@ import cn.hutool.json.JSONUtil;
 import com.alibaba.fastjson2.JSON;
 import com.qiaopi.constant.AiConstant;
 import com.qiaopi.dto.ChatDTO;
+import com.qiaopi.handler.Ai.pojo.AiData;
 import com.qiaopi.result.AjaxResult;
 import com.qiaopi.service.ChatService;
 import com.qiaopi.utils.MessageUtils;
 import com.qiaopi.utils.StringUtils;
 import jakarta.annotation.PostConstruct;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -27,6 +29,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static com.qiaopi.constant.AiConstant.*;
+
 @Component
 @Slf4j
 @RequiredArgsConstructor
@@ -36,8 +40,8 @@ public class ChatSocketHandler extends TextWebSocketHandler {
     private final StringRedisTemplate stringRedisTemplate;
 
     // 用于保存所有连接的 WebSocket 会话
+    @Getter
     private static final Set<WebSocketSession> sessions = Collections.newSetFromMap(new ConcurrentHashMap<>());
-
     // 用于保存用户与 WebSocket 会话的映射
     private static final Map<Long, WebSocketSession> userSessions = new ConcurrentHashMap<>();
 
@@ -60,7 +64,7 @@ public class ChatSocketHandler extends TextWebSocketHandler {
         if (offlineUsers.containsKey(userId)) {
             chatService.getChattingHistory(userId);
         } else {
-            sendMessageToUser(userId, JSON.toJSONString(AjaxResult.success(MessageUtils.message("chat.connect.success"))));
+            sendMessageToUser(userId, JSON.toJSONString(AjaxResult.success(MessageUtils.message("chat.connect.success"),new AiData(TYPE_SYSTEM,CODE_CONNECT, null))));
         }
             // 用户重新连接，移除离线状态
             offlineUsers.remove(userId);

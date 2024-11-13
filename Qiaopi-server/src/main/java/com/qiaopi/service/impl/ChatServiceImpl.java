@@ -314,7 +314,7 @@ public class ChatServiceImpl implements ChatService {
                                             sb.append(chatResponse.getChoices().get(0).getDelta().getContent()); // 拼接响应内容
                                         }
                                     }
-                                    if (DONE.equals(line.trim())) {
+                                    if (CODE_DONE.equals(line.trim())) {
                                         end.set(true); // 标记响应结束
                                         break;
                                     }
@@ -357,7 +357,7 @@ public class ChatServiceImpl implements ChatService {
             redisUtils.setWithRetry(AiConstant.CHAT_USER + userId + ":" + System.currentTimeMillis(), string);
             stringRedisTemplate.delete(AiConstant.CHAT_USER + userId + AiConstant.CHAT_CHATTING);
         }
-        responseSuccess(userId, MessageUtils.message("chat.store.success"), new AiData(1, "clean", null));
+        responseSuccess(userId, MessageUtils.message("chat.store.success"), new AiData(TYPE_USER, CODE_CLEAN, null));
     }
 
     @Override
@@ -388,7 +388,7 @@ public class ChatServiceImpl implements ChatService {
             storeChat(userId);
             redisUtils.setWithRetry(CHAT_USER + userId + CHAT_CHATTING, string);
         }
-        responseSuccess(userId, MessageUtils.message("chat.get.history.success"), new AiData(2, "history", messages));
+        responseSuccess(userId, MessageUtils.message("chat.get.history.success"), new AiData(TYPE_USER, CODE_HISTORY, messages));
     }
 
     @Override
@@ -400,13 +400,13 @@ public class ChatServiceImpl implements ChatService {
         if(CollUtil.isNotEmpty(messages)) {
             messages.removeIf(chatMessage -> Objects.equals(chatMessage.getRole(), ChatMessageRole.SYSTEM.value()));
         }
-        responseSuccess(userId, MessageUtils.message("chat.get.chatting.success"), new AiData(2, "chatting", messages));
+        responseSuccess(userId, MessageUtils.message("chat.get.chatting.success"), new AiData(TYPE_SYSTEM, CODE_CHATTING, messages));
     }
 
     @Override
     public void help(Long currentUserId) {
         ChatMessage helpMe = JSON.parseObject(redisUtils.getWithRetry(CHAT_HELP_LIST), ChatMessage.class);
-        responseSuccess(currentUserId, MessageUtils.message("chat.get.help"), new AiData(2, "help", helpMe.getContent()));
+        responseSuccess(currentUserId, MessageUtils.message("chat.get.help"), new AiData(TYPE_USER, CODE_HELP, helpMe.getContent()));
     }
 
     @Override
@@ -420,6 +420,11 @@ public class ChatServiceImpl implements ChatService {
                 chat(new ChatDTO(userId, (String) userMessage.getContent()));
             }
         }
+    }
+
+    @Override
+    public void sendInteractiveMessage(Long userId, String message, Object data) {
+        responseSuccess(userId, message, new AiData(TYPE_INTERACTIVE, CODE_DONE, data));
     }
 
     private void responseMessage(Long userId, String message) {

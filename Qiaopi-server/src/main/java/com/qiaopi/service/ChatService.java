@@ -16,4 +16,6 @@ public interface ChatService {
     void help(Long currentUserId);
 
     void retry(Long currentUserId);
+
+    void sendInteractiveMessage(Long userId, String message, Object data);
 }

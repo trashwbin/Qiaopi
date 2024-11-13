@@ -1,10 +1,12 @@
 package com.qiaopi;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.crypto.asymmetric.Sign;
 import cn.hutool.json.JSONUtil;
+import com.alibaba.fastjson2.JSON;
 import com.qiaopi.entity.*;
+import com.qiaopi.handler.Ai.pojo.AiInteractData;
 import com.qiaopi.mapper.*;
+import com.qiaopi.service.ChatService;
 import com.qiaopi.utils.AESUtil;
 import com.qiaopi.vo.*;
 import lombok.extern.slf4j.Slf4j;
@@ -16,13 +18,12 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.qiaopi.constant.CacheConstant.*;
+import static com.qiaopi.constant.AiConstant.*;
 
 @SpringBootTest
 @Slf4j
@@ -43,8 +44,17 @@ class QiaopiServerApplicationTests {
     private LetterMapper letterMapper;
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
-
-
+    @Autowired
+    private ChatService chatService;
+    @Test
+    void AiInteractInit(){
+        String message = "别忘了参加‘侨趣乐园’中的游戏，通过趣味的方式学习侨批文化，还能赢取‘猪仔钱’哦！💰";
+        String router = "game";
+        AiInteractData aiInteractData = new AiInteractData(message, router);
+        List<AiInteractData> list = new ArrayList<>();
+        list.add(aiInteractData);
+        stringRedisTemplate.opsForValue().set(INTERACTIVE_LIST, JSON.toJSONString(list));
+    }
 
     @Test
     void sign(){

@@ -654,6 +654,13 @@ public class LetterServiceImpl implements LetterService {
         Letter letter = BeanUtil.copyProperties(letterSendDTO, Letter.class);
 
         // 检验地址是否有效
+        if(letter.getRecipientAddress().getCountryId() == null){
+            letter.getRecipientAddress().setCountryId((long)1);
+        }
+        if (letter.getSenderAddress().getCountryId() == null) {
+            letter.getSenderAddress().setCountryId((long)1);
+        }
+        // 检验地址是否有效
         if(letter.getRecipientAddress().getCountryId()!=(long)1){
             Country country = countryMapper.selectById(letter.getRecipientAddress().getCountryId());
             if(country==null){
