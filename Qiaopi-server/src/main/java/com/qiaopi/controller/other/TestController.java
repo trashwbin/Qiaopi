@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -42,12 +43,17 @@ import static com.qiaopi.utils.MessageUtils.message;
 public class TestController {
     private final StringRedisTemplate stringRedisTemplate;
     private final ChatService chatService;
-
+    private final RabbitTemplate rabbitTemplate;
     @PostMapping("/testSendInteractMessage")
     public void sendInteractMessage(Long userId) {
         List<AiInteractData> aiInteractData = JSON.parseArray(stringRedisTemplate.opsForValue().get(AiConstant.INTERACTIVE_LIST), AiInteractData.class);
         assert aiInteractData != null;
         AiInteractData data = aiInteractData.get(RandomUtil.randomInt(aiInteractData.size()));
-        chatService.sendInteractiveMessage(userId,data.getMessage(),data.getRouter());
+//        chatService.sendInteractiveMessage(userId,data.getMessage(),data.getRouter());
+        ConcurrentHashMap<String, Object> map = new ConcurrentHashMap<>();
+        map.put("userId",userId);
+        map.put("message",data.getMessage());
+        map.put("data",data.getRouter());
+        rabbitTemplate.convertAndSend("ai.direct","interact",map);
     }
 }

@@ -46,6 +46,7 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
         whiteList.add("/font/list");
         whiteList.add("/font/listColor");
         whiteList.add("/paper/list");
+        whiteList.add("/marketing/list");
     }
 
     /**

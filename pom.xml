@@ -43,10 +43,17 @@
         <fastjson>2.0.53</fastjson>
         <httpclient>5.3.1</httpclient>
         <oapi>release-V4-2.3.1</oapi>
+        <amqp>2.7.12</amqp>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <!--AMQP依赖，包含RabbitMQ-->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-amqp</artifactId>
+                <version>${amqp}</version>
+            </dependency>
             <dependency>
                 <groupId>cn.bigmodel.openapi</groupId>
                 <artifactId>oapi-java-sdk</artifactId>

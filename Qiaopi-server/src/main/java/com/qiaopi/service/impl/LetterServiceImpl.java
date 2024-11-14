@@ -2,7 +2,6 @@ package com.qiaopi.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.json.JSONUtil;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qiaopi.constant.FriendConstants;
@@ -25,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -57,15 +57,14 @@ import java.util.stream.Collectors;
 
 import static com.qiaopi.utils.MessageUtils.message;
 import static com.qiaopi.constant.CacheConstant.*;
+import static com.qiaopi.constant.MqConstant.*;
 
 
 @Service
 @Slf4j
 @RequiredArgsConstructor //自动注入
 public class LetterServiceImpl implements LetterService {
-    private final FontColorMapper fontColorMapper;
-    private final FontMapper fontMapper;
-    private final PaperMapper paperMapper;
+
     private final FileStorageService fileStorageService;
     private final LetterMapper letterMapper;
     private final UserMapper userMapper;
@@ -75,104 +74,66 @@ public class LetterServiceImpl implements LetterService {
     private final StringRedisTemplate stringRedisTemplate;
     private final FriendMapper friendMapper;
     private final FriendRequestMapper friendRequestMapper;
+    private final RabbitTemplate rabbitTemplate;
+
     @Value("${spring.mail.username}")
     private String sender;
     @Value("${spring.mail.nickname}")
     private String nickname;
 
     // Cover
-    private ExecutorService subExecutorService = Executors.newFixedThreadPool(3);
+    private ExecutorService subExecutorService = Executors.newFixedThreadPool(4);
+    private ExecutorService coverInitExecutorService = Executors.newFixedThreadPool(3);
 
     //绘制封面的主代码
-    public String coverGenerieren(LetterSendDTO letterSendDTO,Long userId) {
+    public String coverGenerieren(LetterSendDTO letterSendDTO, Long userId) {
+        // System.out.println("start-cover" + LocalDateTime.now());
+
+        CompletableFuture<String> senderAddressFuture = CompletableFuture.supplyAsync(() -> {
+            String tempMailingAddress = letterSendDTO.getSenderAddress().getFormattedAddress(); // 寄件人地址
+            Long countryId = letterSendDTO.getSenderAddress().getCountryId();
+            return getAddressDetail(countryId, tempMailingAddress);
+        }, coverInitExecutorService);
+
+        CompletableFuture<String> recipientAddressFuture = CompletableFuture.supplyAsync(() -> {
+            String tempRecipientAddress = letterSendDTO.getRecipientAddress().getFormattedAddress();
+            Long countryIdRe = letterSendDTO.getRecipientAddress().getCountryId();
+            return getAddressDetail(countryIdRe, tempRecipientAddress);
+        }, coverInitExecutorService);
         // 设置图片的宽和高（根据实际需求可以动态调整）
         int width = 1000; // 图片宽度
         int height = 550; // 图片高度
+        CompletableFuture<BufferedImage> imageCreationFuture = CompletableFuture.supplyAsync(() -> {
+            // 创建一个 BufferedImage 对象
+            return new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB); // 获取Graphics2D对象，用于绘制图像
+        }, coverInitExecutorService);
 
-        // 创建一个 BufferedImage 对象
-        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2d = bufferedImage.createGraphics(); // 获取Graphics2D对象，用于绘制图像
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(senderAddressFuture, recipientAddressFuture, imageCreationFuture);
 
-        // TODO 如何正确截取地址和用户名字
-        String tempMailingAddress = letterSendDTO.getSenderAddress().getFormattedAddress(); // 寄件人地址
-        Long countryId = letterSendDTO.getSenderAddress().getCountryId();
-        String senderAddress;
+        allFutures.join();
 
-        if (countryId != 1) {
-            // 如果是外国
-            Country country = countryMapper.selectById(countryId);
-            String countryName = country.getCountryName();
-            if (countryName.length() > 6) {
-                String countryNameTemp = country.getCountryNameEnglish();
-                StringBuilder initials = new StringBuilder();
-                for (String word : countryNameTemp.split("\\s+")) {
-                    if (!word.isEmpty()) {
-                        initials.append(word.charAt(0));
-                    }
-                }
-                senderAddress = initials.toString();
-            } else {
-                senderAddress = countryName;
-            }
-        } else {
-            // 如果是中国
-            senderAddress = tempMailingAddress;
-            String[] mainCities = {"北京市", "天津市", "上海市", "重庆市"};
-
-            if (senderAddress.contains("自治区")) {
-                senderAddress = senderAddress.substring(0, senderAddress.indexOf("自治区"));
-            } else if (senderAddress.contains("省")) {
-                senderAddress = senderAddress.substring(0, senderAddress.indexOf("省"));
-            } else {
-                String prefix = senderAddress.substring(0, 3);
-                for (String city : mainCities) {
-                    if (city.equals(prefix)) {
-                        senderAddress = city;
-                        break;
-                    }
-                }
-            }
+        String senderAddress = null;
+        String recipientAddress = null;
+        BufferedImage bufferedImage = null;
+        Graphics2D g2d = null;
+        try {
+            senderAddress = senderAddressFuture.get();
+        } catch (Exception e) {
+            throw new LetterException(message("letter.sender.address.error"));
+        }
+        try {
+            recipientAddress = recipientAddressFuture.get();
+        } catch (Exception e) {
+            throw new LetterException(message("letter.recipient.address.error"));
+        }
+        try {
+            bufferedImage = imageCreationFuture.get();
+            g2d = bufferedImage.createGraphics();
+        } catch (Exception e) {
+            throw new LetterException(message("letter.cover.error"));
         }
 
-        String tempRecipientAddress = letterSendDTO.getRecipientAddress().getFormattedAddress();
-        Long countryIdRe = letterSendDTO.getRecipientAddress().getCountryId();
-        String recipientAddress;
-
-        if (countryIdRe != 1) {
-            // 如果是外国
-            Country country = countryMapper.selectById(countryIdRe);
-            String countryName = country.getCountryName();
-            if (countryName.length() > 6) {
-                String countryNameTemp = country.getCountryNameEnglish();
-                StringBuilder initials = new StringBuilder();
-                for (String word : countryNameTemp.split("\\s+")) {
-                    if (!word.isEmpty()) {
-                        initials.append(word.charAt(0));
-                    }
-                }
-                recipientAddress = initials.toString();
-            } else {
-                recipientAddress = countryName;
-            }
-        } else {
-            // 如果是中国
-            recipientAddress = tempRecipientAddress;
-            String[] mainCities = {"北京市", "天津市", "上海市", "重庆市"};
-
-            if (recipientAddress.contains("自治区")) {
-                recipientAddress = recipientAddress.substring(0, recipientAddress.indexOf("自治区"));
-            } else if (recipientAddress.contains("省")) {
-                recipientAddress = recipientAddress.substring(0, recipientAddress.indexOf("省"));
-            } else {
-                String prefix = recipientAddress.substring(0, 3);
-                for (String city : mainCities) {
-                    if (city.equals(prefix)) {
-                        recipientAddress = city;
-                        break;
-                    }
-                }
-            }
-        }
+        // System.out.println("start-cover-1" + LocalDateTime.now());
 
         String sender = letterSendDTO.getSenderName(); // 寄件人姓名
         String recipient = letterSendDTO.getRecipientName(); // 收件人姓名
@@ -184,34 +145,42 @@ public class LetterServiceImpl implements LetterService {
         int i = 3 - length;
         //半个字差60
         int x = 430 + 83 * i;
-        drawCoverMain(g2d, recipientAddress, width, height, x, 185);
 
+        Graphics2D finalG2d = g2d;
+        String finalRecipientAddress = recipientAddress;
+
+        // System.out.println("start-cover-1-1" + LocalDateTime.now());
+
+        CompletableFuture<Void> mainFuture = CompletableFuture.runAsync(() -> {
+            Graphics2D clonedG2D = (Graphics2D) finalG2d.create();
+            drawCoverMain(clonedG2D, finalRecipientAddress, width, height, x, 185);
+        }, subExecutorService);
         // 创建 Graphics2D 对象用于绘制子内容
-        Graphics2D fontG2d = drawCoverSubordinate(g2d);
         // 创建并行任务
+        Graphics2D fontG2d = drawCoverSubordinate(g2d);
         CompletableFuture<Void> recipientFuture = CompletableFuture.runAsync(() -> {
-                    Graphics2D clonedG2D = (Graphics2D) fontG2d.create();
-                    coverSubordinate(clonedG2D, recipient, 155, 25);
-                    clonedG2D.dispose();
-                }, subExecutorService);
+            Graphics2D clonedG2D = (Graphics2D) fontG2d.create();
+            coverSubordinate(clonedG2D, recipient, 155, 25);
+            clonedG2D.dispose();
+        }, subExecutorService);
         CompletableFuture<Void> senderFuture = CompletableFuture.runAsync(() -> {
-                    Graphics2D clonedG2D = (Graphics2D) fontG2d.create();
-                    coverSubordinate(clonedG2D, sender, 750, 405);
-                    clonedG2D.dispose();
-                }, subExecutorService);
+            Graphics2D clonedG2D = (Graphics2D) fontG2d.create();
+            coverSubordinate(clonedG2D, sender, 750, 405);
+            clonedG2D.dispose();
+        }, subExecutorService);
         CompletableFuture<Void> mailingAddressFuture = CompletableFuture.runAsync(() -> {
-                    Graphics2D clonedG2D = (Graphics2D) fontG2d.create();
-                    coverSubordinate(clonedG2D, finalSenderAddress, 260, 360);
-                    clonedG2D.dispose();
-                }, subExecutorService);
-
+            Graphics2D clonedG2D = (Graphics2D) fontG2d.create();
+            coverSubordinate(clonedG2D, finalSenderAddress, 260, 360);
+            clonedG2D.dispose();
+        }, subExecutorService);
+        CompletableFuture.allOf(recipientFuture, senderFuture, mailingAddressFuture,mainFuture).join();
         // 等待所有任务完成
-        CompletableFuture.allOf(recipientFuture, senderFuture, mailingAddressFuture).join();
 
         // 释放 Graphics2D 资源
         g2d.dispose();
 
         bufferedImage = rotateImage2(bufferedImage, 90);
+        // System.out.println("start-cover-2" + LocalDateTime.now());
 
         String url = null;
         byte[] imageBytes = null; // 获取字节数组
@@ -226,13 +195,14 @@ public class LetterServiceImpl implements LetterService {
                     .size(bufferedImage.getWidth(), bufferedImage.getHeight())
                     .toOutputStream(baos);
             imageBytes = baos.toByteArray();
+            // System.out.println("start-cover-3" + LocalDateTime.now());
 
             // 生成一个随机的文件名
             String fileName = "user-" + userId + "-" + UUID.randomUUID() + ".png";
             // 将照片存储到服务器
             FileInfo fileInfo = fileStorageService.of(imageBytes).setSaveFilename(fileName).setPath("cover/").upload();
             url = fileInfo.getUrl();
-
+            // System.out.println("start-cover-4" + LocalDateTime.now());
         } catch (IOException e) {
             log.error("生成封面照片失败", e);
         }
@@ -240,6 +210,41 @@ public class LetterServiceImpl implements LetterService {
         return url;
     }
 
+    private String getAddressDetail(Long countryId, String tempAddress) {
+        if (countryId != 1) {
+            // 如果是外国
+            Country country = countryMapper.selectById(countryId);
+            String countryName = country.getCountryName();
+            if (countryName.length() > 6) {
+                String countryNameTemp = country.getCountryNameEnglish();
+                StringBuilder initials = new StringBuilder();
+                for (String word : countryNameTemp.split("\\s+")) {
+                    if (!word.isEmpty()) {
+                        initials.append(word.charAt(0));
+                    }
+                }
+                return initials.toString();
+            } else {
+                return countryName;
+            }
+        } else {
+            // 如果是中国
+            String[] mainCities = {"北京市", "天津市", "上海市", "重庆市"};
+            if (tempAddress.contains("自治区")) {
+                return tempAddress.substring(0, tempAddress.indexOf("自治区"));
+            } else if (tempAddress.contains("省")) {
+                return tempAddress.substring(0, tempAddress.indexOf("省"));
+            } else {
+                String prefix = tempAddress.substring(0, 3);
+                for (String city : mainCities) {
+                    if (city.equals(prefix)) {
+                        return city;
+                    }
+                }
+                return tempAddress;
+            }
+        }
+    }
 
     public void coverMain(Graphics2D g2d, String text, int x, int y) {
         int charsPerLine = 15;
@@ -341,33 +346,34 @@ public class LetterServiceImpl implements LetterService {
 
         coverMain(g2d, text, x, y);
     }
-    public Graphics2D drawCoverSubordinate(Graphics2D g2d){
 
-      // 调整字体文件路径以匹配类路径
-      String fontPath = "fonts/CoverFont/1.ttf";
-      // 检查缓存中是否存在该图像
-      Font customFont = coverFontCache.get(fontPath+"110");
-      if (customFont == null) {
-          try {
+    public Graphics2D drawCoverSubordinate(Graphics2D g2d) {
 
-              // 使用类加载器获取字体文件输入流
-              InputStream fontStream = getClass().getClassLoader().getResourceAsStream(fontPath);
-              if (fontStream != null) {
-                  // 加载字体文件
-                  customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont((float) 110);
-              } else {
-                  log.error("字体文件未找到: " + fontPath);
-              }
+        // 调整字体文件路径以匹配类路径
+        String fontPath = "fonts/CoverFont/1.ttf";
+        // 检查缓存中是否存在该图像
+        Font customFont = coverFontCache.get(fontPath + "110");
+        if (customFont == null) {
+            try {
 
-              // 获取本地图形环境并注册字体
-              GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-              ge.registerFont(customFont);
+                // 使用类加载器获取字体文件输入流
+                InputStream fontStream = getClass().getClassLoader().getResourceAsStream(fontPath);
+                if (fontStream != null) {
+                    // 加载字体文件
+                    customFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont((float) 110);
+                } else {
+                    log.error("字体文件未找到: " + fontPath);
+                }
 
-          } catch (FontFormatException | IOException e) {
-              // 如果字体加载失败，使用默认字体
-              customFont = new Font("宋体", Font.PLAIN, 100); // 使用支持中文的默认字体，例如宋体
-          }
-      }
+                // 获取本地图形环境并注册字体
+                GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+                ge.registerFont(customFont);
+
+            } catch (FontFormatException | IOException e) {
+                // 如果字体加载失败，使用默认字体
+                customFont = new Font("宋体", Font.PLAIN, 100); // 使用支持中文的默认字体，例如宋体
+            }
+        }
 
         g2d.setFont(customFont); // 设置字体
         g2d.setColor(Color.decode("#030303")); // 设置字体颜色*/
@@ -406,7 +412,7 @@ public class LetterServiceImpl implements LetterService {
 
     public void coverSubordinate(Graphics2D g2d, String text, int x, int y) {
         int charsPerLine = 15;
-        int currentX = x ;
+        int currentX = x;
         int currentY = y;
 
         FontMetrics fontMetrics = g2d.getFontMetrics();
@@ -444,7 +450,7 @@ public class LetterServiceImpl implements LetterService {
         }
     }
 
-    public  String convertToHttpsAndRemovePort(String url) {
+    public String convertToHttpsAndRemovePort(String url) {
         // 使用正则表达式匹配 HTTP 协议和端口号
         String pattern = "^http://(.*?)(:\\d+)?(/.*)$";
         String replacement = "https://$1$3";
@@ -479,6 +485,7 @@ public class LetterServiceImpl implements LetterService {
         }
         return imageUrl.substring(lastDotIndex + 1).toLowerCase();
     }
+
     @Override
     @Transactional
     public void sendLetterToEmail(List<Letter> letters) {
@@ -489,7 +496,7 @@ public class LetterServiceImpl implements LetterService {
 
         for (Letter letter : letters) {
             // 删除缓存
-            if (letter.getRecipientUserId()!=null){
+            if (letter.getRecipientUserId() != null) {
                 stringRedisTemplate.delete(CACHE_USER_RECEIVE_LETTER_KEY + letter.getRecipientUserId());
             }
             try {
@@ -506,7 +513,7 @@ public class LetterServiceImpl implements LetterService {
                     e.printStackTrace();
                     log.error("图片转换失败", e);
                 }
-                String coverBase64= "data:image/png;base64," + base64Image;
+                String coverBase64 = "data:image/png;base64," + base64Image;
                 // 设置收件人
                 helper.setTo(letter.getRecipientEmail());
 
@@ -630,7 +637,7 @@ public class LetterServiceImpl implements LetterService {
                         "        background-position: center;\n" +
                         "        display: block;\n" +
                         "        margin: 0 auto;\n" +
-                        "        background-image: url("+coverLink+");\n" +
+                        "        background-image: url(" + coverLink + ");\n" +
                         "        width: 12.5em;\n" +
                         "        /* 200px */\n" +
                         "        height: 21.0625em;\n" +
@@ -645,7 +652,7 @@ public class LetterServiceImpl implements LetterService {
                         "        background-position: center;\n" +
                         "        display: block;\n" +
                         "        margin: 0 auto;\n" +
-                        "        background-image: url("+coverBase64+");\n" +
+                        "        background-image: url(" + coverBase64 + ");\n" +
                         "        width: 12.5em;\n" +
                         "        /* 200px */\n" +
                         "        height: 21.0625em;\n" +
@@ -682,7 +689,7 @@ public class LetterServiceImpl implements LetterService {
                         "        </p>\n" +
                         "        <div id=\"icon\"></div>\n" +
                         "      </div>\n" +
-                        "      <p class=\"message\">"+letter.getRecipientName()+",您的好友给您发了一封侨批喔，<a href=\"http://110.41.58.26\">快来看看吧</a></p>\n" +
+                        "      <p class=\"message\">" + letter.getRecipientName() + ",您的好友给您发了一封侨批喔，<a href=\"http://110.41.58.26\">快来看看吧</a></p>\n" +
                         "      <div id=\"body\">\n" +
                         "\n" +
                         "        <p>&nbsp;</p>\n" +
@@ -732,6 +739,8 @@ public class LetterServiceImpl implements LetterService {
     @Override
     @Transactional
     public LetterVO sendLetterPre(LetterSendDTO letterSendDTO) {
+        // System.out.println("start-all" + LocalDateTime.now());
+
         Long userId = UserContext.getUserId();
         User user = userMapper.selectById(userId);
         if (user == null) {
@@ -741,24 +750,24 @@ public class LetterServiceImpl implements LetterService {
         Letter letter = BeanUtil.copyProperties(letterSendDTO, Letter.class);
 
         // 检验地址是否有效
-        if(letter.getRecipientAddress().getCountryId() == null){
-            letter.getRecipientAddress().setCountryId((long)1);
+        if (letter.getRecipientAddress().getCountryId() == null) {
+            letter.getRecipientAddress().setCountryId((long) 1);
         }
         if (letter.getSenderAddress().getCountryId() == null) {
-            letter.getSenderAddress().setCountryId((long)1);
+            letter.getSenderAddress().setCountryId((long) 1);
         }
         // 检验地址是否有效
-        if(letter.getRecipientAddress().getCountryId()!=(long)1){
+        if (letter.getRecipientAddress().getCountryId() != (long) 1) {
             Country country = countryMapper.selectById(letter.getRecipientAddress().getCountryId());
-            if(country==null){
+            if (country == null) {
                 throw new UserException(message("user.address.country.not.exists"));
             }
             letter.getRecipientAddress().setLatitude(country.getCapitalLatitude());
             letter.getRecipientAddress().setLongitude(country.getCapitalLongitude());
         }
-        if(letter.getSenderAddress().getCountryId()!=(long)1){
+        if (letter.getSenderAddress().getCountryId() != (long) 1) {
             Country country = countryMapper.selectById(letter.getSenderAddress().getCountryId());
-            if(country==null){
+            if (country == null) {
                 throw new UserException(message("user.address.country.not.exists"));
             }
             letter.getSenderAddress().setLatitude(country.getCapitalLatitude());
@@ -767,7 +776,7 @@ public class LetterServiceImpl implements LetterService {
 
         // 检验猪仔钱是否足够
         if (user.getMoney() >= letterSendDTO.getPiggyMoney()) {
-            if (letterSendDTO.getPiggyMoney()< 0) {
+            if (letterSendDTO.getPiggyMoney() < 0) {
                 throw new UserException(message("user.money.not.match"));
             }
             user.setMoney(user.getMoney() - letterSendDTO.getPiggyMoney());
@@ -780,9 +789,9 @@ public class LetterServiceImpl implements LetterService {
                 addresses = new ArrayList<>();
                 senderAddress.setIsDefault(String.valueOf(true));
                 senderAddress.setId(1L);
-            }else {
+            } else {
                 for (Address address : addresses) {
-                    if (address.getFormattedAddress().equals(senderAddress.getFormattedAddress())||address.getId().equals(senderAddress.getId())) {
+                    if (address.getFormattedAddress().equals(senderAddress.getFormattedAddress()) || address.getId().equals(senderAddress.getId())) {
                         isInAddresses = true;
                         senderAddress.setId(address.getId());
                         break;
@@ -790,8 +799,8 @@ public class LetterServiceImpl implements LetterService {
                 }
             }
             if (!isInAddresses) {
-                if (senderAddress.getId() == null&& !addresses.isEmpty()) {
-                senderAddress.setId(addresses.get(addresses.size()-1).getId() + 1L);
+                if (senderAddress.getId() == null && !addresses.isEmpty()) {
+                    senderAddress.setId(addresses.get(addresses.size() - 1).getId() + 1L);
                 }
                 addresses.add(senderAddress);
                 letter.setSenderAddress(senderAddress);
@@ -807,7 +816,7 @@ public class LetterServiceImpl implements LetterService {
         Friend friend = friendMapper.selectOne(new LambdaQueryWrapper<Friend>().eq(Friend::getUserId, letter.getRecipientUserId()).eq(Friend::getOwningId, userId));
         if (friend == null) {
             letter.setRemark("new friend");
-        }else{
+        } else {
             // 顺带做个地址处理你再更新
             List<Address> addresses = friend.getAddresses();
             Address friendAddress = letter.getRecipientAddress();
@@ -817,9 +826,9 @@ public class LetterServiceImpl implements LetterService {
                 addresses = new ArrayList<>();
                 friendAddress.setIsDefault(String.valueOf(true));
                 friendAddress.setId(1L);
-            }else {
+            } else {
                 for (Address address : addresses) {
-                    if (address.getFormattedAddress().equals(friendAddress.getFormattedAddress())||address.getId().equals(friendAddress.getId())) {
+                    if (address.getFormattedAddress().equals(friendAddress.getFormattedAddress()) || address.getId().equals(friendAddress.getId())) {
                         isInAddresses = true;
                         friendAddress.setId(address.getId());
                         break;
@@ -827,7 +836,7 @@ public class LetterServiceImpl implements LetterService {
                 }
             }
             if (!isInAddresses) {
-                if (friendAddress.getId() == null&& !addresses.isEmpty()) {
+                if (friendAddress.getId() == null && !addresses.isEmpty()) {
                     friendAddress.setId(addresses.get(addresses.size() - 1).getId() + 1L);
                 }
                 addresses.add(friendAddress);
@@ -838,9 +847,11 @@ public class LetterServiceImpl implements LetterService {
                 friendMapper.updateById(friend);
             }
         }
+        // System.out.println("start-all-1" + LocalDateTime.now());
+
         // 创建任务
         CompletableFuture<String> coverFuture = CompletableFuture.supplyAsync(() -> {
-            return coverGenerieren(letterSendDTO,userId);
+            return coverGenerieren(letterSendDTO, userId);
         }, mainExecutorService);
 
         CompletableFuture<String> letterLinkFuture = CompletableFuture.supplyAsync(() -> {
@@ -878,8 +889,10 @@ public class LetterServiceImpl implements LetterService {
             deliveryTime = deliveryTimeFuture.get();
         } catch (Exception e) {
             e.printStackTrace();
-            throw  new LetterException(message("letter.send.failed"));
+            throw new LetterException(message("letter.send.failed"));
         }
+
+        // System.out.println("start-all-2" + LocalDateTime.now());
 
 
         // 设置信件属性
@@ -899,18 +912,21 @@ public class LetterServiceImpl implements LetterService {
 
         letterMapper.insert(letter);
         stringRedisTemplate.delete(CACHE_USER_WRITE_LETTER_KEY + userId);
+        rabbitTemplate.convertAndSend(EXCHANGE_AI_DIRECT, ROUTING_KEY_WRITE_LETTER, userId);
+        // System.out.println("start-all-3" + LocalDateTime.now());
 
         return BeanUtil.copyProperties(letter, LetterVO.class);
     }
+
     @Override
     public List<LetterVO> getMySendLetter(Long userId) {
         Set<Long> letterIds = JSON.parseObject(stringRedisTemplate.opsForValue().get(CACHE_USER_WRITE_LETTER_KEY + userId), Set.class);
         List<Letter> letters = null;
         if (CollUtil.isEmpty(letterIds)) {
-            letters=letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getSenderUserId, userId).orderByDesc(Letter::getCreateTime));
+            letters = letterMapper.selectList(new LambdaQueryWrapper<Letter>().eq(Letter::getSenderUserId, userId).orderByDesc(Letter::getCreateTime));
             letterIds = letters.stream().map(Letter::getId).collect(Collectors.toSet());
             stringRedisTemplate.opsForValue().set(CACHE_USER_WRITE_LETTER_KEY + userId, JSON.toJSONString(letterIds), Duration.ofHours(12));
-        }else {
+        } else {
             letters = letterMapper.selectBatchIds(letterIds);
         }
 
@@ -927,6 +943,7 @@ public class LetterServiceImpl implements LetterService {
     }
 
     private static Letter hello = null;
+
     @Override
     @Transactional
     public List<LetterVO> getMyReceiveLetter(Long userId) {
@@ -993,7 +1010,7 @@ public class LetterServiceImpl implements LetterService {
             throw new LetterException(message("letter.not.yours"));
         }
         // 如果是新朋友的信,就加好友
-        if (letter.getRemark()!=null&&letter.getRemark().contains("new friend")) {
+        if (letter.getRemark() != null && letter.getRemark().contains("new friend")) {
             Long count = friendRequestMapper.selectCount(new LambdaQueryWrapper<FriendRequest>().eq(FriendRequest::getSenderId, letter.getSenderUserId()).eq(FriendRequest::getReceiverId, UserContext.getUserId()));
             if (count == 0) {
                 FriendRequest friendRequest = FriendRequest.builder()
@@ -1009,9 +1026,9 @@ public class LetterServiceImpl implements LetterService {
             }
         }
         // 读信后加钱
-        if (letter.getPiggyMoney()>0){
+        if (letter.getPiggyMoney() > 0) {
             User user = userMapper.selectById(UserContext.getUserId());
-            user.setMoney(user.getMoney()+letter.getPiggyMoney());
+            user.setMoney(user.getMoney() + letter.getPiggyMoney());
             userMapper.updateById(user);
         }
         letter.setReadStatus(LetterConstants.READ);
