@@ -197,7 +197,8 @@ public class UserServiceImpl implements UserService {
         //删除验证码
         redisTemplate.delete(emailKey);
         //设置昵称
-        user.setNickname(email.substring(0, email.indexOf("@")));
+//        user.setNickname(email.substring(0, email.indexOf("@")));
+        user.setNickname("侨宝");
         //设置用户名
         user.setUsername(message("user.username.prefix") + System.currentTimeMillis() + getStringRandom(3));
         //设置密码
@@ -210,8 +211,12 @@ public class UserServiceImpl implements UserService {
         user.setSex("男");
         //设置默认字体颜色
         user.setFontColors(Collections.singletonList(BeanUtil.copyProperties(fontColorMapper.selectById(1), FontColorVO.class)));
+
+        List<FontVO>  fonts= new ArrayList<>();
+        fonts.add(BeanUtil.copyProperties(fontMapper.selectById(1), FontVO.class));
+        fonts.add(BeanUtil.copyProperties(fontMapper.selectById(2), FontVO.class));
         //设置默认字体
-        user.setFonts(Collections.singletonList(BeanUtil.copyProperties(fontMapper.selectById(1), FontVO.class)));
+        user.setFonts(fonts);
         //设置默认纸张
         List<PaperVO> papers = new ArrayList<>();
         papers.add(BeanUtil.copyProperties(paperMapper.selectById(1), PaperVO.class));

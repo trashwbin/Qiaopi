@@ -40,7 +40,17 @@ public class SignTask {
             stringRedisTemplate.delete(keys);
         }
     }
-
+    @Scheduled(cron = "0 0 0 * * ?")
+    public void deleteTodayGameCache(){
+        log.info("删除昨日翻翻乐缓存");
+        // 删除昨天的缓存
+        String key = GAME_FFL_USER_KEY + "*";
+        Set<String> keys = stringRedisTemplate.keys(key);
+        if (!Collections.isEmpty(keys)) {
+            assert keys != null;
+            stringRedisTemplate.delete(keys);
+        }
+    }
     @Scheduled(cron = "0 0 0 * * 1 ")
     public void deleteSignAwardCache(){
         log.info("刷新签到奖励");
