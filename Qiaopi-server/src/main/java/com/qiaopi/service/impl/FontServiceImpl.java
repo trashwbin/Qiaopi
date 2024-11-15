@@ -2,6 +2,7 @@ package com.qiaopi.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
 import com.qiaopi.context.UserContext;
 import com.qiaopi.entity.Font;
@@ -165,4 +166,6 @@ public List<FontShopVO> list() {
         userMapper.updateById(user);
         stringRedisTemplate.delete(CACHE_USER_REPOSITORY_KEY + UserContext.getUserId());
     }
+
+
 }

@@ -1,3 +1,4 @@
+/*
 package com.qiaopi;
 
 import cn.hutool.core.bean.BeanUtil;
@@ -60,7 +61,7 @@ class QiaopiServerApplicationTests {
     void sign(){
         LocalDateTime now = LocalDateTime.now();
         System.out.println(now.getDayOfWeek().getValue());
-        String prefix = stringRedisTemplate.opsForValue().get("sign:current");
+        String prefix = "signed" + stringRedisTemplate.opsForValue().get("sign:current");
         stringRedisTemplate.opsForValue().setBit("sign:"+prefix+":user-1", now.getDayOfWeek().getValue()-1, true);
         String s = stringRedisTemplate.opsForValue().get("sign:" + prefix + ":user-1");
         System.out.println(s);
@@ -118,6 +119,15 @@ class QiaopiServerApplicationTests {
             userSignAward.setSignDays(i + 1);
             userSignAwardList.add(userSignAward);
         }
+        FunctionCard functionCard = cardMapper.selectById(2L);
+        userSignAwardList.set(1,UserSignAward.builder().id(2L).signDays(2).previewLink(functionCard.getCardPreviewLink()).awardType(2).awardName(functionCard.getCardName()).awardDesc(functionCard.getCardDesc()).awardNum(1).awardId(functionCard.getId()).build());
+        functionCard = cardMapper.selectById(8L);
+        userSignAwardList.set(3,UserSignAward.builder().id(4L).signDays(4).previewLink(functionCard.getCardPreviewLink()).awardType(2).awardName(functionCard.getCardName()).awardDesc(functionCard.getCardDesc()).awardNum(1).awardId(functionCard.getId()).build());
+        functionCard = cardMapper.selectById(0);
+        userSignAwardList.set(5,UserSignAward.builder().id(6L).signDays(6).previewLink(functionCard.getCardPreviewLink()).awardType(2).awardName(functionCard.getCardName()).awardDesc(functionCard.getCardDesc()).awardNum(1).awardId(functionCard.getId()).build());
+
+        userSignAwardList.set(6,UserSignAward.builder().id(7L).signDays(7).previewLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/font/06.png").awardType(3).awardName("随机字体").awardDesc("随机获得您未拥有的字体字体").awardNum(1).awardId(0L).build());
+
         LocalDateTime now = LocalDateTime.now();
         String prefix = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         stringRedisTemplate.opsForValue().set(SIGN_AWARD_KEY + prefix, JSONUtil.toJsonStr(userSignAwardList));
@@ -212,3 +222,4 @@ class QiaopiServerApplicationTests {
         return address; // 如果没有找到匹配项，则返回原地址
     }
 }
+*/

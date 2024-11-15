@@ -27,4 +27,6 @@ public class CacheConstant {
     // 用户签到缓存
     public final static String SIGN_PREFIX_KEY = "sign:signed:";
     public final static String SIGN_SUFFIX_KEY = ":user-";
+
+    public final static String GAME_FFL_USER_KEY = "game:ffl:user:";
 }

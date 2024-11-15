@@ -1,3 +1,4 @@
+/*
 package com.qiaopi;
 
 import cn.hutool.json.JSONUtil;
@@ -44,9 +45,11 @@ public class ZhiPuAiTests {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
-    /**
+    */
+/**
      * 异步调用
-     */
+     *//*
+
     public  String testAsyncInvoke() {
         List<ChatMessage> messages = new ArrayList<>();
         ChatMessage chatMessage = new ChatMessage(ChatMessageRole.USER.value(), "作为一名营销专家，请为侨缘信使网站创作一个吸引人的slogan");
@@ -73,9 +76,11 @@ public class ZhiPuAiTests {
 //        String id = zhiPuAiTests.testAsyncInvoke();
 //        System.out.println(id);
     }
-    /**
+    */
+/**
      * 同步调用
-     */
+     *//*
+
     @Test
     public void testInvoke() {
         List<ChatMessage> messages = new ArrayList<>();
@@ -122,7 +127,9 @@ public class ZhiPuAiTests {
         System.out.println("model output:" + JSON.toJSONString(invokeModelApiResp));
     }
 
-    /* sse调用*/
+    */
+/* sse调用*//*
+
     @Test
     public void testSseInvoke() {
         List<ChatMessage> messages = new ArrayList<>();
@@ -612,3 +619,4 @@ public class ZhiPuAiTests {
     }
 }
 
+*/

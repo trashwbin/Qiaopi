@@ -34,4 +34,6 @@ public class AiConstant {
     public static final Integer TYPE_INTERACTIVE = 3 ;
 
     public static final String INTERACTIVE_LIST = "chat:interactive:list";
+    public static final String INTERACTIVE_WRITE_LETTER = "chat:interactive:write-letter";
+    public static final String INTERACTIVE_MARKETING = "chat:interactive:marketing";
 }

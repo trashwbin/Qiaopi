@@ -2,6 +2,12 @@ server:
   port: 8080
 
 spring:
+  rabbitmq:
+    host: 110.41.58.26 # 你的虚拟机IP
+    port: 5672 # 端口
+    virtual-host: / # 虚拟主机
+    username: qiaopi # 用户名
+    password: qiaopi # 密码
   servlet:
     multipart:
       max-file-size: 10MB # 单个上传文件的最大限制大小
@@ -131,3 +137,5 @@ aes:
 zhipu:
   api:
     key: d47a47e58685c01f26b96d5359d679bf.3KWedloOPitdhDVH
+
+

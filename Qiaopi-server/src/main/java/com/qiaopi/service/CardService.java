@@ -12,4 +12,5 @@ public interface CardService {
     List<FunctionCardShopVO> list();
 
     void buyCard(Long cardId);
+
 }

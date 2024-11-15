@@ -212,4 +212,6 @@ public class CardServiceImpl implements CardService {
         userMapper.updateById(user);
         stringRedisTemplate.delete(CACHE_USER_FUNCTION_CARDS_KEY + UserContext.getUserId());
     }
+
+
 }

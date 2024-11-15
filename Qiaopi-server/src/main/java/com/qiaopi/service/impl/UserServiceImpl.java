@@ -20,6 +20,7 @@ import com.qiaopi.dto.UserResetPasswordDTO;
 import com.qiaopi.dto.UserUpdateDTO;
 import com.qiaopi.entity.*;
 import com.qiaopi.exception.base.BaseException;
+import com.qiaopi.exception.card.CardException;
 import com.qiaopi.exception.code.CodeErrorException;
 import com.qiaopi.exception.code.CodeTimeoutException;
 import com.qiaopi.exception.friend.FriendException;
@@ -27,6 +28,8 @@ import com.qiaopi.exception.friend.FriendNotExistsException;
 import com.qiaopi.exception.user.*;
 import com.qiaopi.mapper.*;
 import com.qiaopi.properties.JwtProperties;
+import com.qiaopi.service.CardService;
+import com.qiaopi.service.FontService;
 import com.qiaopi.service.LetterService;
 import com.qiaopi.service.UserService;
 import com.qiaopi.utils.AccountValidator;
@@ -40,7 +43,9 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -59,6 +64,8 @@ import java.util.stream.Collectors;
 
 import static cn.hutool.core.bean.BeanUtil.copyProperties;
 import static com.qiaopi.constant.CacheConstant.*;
+import static com.qiaopi.constant.MqConstant.EXCHANGE_AI_DIRECT;
+import static com.qiaopi.constant.MqConstant.ROUTING_KEY_SIGN_AWARD;
 import static com.qiaopi.result.AjaxResult.error;
 import static com.qiaopi.result.AjaxResult.success;
 import static com.qiaopi.utils.MessageUtils.message;
@@ -82,6 +89,7 @@ public class UserServiceImpl implements UserService {
     private final LetterMapper letterMapper;
     private final LetterService letterService;
     private final CountryMapper countryMapper;
+    private final RabbitTemplate rabbitTemplate;
 
     @Override
     public UserLoginVO login(UserLoginDTO userLoginDTO) {
@@ -197,7 +205,8 @@ public class UserServiceImpl implements UserService {
         //删除验证码
         redisTemplate.delete(emailKey);
         //设置昵称
-        user.setNickname(email.substring(0, email.indexOf("@")));
+//        user.setNickname(email.substring(0, email.indexOf("@")));
+        user.setNickname("侨宝");
         //设置用户名
         user.setUsername(message("user.username.prefix") + System.currentTimeMillis() + getStringRandom(3));
         //设置密码
@@ -210,8 +219,12 @@ public class UserServiceImpl implements UserService {
         user.setSex("男");
         //设置默认字体颜色
         user.setFontColors(Collections.singletonList(BeanUtil.copyProperties(fontColorMapper.selectById(1), FontColorVO.class)));
+
+        List<FontVO>  fonts= new ArrayList<>();
+        fonts.add(BeanUtil.copyProperties(fontMapper.selectById(1), FontVO.class));
+        fonts.add(BeanUtil.copyProperties(fontMapper.selectById(2), FontVO.class));
         //设置默认字体
-        user.setFonts(Collections.singletonList(BeanUtil.copyProperties(fontMapper.selectById(1), FontVO.class)));
+        user.setFonts(fonts);
         //设置默认纸张
         List<PaperVO> papers = new ArrayList<>();
         papers.add(BeanUtil.copyProperties(paperMapper.selectById(1), PaperVO.class));
@@ -838,11 +851,25 @@ public class UserServiceImpl implements UserService {
                 User user = userMapper.selectById(userId);
                 user.setMoney(user.getMoney() + signAward.getAwardNum());
                 userMapper.updateById(user);
+                sendSignSuccessMessage(userId,message("user.sign.award.money"));
                 break;
             case 2:
+                signAwardCard(userId,signAward.getAwardId());
+                sendSignSuccessMessage(userId,message("user.sign.award.card"));
                 // 功能卡
                 break;
             case 3:
+                boolean isAdd = signAwardFont(userId);
+                if (isAdd) {
+                    // 字体
+                    sendSignSuccessMessage(userId,message("user.sign.award.font"));
+                }else {
+                    // 猪仔钱
+                    User user2 = userMapper.selectById(userId);
+                    user2.setMoney(user2.getMoney() + 100);
+                    userMapper.updateById(user2);
+                    sendSignSuccessMessage(userId,message("user.sign.award.font.full.money"));
+                }
                 // 字体
                 break;
             case 4:
@@ -864,7 +891,67 @@ public class UserServiceImpl implements UserService {
                 throw new UserException(message("user.sign.award.error"));
         }
     }
+    void sendSignSuccessMessage(Long userId,String message){
+        ConcurrentHashMap<String, Object> map = new ConcurrentHashMap<>();
+        map.put("userId", userId);
+        map.put("message", message);
+        rabbitTemplate.convertAndSend(EXCHANGE_AI_DIRECT, ROUTING_KEY_SIGN_AWARD, map);
+    }
+    // 没空管这个了，先写成💩吧
+    public boolean signAwardFont(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        List<FontVO> fonts = user.getFonts();
+        if (CollUtil.isEmpty(fonts)) {
+            throw new UserNotExistsException();
+        }
+        List<FontVO> fontList = BeanUtil.copyToList(fontMapper.selectList(null), FontVO.class);
+        fontList.removeAll(fonts);
+        if (!fontList.isEmpty()) {
+            FontVO randomFont = fontList.get(RandomUtil.randomInt(fontList.size()));
+            fonts.add(randomFont);
+        }else {
+            return false;
+        }
 
+        user.setFonts(fonts);
+        userMapper.updateById(user);
+        stringRedisTemplate.delete(CACHE_USER_REPOSITORY_KEY + userId);
+        return true;
+    }
+    public void signAwardCard(Long userId,Long cardId) {
+        FunctionCard functionCard = cardMapper.selectById(cardId);
+        if (functionCard == null) {
+            throw new CardException(message("card.not.exists"));
+        }
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UserNotExistsException();
+        }
+        List<FunctionCardVO> userFunctionCards = user.getFunctionCards();
+        if (userFunctionCards == null) {
+            userFunctionCards = Collections.emptyList();
+        }
+        boolean hasCard = false;
+        for (FunctionCardVO functionCardVO : userFunctionCards) {
+            if (functionCardVO.getId().equals(cardId)) {
+                functionCardVO.setNumber(functionCardVO.getNumber() + 1);
+                hasCard = true;
+                break;
+            }
+        }
+        if (!hasCard) {
+            FunctionCardVO functionCardVO = BeanUtil.copyProperties(functionCard, FunctionCardVO.class);
+            functionCardVO.setNumber(1);
+            userFunctionCards.add(functionCardVO);
+        }else {
+            user.setFunctionCards(userFunctionCards);
+        }
+        userMapper.updateById(user);
+        stringRedisTemplate.delete(CACHE_USER_FUNCTION_CARDS_KEY + userId);
+    }
     @Override
     public ConcurrentHashMap<String,Object> getSignList(Long userId) {
         LocalDateTime now = LocalDateTime.now();
