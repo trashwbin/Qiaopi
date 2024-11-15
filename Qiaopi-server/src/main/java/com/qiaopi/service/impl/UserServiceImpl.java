@@ -8,9 +8,11 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FastByteArrayOutputStream;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.cron.task.Task;
 import cn.hutool.json.JSONUtil;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.qiaopi.constant.JwtClaimsConstant;
 import com.qiaopi.constant.UserConstants;
 import com.qiaopi.context.UserContext;
@@ -68,6 +70,7 @@ import static com.qiaopi.constant.MqConstant.EXCHANGE_AI_DIRECT;
 import static com.qiaopi.constant.MqConstant.ROUTING_KEY_SIGN_AWARD;
 import static com.qiaopi.result.AjaxResult.error;
 import static com.qiaopi.result.AjaxResult.success;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import static com.qiaopi.utils.MessageUtils.message;
 
 @Service
@@ -90,6 +93,9 @@ public class UserServiceImpl implements UserService {
     private final LetterService letterService;
     private final CountryMapper countryMapper;
     private final RabbitTemplate rabbitTemplate;
+
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public UserLoginVO login(UserLoginDTO userLoginDTO) {
@@ -295,6 +301,22 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserVO getUserInfo(Long userId) {
+        //初始化每日任务
+        LocalDateTime now = LocalDateTime.now();
+        //用户存储在redis中的task的key的格式为 task:userId:日期
+        String userKey = "task" + ":" +  userId + ":" + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        //查询redis 判断当redis中是否存有该用户的key
+        String jsonStr;
+        Boolean hasKey = stringRedisTemplate.hasKey(userKey);
+        if (!Boolean.TRUE.equals(hasKey)) {
+            //如果不存在 查询redis中的task:taskDetails 并给当前用户赋值该taskDestails里面的内容
+            //根据task:taskDetails获取所有任务
+            jsonStr = stringRedisTemplate.opsForValue().get("task:taskDetails");
+            //并且需要在redis中添加一个key为task:userId:日期
+            stringRedisTemplate.opsForValue().set(userKey, jsonStr);
+        }
+
+
         UserVO userVO = JSONUtil.toBean(stringRedisTemplate.opsForValue().get(CACHE_USER_INFO_KEY + userId), UserVO.class);
         if (userVO == null || userVO.getId() == null) {
             User user = userMapper.selectById(userId);
@@ -828,10 +850,12 @@ public class UserServiceImpl implements UserService {
         String prefix = stringRedisTemplate.opsForValue().get(SIGN_CURRENT_KEY);
         String key = SIGN_PREFIX_KEY + prefix + SIGN_SUFFIX_KEY + userId;
         // 写入Redis SETBIT key offset 1
+        // 检查用户今天是否已经签到
         Boolean isSigned = stringRedisTemplate.opsForValue().getBit(key, now.getDayOfWeek().getValue() - 1);
         if (Boolean.TRUE.equals(isSigned)) {
             throw new UserException(message("user.sign.today"));
         }
+        // 更新Redis中的签到状态
         stringRedisTemplate.opsForValue().setBit(key, now.getDayOfWeek().getValue()-1, true);
         // 删除当天的签到签到缓存
         stringRedisTemplate.delete(SIGN_TODAY_KEY + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + ":" + userId);
@@ -891,6 +915,73 @@ public class UserServiceImpl implements UserService {
                 throw new UserException(message("user.sign.award.error"));
         }
     }
+
+    @Override
+    public List<TaskTable> task(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        //用户存储在redis中的task的key的格式为 task:userId:日期
+        String userKey = "task" + ":" +  userId + ":" + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        //查询redis 判断当redis中是否存有该用户的key
+        String jsonStr;
+        Boolean hasKey = stringRedisTemplate.hasKey(userKey);
+
+        if (!Boolean.TRUE.equals(hasKey)) {
+            //如果不存在 查询redis中的task:taskDetails 并给当前用户赋值该taskDestails里面的内容
+            //根据task:taskDetails获取所有任务
+            jsonStr = stringRedisTemplate.opsForValue().get("task:taskDetails");
+            //并且需要在redis中添加一个key为task:userId:日期
+            stringRedisTemplate.opsForValue().set(userKey, jsonStr);
+        } else {
+            //如果存在 就直接查询该用户的key
+            //根据userKey查询 获得其所有的对象
+            jsonStr = stringRedisTemplate.opsForValue().get(userKey);
+        }
+
+        try {
+            // 将json字符串转换为TaskTable对象列表
+            List<TaskTable> taskTableList = objectMapper.readValue(jsonStr, objectMapper.getTypeFactory().constructCollectionType(List.class, TaskTable.class));
+            return taskTableList;
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+
+    }
+
+
+    //完成任务 领取奖励
+    @Override
+    public void finishTask(Long taskId, int money) {
+        Long userId = UserContext.getUserId();
+
+        //在这里获取当前线程用户的id 根据此id设置用于redis key
+        LocalDateTime now = LocalDateTime.now();
+        String userKey = "task" + ":" +  userId + ":" + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String jsonStr = stringRedisTemplate.opsForValue().get(userKey);
+        //通过这个键 获取导redis中的值 并且将这个值转化为TaskTable对象的集合
+        try {
+            // 将json字符串转换为TaskTable对象列表
+            List<TaskTable> taskTableList = objectMapper.readValue(jsonStr, objectMapper.getTypeFactory().constructCollectionType(List.class, TaskTable.class));
+            //获取taskTableList中id为taskId的对象
+            TaskTable taskTable = taskTableList.stream().filter(t -> t.getId().equals(taskId)).findFirst().orElse(null);
+            //将对象中的 status 设为1
+            taskTable.setStatus(2);
+            //将修改后的对象重新转换为json字符串并存入redis
+            stringRedisTemplate.opsForValue().set(userKey, objectMapper.writeValueAsString(taskTableList));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        //根据userId更改用户表中的money字段 将用户表中的money字段加money
+        User user = userMapper.selectById(userId);
+        user.setMoney(user.getMoney() + money);
+        userMapper.updateById(user);
+
+    }
+
+
+
     void sendSignSuccessMessage(Long userId,String message){
         ConcurrentHashMap<String, Object> map = new ConcurrentHashMap<>();
         map.put("userId", userId);
@@ -1001,6 +1092,8 @@ public class UserServiceImpl implements UserService {
                 .receiveLetterCount(receiveLetterCount)
                 .build();
     }
+
+
 
     private int getSignedDays(LocalDateTime now,String key ) {
         // 保证和调用方法时刻、用户一致

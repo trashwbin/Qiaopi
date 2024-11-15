@@ -43,6 +43,21 @@ public class SignTask {
             stringRedisTemplate.delete(keys);
         }
     }
+
+    @Scheduled(cron = "0 0 1 * * ?")
+    public void deleteTodayTaskCache(){
+        log.info("删除昨日任务缓存");
+        LocalDateTime now = LocalDateTime.now();
+        // 删除昨天的缓存
+        String key = "task"+":*:"+ now.minusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        //String key = "task"+":*:"+ "2024-11-15";
+        Set<String> keys = stringRedisTemplate.keys(key);
+        if (!Collections.isEmpty(keys)) {
+            assert keys != null;
+            stringRedisTemplate.delete(keys);
+        }
+    }
+
     @Scheduled(cron = "0 0 0 * * ?")
     public void deleteTodayGameCache(){
         log.info("删除昨日翻翻乐缓存");

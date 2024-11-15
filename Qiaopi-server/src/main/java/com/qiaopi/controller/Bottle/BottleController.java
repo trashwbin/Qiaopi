@@ -1,9 +1,13 @@
 package com.qiaopi.controller.Bottle;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.qiaopi.context.UserContext;
 import com.qiaopi.dto.BeFriendDTO;
 import com.qiaopi.dto.BottleGenDTO;
 import com.qiaopi.dto.FriendSendDTO;
+import com.qiaopi.entity.TaskTable;
 import com.qiaopi.result.AjaxResult;
 import com.qiaopi.service.BottleService;
 import com.qiaopi.service.FriendService;
@@ -14,8 +18,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @RestController
@@ -31,14 +38,39 @@ public class BottleController {
     @Autowired
     private FriendService friendService;
 
+    @Autowired
+    private final StringRedisTemplate stringRedisTemplate;
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostMapping("/generateDriftBottle")
     @Operation(summary = "写漂流瓶")
     public AjaxResult GenerateDriftBottle(@RequestBody BottleGenDTO bottleGenDTO) {
+        Long userId = UserContext.getUserId();
 
         log.info("生成漂流瓶：{}", bottleGenDTO);
         String url = bottleService.generateDriftBottle(bottleGenDTO);
+
+        //在这里获取当前线程用户的id 根据此id设置用于redis key
+        LocalDateTime now = LocalDateTime.now();
+        String userKey = "task" + ":" +  userId + ":" + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String jsonStr = stringRedisTemplate.opsForValue().get(userKey);
+        //通过这个键 获取导redis中的值 并且将这个值转化为TaskTable对象的集合
+        try {
+            // 将json字符串转换为TaskTable对象列表
+            List<TaskTable> taskTableList = objectMapper.readValue(jsonStr, objectMapper.getTypeFactory().constructCollectionType(List.class, TaskTable.class));
+            //获取taskTableList中id为1的对象
+            TaskTable taskTable = taskTableList.stream().filter(t -> t.getId().equals(2L)).findFirst().orElse(null);
+            //将对象中的 status 设为1
+            taskTable.setStatus(1);
+            //将修改后的对象重新转换为json字符串并存入redis
+            stringRedisTemplate.opsForValue().set(userKey, objectMapper.writeValueAsString(taskTableList));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
         return AjaxResult.success(MessageUtils.message("bottle.generateImage.success"),url);
+
     }
 
 
@@ -70,7 +102,27 @@ public class BottleController {
     @Operation(summary = "请求成为好友")
     public AjaxResult toBeFriends(@RequestBody FriendSendDTO friendSendDTO) {
         log.info("请求成为好友");
+        Long userId = UserContext.getUserId();
         bottleService.sendFriendRequest(friendSendDTO);
+        //在这里获取当前线程用户的id 根据此id设置用于redis key
+        LocalDateTime now = LocalDateTime.now();
+        String userKey = "task" + ":" +  userId + ":" + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String jsonStr = stringRedisTemplate.opsForValue().get(userKey);
+        //通过这个键 获取导redis中的值 并且将这个值转化为TaskTable对象的集合
+        try {
+            // 将json字符串转换为TaskTable对象列表
+            List<TaskTable> taskTableList = objectMapper.readValue(jsonStr, objectMapper.getTypeFactory().constructCollectionType(List.class, TaskTable.class));
+            //获取taskTableList中id为1的对象
+            TaskTable taskTable = taskTableList.stream().filter(t -> t.getId().equals(5L)).findFirst().orElse(null);
+            //将对象中的 status 设为1
+            taskTable.setStatus(1);
+            //将修改后的对象重新转换为json字符串并存入redis
+            stringRedisTemplate.opsForValue().set(userKey, objectMapper.writeValueAsString(taskTableList));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+
         return AjaxResult.success(MessageUtils.message("Friend.application.sent.success"));
     }
 

@@ -9,11 +9,9 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qiaopi.context.UserContext;
-import com.qiaopi.dto.UserLoginDTO;
-import com.qiaopi.dto.UserRegisterDTO;
-import com.qiaopi.dto.UserResetPasswordDTO;
-import com.qiaopi.dto.UserUpdateDTO;
+import com.qiaopi.dto.*;
 import com.qiaopi.entity.Address;
+import com.qiaopi.entity.TaskTable;
 import com.qiaopi.entity.User;
 import com.qiaopi.mapper.UserMapper;
 import com.qiaopi.result.AjaxResult;
@@ -264,6 +262,23 @@ public class UserController {
         userService.sign(UserContext.getUserId());
         return success(message("user.sign.success"));
     }
+
+    @PostMapping("/task")
+    @Operation(summary = "每日任务")
+    public AjaxResult task() {
+        log.info("用户：{} 每日任务", UserContext.getUserId());
+        List<TaskTable> userTask = userService.task(UserContext.getUserId());
+        return success(message("user.task.success"),userTask);
+    }
+
+    @PostMapping("/finishTas")
+    @Operation(summary = "完成任务")
+    public AjaxResult finishTask(Long taskId,int money) {
+        log.info("用户：{} 完成任务 {}", UserContext.getUserId(),taskId);
+        userService.finishTask(taskId,money);
+        return success(message("user.finish.task.success"));
+    }
+
     @GetMapping("/getSignList")
     @Operation(summary = "获取签到列表")
     public AjaxResult getSignList() {

@@ -29,4 +29,7 @@ public class CacheConstant {
     public final static String SIGN_SUFFIX_KEY = ":user-";
 
     public final static String GAME_FFL_USER_KEY = "game:ffl:user:";
+
+    public final static String TASK_TABLE_KEY = "task:taskDetails";
+
 }
