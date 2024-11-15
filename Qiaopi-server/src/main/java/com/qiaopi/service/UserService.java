@@ -4,10 +4,7 @@ import com.qiaopi.dto.UserLoginDTO;
 import com.qiaopi.dto.UserRegisterDTO;
 import com.qiaopi.dto.UserResetPasswordDTO;
 import com.qiaopi.dto.UserUpdateDTO;
-import com.qiaopi.entity.Address;
-import com.qiaopi.entity.Avatar;
-import com.qiaopi.entity.Country;
-import com.qiaopi.entity.UserStatistics;
+import com.qiaopi.entity.*;
 import com.qiaopi.vo.*;
 
 import java.util.List;
@@ -64,7 +61,12 @@ public interface UserService {
 
     void sign(Long userId);
 
+    List<TaskTable> task(Long userId);
+
+
     ConcurrentHashMap getSignList(Long userId);
 
     UserStatistics getUserStatistics(Long userId);
+
+    void finishTask(Long taskId, int money);
 }

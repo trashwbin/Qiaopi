@@ -14,7 +14,7 @@ spring:
       max-request-size: 20MB # 单次请求的最大限制大小
 #  模式切换
   profiles:
-    active: staging
+    active: dev
   main:
     allow-circular-references: true
   messages:

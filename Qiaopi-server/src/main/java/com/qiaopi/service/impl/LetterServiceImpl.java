@@ -933,7 +933,6 @@ public class LetterServiceImpl implements LetterService {
         // 只有status是2的才要更新
         letters.replaceAll(letter -> letter.getStatus() == 2 ? ProgressUtils.getProgress(letter) : letter);
         //更新进度
-
         letterMapper.updateById(letters);
         // After
         List<LetterVO> letterVOList = BeanUtil.copyToList(letters, LetterVO.class);
