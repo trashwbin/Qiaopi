@@ -67,4 +67,14 @@ public class AiInteractiveListener {
         AiInteractData data = aiInteractData.get(ThreadLocalRandom.current().nextInt(aiInteractData.size()));
         chatService.sendInteractiveMessage(userId, data.getMessage(), data.getRouter());
     }
+    @RabbitListener(bindings = @QueueBinding(
+            value = @Queue(name = QUEUE_AI_SIGN_AWARD, durable = "true" ),
+            exchange = @Exchange(name = EXCHANGE_AI_DIRECT, type = ExchangeTypes.DIRECT),
+            key = ROUTING_KEY_SIGN_AWARD
+    ))
+    public void listenSignMessage(ConcurrentHashMap<String, Object> map) {
+        Long userId = ((Number) map.get("userId")).longValue();
+        String message = (String) map.get("message");
+        chatService.sendInteractiveMessage(userId, message, "");
+    }
 }
