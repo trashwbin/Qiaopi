@@ -61,12 +61,12 @@ public interface UserService {
 
     void sign(Long userId);
 
-    List<TaskTable> task(Long userId);
+    List<TaskTable> getTask(Long userId);
 
 
     ConcurrentHashMap getSignList(Long userId);
 
     UserStatistics getUserStatistics(Long userId);
 
-    void finishTask(Long taskId, int money);
+    void finishTask(Long taskId);
 }

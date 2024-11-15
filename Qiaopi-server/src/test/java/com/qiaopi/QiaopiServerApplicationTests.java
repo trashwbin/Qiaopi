@@ -146,7 +146,7 @@ class QiaopiServerApplicationTests {
         taskTable1.setDescription("拿起笔，写下你的真心话，让这份温暖传递到每一个角落。去写下一封信吧！！");
         taskTable1.setStatus(0);
         taskTable1.setMoney(20);
-        taskTable1.setLink("http://110.41.58.26:9090/api/v1/download-shared-object/aHR0cDovLzEyNy4wLjAuMTo5MDAwL3FpYW9waS9xaWFvcGktaW1hZ2VzL3Rhc2svJUU2JTg5JTkzJUU2JUIwJTk0JUU1JUIwJThGJUU0JUJBJUJBLndlYnA_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1VNzdKQ0JBRzM2TkxUVEtDMUs1UiUyRjIwMjQxMTE1JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI0MTExNVQxNDM5NDVaJlgtQW16LUV4cGlyZXM9NDMyMDAmWC1BbXotU2VjdXJpdHktVG9rZW49ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmhZMk5sYzNOTFpYa2lPaUpWTnpkS1EwSkJSek0yVGt4VVZFdERNVXMxVWlJc0ltVjRjQ0k2TVRjek1UY3lORFk1Tml3aWNHRnlaVzUwSWpvaWNXbGhiM0JwSW4wLnktSDdlY0VfdEJBVlhZbWFMWHJfRk1YVmhtUnF2MFVHblU1dXRManlLcFE0UldFUzNmYUNlNmx6QmZWSy1aS1lWeHRweGd0Z1htbnFKdDcxd0JaNF93JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZ2ZXJzaW9uSWQ9bnVsbCZYLUFtei1TaWduYXR1cmU9NzM0MmRkODMyMzI1MWI3M2ZhNTVjNjY1NGFlNTYwYzJlZTJkZWYzMTI0NWQxN2MwMzI0NTM3ZWRjMTk3NTZlNQ");
+        taskTable1.setLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/task/打气小人.webp");
         taskTable1.setRoute("/write");
 
         TaskTable taskTable2 = new TaskTable();
@@ -155,7 +155,7 @@ class QiaopiServerApplicationTests {
         taskTable2.setDescription("漂流瓶如同一叶扁舟，载着梦想与希望，漂向未知的彼岸。投下一个漂流瓶吧！");
         taskTable2.setStatus(0);
         taskTable2.setMoney(10);
-        taskTable2.setLink("http://110.41.58.26:9090/api/v1/download-shared-object/aHR0cDovLzEyNy4wLjAuMTo5MDAwL3FpYW9waS9xaWFvcGktaW1hZ2VzL3Rhc2svJUU2JTk3JUE1JUU1JThFJTg2LndlYnA_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1VNzdKQ0JBRzM2TkxUVEtDMUs1UiUyRjIwMjQxMTE1JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI0MTExNVQxNDQwMDVaJlgtQW16LUV4cGlyZXM9NDMyMDAmWC1BbXotU2VjdXJpdHktVG9rZW49ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmhZMk5sYzNOTFpYa2lPaUpWTnpkS1EwSkJSek0yVGt4VVZFdERNVXMxVWlJc0ltVjRjQ0k2TVRjek1UY3lORFk1Tml3aWNHRnlaVzUwSWpvaWNXbGhiM0JwSW4wLnktSDdlY0VfdEJBVlhZbWFMWHJfRk1YVmhtUnF2MFVHblU1dXRManlLcFE0UldFUzNmYUNlNmx6QmZWSy1aS1lWeHRweGd0Z1htbnFKdDcxd0JaNF93JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZ2ZXJzaW9uSWQ9bnVsbCZYLUFtei1TaWduYXR1cmU9M2Q0MDZjZmJjMDFmZmQ3NzZmZGU1NzExOTFlMmI4NDAyNTVjZDY1YjgwNzIyYTg1Mjg1YzYzNzhmZjUwM2NmYQ");
+        taskTable2.setLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/task/日历.webp");
         taskTable2.setRoute("/drifting");
 
 
@@ -165,7 +165,7 @@ class QiaopiServerApplicationTests {
         taskTable3.setDescription("答题如同一场智力的盛宴，激发思维的火花，带来知识的满足与成长。来解答一道题目吧！");
         taskTable3.setStatus(0);
         taskTable3.setMoney(10);
-        taskTable3.setLink("http://110.41.58.26:9090/api/v1/download-shared-object/aHR0cDovLzEyNy4wLjAuMTo5MDAwL3FpYW9waS9xaWFvcGktaW1hZ2VzL3Rhc2svJUU5JUE2JTk5JUU1JTlCJThBLndlYnA_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1VNzdKQ0JBRzM2TkxUVEtDMUs1UiUyRjIwMjQxMTE1JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI0MTExNVQxNDQwMTVaJlgtQW16LUV4cGlyZXM9NDMyMDAmWC1BbXotU2VjdXJpdHktVG9rZW49ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmhZMk5sYzNOTFpYa2lPaUpWTnpkS1EwSkJSek0yVGt4VVZFdERNVXMxVWlJc0ltVjRjQ0k2TVRjek1UY3lORFk1Tml3aWNHRnlaVzUwSWpvaWNXbGhiM0JwSW4wLnktSDdlY0VfdEJBVlhZbWFMWHJfRk1YVmhtUnF2MFVHblU1dXRManlLcFE0UldFUzNmYUNlNmx6QmZWSy1aS1lWeHRweGd0Z1htbnFKdDcxd0JaNF93JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZ2ZXJzaW9uSWQ9bnVsbCZYLUFtei1TaWduYXR1cmU9YTQ5NTNmMmIzODI1M2FjNGZhZDNkNmEwYzdjZWM0MjZhYTk3ZTk4ZDc0YWJkNTY3YzIzMDJkNDI3NDkwMGZmOQ");
+        taskTable3.setLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/task/香囊.webp");
         taskTable3 .setRoute("/know");
 
         TaskTable taskTable4 = new TaskTable();
@@ -174,7 +174,7 @@ class QiaopiServerApplicationTests {
         taskTable4.setDescription("翻翻乐如同一扇神秘的窗，每一次翻开都带来新的惊喜与欢乐。来体验一次翻翻乐吧！");
         taskTable4.setStatus(0);
         taskTable4.setMoney(10);
-        taskTable4.setLink("http://110.41.58.26:9090/api/v1/download-shared-object/aHR0cDovLzEyNy4wLjAuMTo5MDAwL3FpYW9waS9xaWFvcGktaW1hZ2VzL3Rhc2svJUU0JUJGJUExJUU1JUIwJTgxJTIwJTI4MSUyOS53ZWJwP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9VTc3SkNCQUczNk5MVFRLQzFLNVIlMkYyMDI0MTExNSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNDExMTVUMTQ0MDI2WiZYLUFtei1FeHBpcmVzPTQzMjAwJlgtQW16LVNlY3VyaXR5LVRva2VuPWV5SmhiR2NpT2lKSVV6VXhNaUlzSW5SNWNDSTZJa3BYVkNKOS5leUpoWTJObGMzTkxaWGtpT2lKVk56ZEtRMEpCUnpNMlRreFVWRXRETVVzMVVpSXNJbVY0Y0NJNk1UY3pNVGN5TkRZNU5pd2ljR0Z5Wlc1MElqb2ljV2xoYjNCcEluMC55LUg3ZWNFX3RCQVZYWW1hTFhyX0ZNWFZobVJxdjBVR25VNXV0TGp5S3BRNFJXRVMzZmFDZTZsekJmVkstWktZVnh0cHhndGdYbW5xSnQ3MXdCWjRfdyZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmdmVyc2lvbklkPW51bGwmWC1BbXotU2lnbmF0dXJlPTc2MTMyMDU2ODk1OTMwYzdkZTVkOTkxYzM3MzI1YTUyYzk2MTY4YTM4YWNiZDM2NzNmZjIwODU4NzZiMmVkODI");
+        taskTable4.setLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/task/信封(1).webp");
         taskTable4.setRoute("/memory");
 
         TaskTable taskTable5 = new TaskTable();
@@ -183,7 +183,7 @@ class QiaopiServerApplicationTests {
         taskTable5.setDescription("在这个数字化的世界里，结交新朋友如同一束阳光，照亮彼此的心房，带来温暖与快乐。来认识一位新朋友吧！");
         taskTable5.setStatus(0);
         taskTable5.setMoney(10);
-        taskTable5.setLink("http://110.41.58.26:9090/api/v1/download-shared-object/aHR0cDovLzEyNy4wLjAuMTo5MDAwL3FpYW9waS9xaWFvcGktaW1hZ2VzL3Rhc2svJUU3JUJBJUI4JUU5JUEzJTlFJUU2JTlDJUJBLndlYnA_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1VNzdKQ0JBRzM2TkxUVEtDMUs1UiUyRjIwMjQxMTE1JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI0MTExNVQxNDQwMzVaJlgtQW16LUV4cGlyZXM9NDMxOTkmWC1BbXotU2VjdXJpdHktVG9rZW49ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmhZMk5sYzNOTFpYa2lPaUpWTnpkS1EwSkJSek0yVGt4VVZFdERNVXMxVWlJc0ltVjRjQ0k2TVRjek1UY3lORFk1Tml3aWNHRnlaVzUwSWpvaWNXbGhiM0JwSW4wLnktSDdlY0VfdEJBVlhZbWFMWHJfRk1YVmhtUnF2MFVHblU1dXRManlLcFE0UldFUzNmYUNlNmx6QmZWSy1aS1lWeHRweGd0Z1htbnFKdDcxd0JaNF93JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZ2ZXJzaW9uSWQ9bnVsbCZYLUFtei1TaWduYXR1cmU9YzZjNmViZmUyNDgzZjY4Yzg1NDkzOWUxMGYxYjFhMDRhMmJlMjE3YTg1MGU5ZTYyODc4N2RmNTBmYjVmNmRhOA");
+        taskTable5.setLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/task/纸飞机.webp");
         taskTable5.setRoute("/drifting");
 
         taskTableList.add(taskTable1);
