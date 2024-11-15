@@ -496,9 +496,9 @@ public class LetterServiceImpl implements LetterService {
 
         for (Letter letter : letters) {
             // 删除缓存
-            if (letter.getRecipientUserId() != null) {
-                stringRedisTemplate.delete(CACHE_USER_RECEIVE_LETTER_KEY + letter.getRecipientUserId());
-            }
+//            if (letter.getRecipientUserId() != null) {
+//                stringRedisTemplate.delete(CACHE_USER_RECEIVE_LETTER_KEY + letter.getRecipientUserId());
+//            }
             try {
                 MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
@@ -730,6 +730,14 @@ public class LetterServiceImpl implements LetterService {
             letter.setDeliveryTime(LocalDateTime.now());
             letter.setUpdateUser(-1L);
             letterMapper.updateById(letter);
+
+            if (letter.getRecipientUserId() == null) {
+                User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, letter.getRecipientEmail()));
+                if (user != null) {
+                    letter.setRecipientUserId(user.getId());
+                }
+            }
+            stringRedisTemplate.delete(CACHE_USER_RECEIVE_LETTER_KEY + letter.getRecipientUserId());
         }
     }
 

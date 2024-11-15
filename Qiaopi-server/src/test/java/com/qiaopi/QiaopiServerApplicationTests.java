@@ -146,7 +146,7 @@ class QiaopiServerApplicationTests {
         taskTable1.setDescription("拿起笔，写下你的真心话，让这份温暖传递到每一个角落。去写下一封信吧！！");
         taskTable1.setStatus(0);
         taskTable1.setMoney(20);
-        taskTable1.setLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/task/打气小人.webp");
+        taskTable1.setLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/task/1.webp");
         taskTable1.setRoute("/write");
 
         TaskTable taskTable2 = new TaskTable();
@@ -155,7 +155,7 @@ class QiaopiServerApplicationTests {
         taskTable2.setDescription("漂流瓶如同一叶扁舟，载着梦想与希望，漂向未知的彼岸。投下一个漂流瓶吧！");
         taskTable2.setStatus(0);
         taskTable2.setMoney(10);
-        taskTable2.setLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/task/日历.webp");
+        taskTable2.setLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/task/2.webp");
         taskTable2.setRoute("/drifting");
 
 
@@ -165,7 +165,7 @@ class QiaopiServerApplicationTests {
         taskTable3.setDescription("答题如同一场智力的盛宴，激发思维的火花，带来知识的满足与成长。来解答一道题目吧！");
         taskTable3.setStatus(0);
         taskTable3.setMoney(10);
-        taskTable3.setLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/task/香囊.webp");
+        taskTable3.setLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/task/3.webp");
         taskTable3 .setRoute("/know");
 
         TaskTable taskTable4 = new TaskTable();
@@ -174,16 +174,16 @@ class QiaopiServerApplicationTests {
         taskTable4.setDescription("翻翻乐如同一扇神秘的窗，每一次翻开都带来新的惊喜与欢乐。来体验一次翻翻乐吧！");
         taskTable4.setStatus(0);
         taskTable4.setMoney(10);
-        taskTable4.setLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/task/信封(1).webp");
+        taskTable4.setLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/task/4.webp");
         taskTable4.setRoute("/memory");
 
         TaskTable taskTable5 = new TaskTable();
         taskTable5.setId(5L);
         taskTable5.setTaskName("结缘识友");
-        taskTable5.setDescription("在这个数字化的世界里，结交新朋友如同一束阳光，照亮彼此的心房，带来温暖与快乐。来认识一位新朋友吧！");
+        taskTable5.setDescription("在这个数字化的世界里，结交新朋友如同一束阳光，照亮彼此的心房，带来温暖与快乐！");
         taskTable5.setStatus(0);
         taskTable5.setMoney(10);
-        taskTable5.setLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/task/纸飞机.webp");
+        taskTable5.setLink("http://110.41.58.26:9000/qiaopi/qiaopi-images/task/5.webp");
         taskTable5.setRoute("/drifting");
 
         taskTableList.add(taskTable1);

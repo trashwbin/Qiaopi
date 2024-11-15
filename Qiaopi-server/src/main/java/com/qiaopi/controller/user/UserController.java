@@ -263,7 +263,7 @@ public class UserController {
         return success(message("user.sign.success"));
     }
 
-    @PostMapping("/getTask")
+    @GetMapping("/getTask")
     @Operation(summary = "每日任务")
     public AjaxResult getTask() {
         log.info("用户：{} 每日任务", UserContext.getUserId());
