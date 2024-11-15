@@ -8,10 +8,7 @@ import com.qiaopi.dto.BeFriendDTO;
 import com.qiaopi.entity.*;
 import com.qiaopi.exception.bottle.BottleException;
 import com.qiaopi.exception.friend.FriendException;
-import com.qiaopi.mapper.BottleMapper;
-import com.qiaopi.mapper.FriendMapper;
-import com.qiaopi.mapper.FriendRequestMapper;
-import com.qiaopi.mapper.UserMapper;
+import com.qiaopi.mapper.*;
 import com.qiaopi.service.BottleService;
 import com.qiaopi.service.FriendService;
 import com.qiaopi.utils.MessageUtils;
@@ -44,6 +41,9 @@ public class FriendServiceImpl implements FriendService {
     private final BottleService bottleService;
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private LetterMapper letterMapper;
 
 /*
 
@@ -156,23 +156,9 @@ public class FriendServiceImpl implements FriendService {
         } else {
             isAccepted = false;
         }
-        Long currentUserId = null;
+        Long currentUserId = UserContext.getUserId();
 
-        try {
-            //获取当前线程用户的id
-            currentUserId = UserContext.getUserId();
-        } catch (Exception e) {
-            throw new BottleException(MessageUtils.message("bottle.getCurrentId.failed"));
-        }
-
-        FriendRequest friendRequest = null;
-        try {
-            //根据用户id找到对应的请求
-            friendRequest = friendRequestMapper.selectById(requestId);
-        } catch (Exception e) {
-            throw new FriendException(MessageUtils.message("friend.friendRequestFind.failed"));
-        }
-
+        FriendRequest friendRequest = friendRequestMapper.selectById(requestId);
 
         if (friendRequest == null || friendRequest.getStatus() != 0) {
             //若好友申请不存在或者已处理
@@ -184,10 +170,22 @@ public class FriendServiceImpl implements FriendService {
             //您没有权限处理此好友申请
             throw new FriendException(MessageUtils.message("friend.friendRequest.no.permission"));
         }
-        Bottle bottle = bottleMapper.selectById(friendRequest.getBottleId());
-        if (bottle == null) {
+
+        Bottle bottle = new Bottle();
+        Letter letter = new Letter();
+        Address mineToFriendAddresses = null;//请求人的地址
+        //判断当前的FriendRequest中含有的是bottleId还是letterId
+        if (friendRequest.getBottleId() != null) {
+            bottle = bottleMapper.selectById(friendRequest.getBottleId());
+            mineToFriendAddresses = bottle.getSenderAddress();
+        }else if (friendRequest.getLetterId() != null) {
+            letter = letterMapper.selectById(friendRequest.getLetterId());
+            mineToFriendAddresses = letter.getSenderAddress();
+        }
+        if (bottle == null || letter == null) {
             throw new FriendException(MessageUtils.message("friend.bottle.not.exists"));
         }
+
         if (isAccepted) {
             // 更新好友申请状态为已接受
             friendRequest.setStatus(FriendConstants.AGREE); // 1表示已接受
@@ -195,7 +193,6 @@ public class FriendServiceImpl implements FriendService {
 
             try {
                 // 添加双方的好友关系
-                Address mineToFriendAddresses = bottle.getSenderAddress();//请求人的地址
                 Address friendToMeAddress = friendRequest.getGiveAddress();
 
                 addFriend(friendRequest.getReceiverId(), friendRequest.getSenderId(), mineToFriendAddresses,friendToMeAddress);

@@ -272,6 +272,7 @@ public class BottleServiceImpl implements BottleService {
 
     private static List<String> wrapLongWord(String word, FontMetrics fontMetrics, int maxWidth) {
         List<String> parts = new ArrayList<>();
+        maxWidth = 800;
         while (fontMetrics.stringWidth(word) > maxWidth) {
             int breakPoint = findBreakPoint(word, fontMetrics, maxWidth);
             if (breakPoint == -1) {

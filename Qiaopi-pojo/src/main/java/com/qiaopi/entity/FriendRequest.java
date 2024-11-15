@@ -43,4 +43,7 @@ public class FriendRequest extends BaseEntity {
 
     @Schema(description = "漂流瓶id")
     private Long bottleId;
+
+    @Schema(description = "信id")
+    private Long letterId;
 }

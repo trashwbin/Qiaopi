@@ -906,7 +906,6 @@ public class LetterServiceImpl implements LetterService {
         letter.setSenderEmail(user.getEmail());
         letter.setSpeedRate("1");
         letter.setSenderUserId(userId);
-        letter.setLetterContent(letterSendDTO.getLetterContent().trim());
         letter.setRecipientEmail(letterSendDTO.getRecipientEmail().toLowerCase());
         letter.setPiggyMoney(letterSendDTO.getPiggyMoney());
 
@@ -1019,7 +1018,7 @@ public class LetterServiceImpl implements LetterService {
                         .status(FriendConstants.PENDING)
                         .giveAddress(letter.getSenderAddress())
                         .content(letter.getRecipientName() + "!我给你写了一封侨批哦,快来加我为好友吧!")
-                        .bottleId(letterId)
+                        .letterId(letterId)
                         .build();
                 friendRequest.setCreateTime(letter.getDeliveryTime());
                 friendRequestMapper.insert(friendRequest);
