@@ -917,7 +917,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<TaskTable> task(Long userId) {
+    public List<TaskTable> getTask(Long userId) {
         LocalDateTime now = LocalDateTime.now();
         //用户存储在redis中的task的key的格式为 task:userId:日期
         String userKey = "task" + ":" +  userId + ":" + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -952,11 +952,13 @@ public class UserServiceImpl implements UserService {
 
     //完成任务 领取奖励
     @Override
-    public void finishTask(Long taskId, int money) {
+    public void finishTask(Long taskId) {
         Long userId = UserContext.getUserId();
 
         //在这里获取当前线程用户的id 根据此id设置用于redis key
         LocalDateTime now = LocalDateTime.now();
+        int money;
+
         String userKey = "task" + ":" +  userId + ":" + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String jsonStr = stringRedisTemplate.opsForValue().get(userKey);
         //通过这个键 获取导redis中的值 并且将这个值转化为TaskTable对象的集合
@@ -967,11 +969,13 @@ public class UserServiceImpl implements UserService {
             TaskTable taskTable = taskTableList.stream().filter(t -> t.getId().equals(taskId)).findFirst().orElse(null);
             //将对象中的 status 设为1
             taskTable.setStatus(2);
+            money = taskTable.getMoney();
             //将修改后的对象重新转换为json字符串并存入redis
             stringRedisTemplate.opsForValue().set(userKey, objectMapper.writeValueAsString(taskTableList));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
+
 
         //根据userId更改用户表中的money字段 将用户表中的money字段加money
         User user = userMapper.selectById(userId);

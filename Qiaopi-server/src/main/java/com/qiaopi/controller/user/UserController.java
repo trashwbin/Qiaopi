@@ -263,19 +263,19 @@ public class UserController {
         return success(message("user.sign.success"));
     }
 
-    @PostMapping("/task")
+    @PostMapping("/getTask")
     @Operation(summary = "每日任务")
-    public AjaxResult task() {
+    public AjaxResult getTask() {
         log.info("用户：{} 每日任务", UserContext.getUserId());
-        List<TaskTable> userTask = userService.task(UserContext.getUserId());
+        List<TaskTable> userTask = userService.getTask(UserContext.getUserId());
         return success(message("user.task.success"),userTask);
     }
 
-    @PostMapping("/finishTas")
+    @PostMapping("/finishTask")
     @Operation(summary = "完成任务")
-    public AjaxResult finishTask(Long taskId,int money) {
+    public AjaxResult finishTask(@RequestParam Long taskId) {
         log.info("用户：{} 完成任务 {}", UserContext.getUserId(),taskId);
-        userService.finishTask(taskId,money);
+        userService.finishTask(taskId);
         return success(message("user.finish.task.success"));
     }
 
