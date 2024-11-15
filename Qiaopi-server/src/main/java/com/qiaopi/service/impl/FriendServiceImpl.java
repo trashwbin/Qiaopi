@@ -16,12 +16,15 @@ import com.qiaopi.vo.FriendRequestVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.qiaopi.constant.CacheConstant.CACHE_USER_FRIENDS_KEY;
 
 @Service
 @Slf4j
@@ -44,6 +47,8 @@ public class FriendServiceImpl implements FriendService {
 
     @Autowired
     private LetterMapper letterMapper;
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
 /*
 
@@ -230,6 +235,7 @@ public class FriendServiceImpl implements FriendService {
         myNewFriend.setAddresses(Collections.singletonList(friendToMeAddress));
         myNewFriend.setOwningId(userId);
         myNewFriend.setAvatar(friend.getAvatar());
+        myNewFriend.setRemark(friend.getNickname());
         friendMapper.insert(myNewFriend);
 
 
@@ -249,8 +255,13 @@ public class FriendServiceImpl implements FriendService {
         BecomeFriendOfTheOtherParty.setAddresses(Collections.singletonList(mineToFriendAddresses));
         BecomeFriendOfTheOtherParty.setOwningId(friendId);
         BecomeFriendOfTheOtherParty.setAvatar(friend.getAvatar());
+        BecomeFriendOfTheOtherParty.setRemark(friend.getNickname());
 
         friendMapper.insert(BecomeFriendOfTheOtherParty);
+
+        // 删除缓存
+        stringRedisTemplate.delete(CACHE_USER_FRIENDS_KEY + userId);
+        stringRedisTemplate.delete(CACHE_USER_FRIENDS_KEY + friendId);
     }
 
 }

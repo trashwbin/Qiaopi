@@ -5,12 +5,12 @@
     <parent>
         <groupId>com.qiaopi</groupId>
         <artifactId>Qiaopi</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>1.0.0</version>
 <!--        <relativePath/> &lt;!&ndash; lookup parent from repository &ndash;&gt;-->
     </parent>
     <groupId>com.qiaopi</groupId>
     <artifactId>Qiaopi-server</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>Qiaopi-server</name>
     <description>Qiaopi-server</description>
     <url/>
@@ -144,13 +144,13 @@
         <dependency>
             <groupId>com.qiaopi</groupId>
             <artifactId>Qiaopi-pojo</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>1.0.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.qiaopi</groupId>
             <artifactId>Qiaopi-common</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>1.0.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
