@@ -437,6 +437,15 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             throw new UserNotExistsException();
         }
+
+        //在这里获取当前线程用户的id 根据此id设置用于redis key
+        LocalDateTime now = LocalDateTime.now();
+        String userKey = "task" + ":" +  userId + ":" + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String jsonStr = stringRedisTemplate.opsForValue().get(userKey);
+        if (StringUtils.isEmpty(jsonStr)){
+            getTask(userId);
+        }
+        // 强耦合一下，懒得改了，能用着先
         return user.getMoney();
     }
 
