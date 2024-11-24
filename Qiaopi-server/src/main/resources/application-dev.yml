@@ -1,0 +1,58 @@
+qiaopi:
+  jwt:
+    # 设置jwt签名加密时使用的秘钥
+    # 一定要超过长度，否则会报错。确保secretKey至少有32个字符。
+    user-secret-key: qiaopiqiaopiqiaopiqiaopiqiaopiqiaopiqiaopiqiaopiqiaopi
+    # 设置jwt过期时间
+    user-ttl: 720000000
+    # 设置前端传递过来的令牌名称
+    user-token-name: Authorization
+  rabbitmq:
+    host: 您的虚拟机ip
+    port: 5672
+    virtual-host: /
+    username: root
+    password: root
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    host: localhost
+    port: 3306
+    database: qiaopi
+    username: root
+    password: root
+  redis:
+    host: localhost
+    password: root
+    database: 1
+    port: 6379
+  mail:
+    host: smtp.qq.com
+    username: 您的QQ邮箱
+    password: 您的邮箱授权码
+  minio:
+    access-key: 您的minio配置的令牌
+    secret-key: 您的minio配置的密钥
+    end-point: http://您的虚拟机ip:9000
+    bucket-name: qiaopi
+    domain: http://您的虚拟机ip:9000/qiaopi/
+    base-path: qiaopi-images/
+  aes:
+    secret-key: qiaopiqiaopiqiaopiqiaopiqiaopinb
+  zhipu:
+    api-key: 您申请的智谱API密钥
+
+
+# knife4j项目访问访问地址:http://127.0.0.1:8080/doc.html#/home
+knife4j:
+  enable: true
+  # 设置为true以启用Knife4j增强功能,这将再应用程序中启用Knife4j UI
+  setting:
+    # language: 设置Knife4j UI的语言,默认为zh_cn,可选值为zh_cn或en
+    language: zh_cn
+  #开启生产环境屏蔽
+  production: false
+  #是否启用登录认证
+#  basic:
+#    enable: false
+#    username: admin # 自己设置一个
+#    password: 123456 # 自己设置一个
