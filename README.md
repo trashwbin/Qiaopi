@@ -51,7 +51,7 @@
 
 ## 快速部署
 
-本项目所需的初始化数据已经打包在**`init_qiaopi`**文件夹下，部分三方密钥需自行获取，账号密码记得修改为自己的，具体需要修改的**application.yml**如下: 
+本项目所需的初始化数据已经打包在`init_qiaopi`文件夹下，部分三方密钥需自行获取，账号密码记得修改为自己的，具体需要修改的**application.yml**如下: 
 
 <img src="https://gitee.com/trashwbin/qiaopi/raw/master/init_qiaopi/images/init.png"  />
 
